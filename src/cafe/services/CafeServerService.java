@@ -27,6 +27,23 @@ public class CafeServerService {
     private final Map<Integer, Order> activeOrders = new ConcurrentHashMap<>();
     private volatile boolean isRunning = false;
 
+    private final AtomicInteger clientWorkerCounter = new AtomicInteger(1);
+
+    // Optimized Thread Pools
+    private final java.util.concurrent.ExecutorService clientPool = java.util.concurrent.Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r);
+        t.setName("KDS-ClientWorker-" + clientWorkerCounter.getAndIncrement());
+        t.setDaemon(true);
+        return t;
+    });
+
+    private final java.util.concurrent.ExecutorService dbExecutor = java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r);
+        t.setName("KDS-DatabaseWorker");
+        t.setDaemon(true);
+        return t;
+    });
+
     // Callbacks
     private Consumer<Order> onOrderReceived;
     private BiConsumer<Integer, Boolean> onTableConnectionChanged;
@@ -55,7 +72,9 @@ public class CafeServerService {
 
                 while (isRunning) {
                     Socket clientSocket = serverSocket.accept();
-                    handleClientConnection(clientSocket);
+                    clientSocket.setTcpNoDelay(true);
+                    clientSocket.setKeepAlive(true);
+                    clientPool.submit(() -> handleClientConnection(clientSocket));
                 }
             } catch (IOException e) {
                 if (isRunning) {
@@ -65,6 +84,7 @@ public class CafeServerService {
                 stop();
             }
         });
+        serverThread.setName("KDS-AcceptorThread");
         serverThread.setDaemon(true);
         serverThread.start();
     }
@@ -74,68 +94,73 @@ public class CafeServerService {
     }
 
     private void handleClientConnection(Socket socket) {
-        Thread clientThread = new Thread(() -> {
-            int currentTable = -1;
-            PrintWriter out = null;
-            try (
-                BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
-                PrintWriter writer = new PrintWriter(socket.getOutputStream(), true, StandardCharsets.UTF_8)
-            ) {
-                out = writer;
-                String line;
-                while ((line = in.readLine()) != null) {
-                    MessageType type = MessageProtocol.getMessageType(line);
-                    if (type == null) continue;
+        int currentTable = -1;
+        PrintWriter out = null;
+        try (
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+            PrintWriter writer = new PrintWriter(socket.getOutputStream(), true, StandardCharsets.UTF_8)
+        ) {
+            out = writer;
+            String line;
+            while ((line = in.readLine()) != null) {
+                MessageType type = MessageProtocol.getMessageType(line);
+                if (type == null) continue;
 
-                    switch (type) {
-                        case HELLO:
-                            MessageProtocol.HelloMessage hello = MessageProtocol.fromJson(line, MessageProtocol.HelloMessage.class);
-                            currentTable = hello.table;
-                            clientMap.put(currentTable, out);
-                            log("Bàn số " + currentTable + " đã kết nối mạng.");
-                            final int tConnect = currentTable;
-                            dispatch(() -> {
-                                if (onTableConnectionChanged != null) onTableConnectionChanged.accept(tConnect, true);
-                            });
-                            break;
+                switch (type) {
+                    case HELLO:
+                        MessageProtocol.HelloMessage hello = MessageProtocol.fromJson(line, MessageProtocol.HelloMessage.class);
+                        currentTable = hello.table;
+                        clientMap.put(currentTable, out);
+                        log("Bàn số " + currentTable + " đã kết nối mạng.");
+                        final int tConnect = currentTable;
+                        dispatch(() -> {
+                            if (onTableConnectionChanged != null) onTableConnectionChanged.accept(tConnect, true);
+                        });
+                        break;
 
-                        case NEW_ORDER:
-                            MessageProtocol.NewOrderMessage orderMsg = MessageProtocol.fromJson(line, MessageProtocol.NewOrderMessage.class);
-                            int newOrderId = orderIdCounter.incrementAndGet();
+                    case NEW_ORDER:
+                        MessageProtocol.NewOrderMessage orderMsg = MessageProtocol.fromJson(line, MessageProtocol.NewOrderMessage.class);
+                        int newOrderId = orderIdCounter.incrementAndGet();
 
-                            Order newOrder = new Order(
-                                newOrderId,
-                                orderMsg.table,
-                                orderMsg.orderType,
-                                orderMsg.items,
-                                "QUEUED",
-                                orderMsg.discountAmount,
-                                0.0,
-                                orderMsg.voucherCode,
-                                orderMsg.note,
-                                System.currentTimeMillis()
-                            );
-                            activeOrders.put(newOrderId, newOrder);
-                            log("Nhận Đơn hàng #" + newOrderId + " (" + newOrder.getOrderTypeLabel() + ") - " + newOrder.getTotalQuantity() + " món.");
+                        Order newOrder = new Order(
+                            newOrderId,
+                            orderMsg.table,
+                            orderMsg.orderType,
+                            orderMsg.items,
+                            "QUEUED",
+                            orderMsg.discountAmount,
+                            0.0,
+                            orderMsg.voucherCode,
+                            orderMsg.note,
+                            System.currentTimeMillis()
+                        );
+                        activeOrders.put(newOrderId, newOrder);
+                        log("Nhận Đơn hàng #" + newOrderId + " (" + newOrder.getOrderTypeLabel() + ") - " + newOrder.getTotalQuantity() + " món.");
 
-                            // Tự động lưu bền vững vào SQL Server Database CafeOrderDB
-                            DatabaseManager.saveOrder(newOrder);
+                        // 1. Phản hồi ORDER_ACK siêu tốc (<1ms) ngay lập tức về Kiosk
+                        MessageProtocol.OrderAckMessage ack = new MessageProtocol.OrderAckMessage(newOrderId, "QUEUED", activeOrders.size());
+                        out.print(MessageProtocol.toJson(ack));
+                        out.flush();
 
-                            // Phản hồi ORDER_ACK
-                            MessageProtocol.OrderAckMessage ack = new MessageProtocol.OrderAckMessage(newOrderId, "QUEUED", activeOrders.size());
-                            out.print(MessageProtocol.toJson(ack));
-                            out.flush();
+                        // 2. Bắn sự kiện tức thì lên giao diện KDS Bar
+                        dispatch(() -> {
+                            if (onOrderReceived != null) onOrderReceived.accept(newOrder);
+                        });
 
-                            // Bắn sự kiện lên giao diện KDS
-                            dispatch(() -> {
-                                if (onOrderReceived != null) onOrderReceived.accept(newOrder);
-                            });
-                            break;
+                        // 3. Bất đồng bộ lưu bền vững vào SQL Server qua worker riêng, không chặn socket
+                        dbExecutor.submit(() -> {
+                            try {
+                                DatabaseManager.saveOrder(newOrder);
+                            } catch (Exception ex) {
+                                log("Lỗi lưu đơn vào DB: " + ex.getMessage());
+                            }
+                        });
+                        break;
 
-                        default:
-                            break;
-                    }
+                    default:
+                        break;
                 }
+            }
             } catch (SocketException e) {
                 // Client ngắt kết nối
             } catch (IOException e) {
@@ -153,9 +178,6 @@ public class CafeServerService {
                     if (socket != null && !socket.isClosed()) socket.close();
                 } catch (IOException ignored) {}
             }
-        });
-        clientThread.setDaemon(true);
-        clientThread.start();
     }
 
     public boolean updateOrderStatus(int orderId, String newStatus) {
@@ -194,6 +216,8 @@ public class CafeServerService {
                 serverSocket.close();
             }
         } catch (IOException ignored) {}
+        clientPool.shutdownNow();
+        dbExecutor.shutdown();
         log("Máy chủ đã dừng.");
     }
 

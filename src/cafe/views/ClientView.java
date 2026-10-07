@@ -33,6 +33,10 @@ public class ClientView extends BorderPane {
     private final ScrollPane catalogScrollPane = new ScrollPane();
     private List<MenuItem> currentMenuItems = new java.util.ArrayList<>();
     private Consumer<MenuItem> currentOnSelect;
+    private final List<ItemCard> currentCards = new java.util.ArrayList<>();
+    private final javafx.animation.PauseTransition resizeDebounce = new javafx.animation.PauseTransition(Duration.millis(60));
+    private int currentCols = -1;
+    private double currentCardWidth = -1;
 
     // Cart controls
     private final Label lblCartCount = new Label("0 món");
@@ -188,10 +192,11 @@ public class ClientView extends BorderPane {
         catalogScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         VBox.setVgrow(catalogScrollPane, Priority.ALWAYS);
 
-        // Tự động tính toán lại số cột và co dãn thẻ theo chiều rộng viewport
+        // Tự động tính toán lại số cột và co dãn thẻ theo chiều rộng viewport với debounce mượt mà
+        resizeDebounce.setOnFinished(e -> relayoutMenuItems());
         catalogScrollPane.viewportBoundsProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null && newVal.getWidth() > 0) {
-                relayoutMenuItems();
+                resizeDebounce.playFromStart();
             }
         });
 
@@ -368,11 +373,17 @@ public class ClientView extends BorderPane {
     public void renderMenuItems(List<MenuItem> items, Consumer<MenuItem> onSelect) {
         this.currentMenuItems = items != null ? items : new java.util.ArrayList<>();
         this.currentOnSelect = onSelect;
+
+        currentCards.clear();
+        for (MenuItem item : currentMenuItems) {
+            currentCards.add(new ItemCard(item, currentOnSelect));
+        }
+        currentCols = -1; // Force layout recalculation
         relayoutMenuItems();
     }
 
     private void relayoutMenuItems() {
-        if (currentMenuItems == null || currentMenuItems.isEmpty()) {
+        if (currentMenuItems == null || currentMenuItems.isEmpty() || currentCards.isEmpty()) {
             itemsGridPane.getChildren().clear();
             itemsGridPane.getColumnConstraints().clear();
             emptySearchBox.setVisible(true);
@@ -397,6 +408,14 @@ public class ClientView extends BorderPane {
         // Chiều rộng mỗi thẻ = (availableWidth - GAP * (cột - 1)) / cột
         double cardWidth = Math.floor((availableWidth - GAP * (cols - 1)) / cols);
 
+        // Nếu số cột và bề rộng không đổi đáng kể, bỏ qua việc render lại DOM
+        if (cols == currentCols && Math.abs(cardWidth - currentCardWidth) < 1.0 && !itemsGridPane.getChildren().isEmpty()) {
+            return;
+        }
+
+        currentCols = cols;
+        currentCardWidth = cardWidth;
+
         itemsGridPane.getChildren().clear();
         itemsGridPane.getColumnConstraints().clear();
 
@@ -411,10 +430,9 @@ public class ClientView extends BorderPane {
             itemsGridPane.getColumnConstraints().add(cc);
         }
 
-        // Đổ các thẻ vào lưới, hàng cuối cùng vẫn giữ nguyên chiều rộng và căn trái
-        for (int i = 0; i < currentMenuItems.size(); i++) {
-            MenuItem item = currentMenuItems.get(i);
-            ItemCard card = new ItemCard(item, currentOnSelect);
+        // Tái sử dụng các thẻ đã được tạo sẵn trong cache
+        for (int i = 0; i < currentCards.size(); i++) {
+            ItemCard card = currentCards.get(i);
             card.setPrefWidth(cardWidth);
             card.setMinWidth(cardWidth);
             card.setMaxWidth(Double.MAX_VALUE);

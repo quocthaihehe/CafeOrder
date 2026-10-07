@@ -10,7 +10,9 @@ public class DatabaseManager {
     private static final String USER = "sa";
     private static final String PASSWORD = "cafe123";
 
-    private static Boolean cachedAvailability = null;
+    private static volatile long lastCheckTime = 0;
+    private static volatile boolean lastCheckResult = false;
+    private static final long CHECK_TTL_MS = 20000; // 20 seconds cache
 
     public static Connection getConnection() throws SQLException {
         DriverManager.setLoginTimeout(2);
@@ -18,16 +20,17 @@ public class DatabaseManager {
     }
 
     public static boolean isAvailable() {
-        if (cachedAvailability != null && !cachedAvailability) {
-            return false;
+        long now = System.currentTimeMillis();
+        if (lastCheckTime > 0 && (now - lastCheckTime < CHECK_TTL_MS)) {
+            return lastCheckResult;
         }
         try (Connection conn = getConnection()) {
-            cachedAvailability = true;
-            return true;
+            lastCheckResult = true;
         } catch (Exception e) {
-            cachedAvailability = false;
-            return false;
+            lastCheckResult = false;
         }
+        lastCheckTime = now;
+        return lastCheckResult;
     }
 
     public static boolean saveOrder(Order order) {

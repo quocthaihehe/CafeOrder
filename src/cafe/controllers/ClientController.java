@@ -18,6 +18,7 @@ public class ClientController {
     private int tableNumber;
     private String currentCategory = "Tất cả";
     private String currentSearchKeyword = "";
+    private final javafx.animation.PauseTransition searchDebounce = new javafx.animation.PauseTransition(javafx.util.Duration.millis(160));
 
     public ClientController(Stage primaryStage, ClientView view, ClientSocketService socketService, int tableNumber) {
         this.primaryStage = primaryStage;
@@ -37,8 +38,11 @@ public class ClientController {
         view.renderCategories(MenuRepository.getCategories(), currentCategory, this::onCategorySelected);
 
         view.getSearchField().textProperty().addListener((obs, oldVal, newVal) -> {
-            currentSearchKeyword = newVal != null ? newVal.trim().toLowerCase() : "";
-            refreshMenuCatalog();
+            searchDebounce.setOnFinished(e -> {
+                currentSearchKeyword = newVal != null ? newVal.trim().toLowerCase() : "";
+                refreshMenuCatalog();
+            });
+            searchDebounce.playFromStart();
         });
 
         // Order Type Selector

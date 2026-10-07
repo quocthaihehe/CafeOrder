@@ -17,6 +17,7 @@ public class ServerController {
     private final List<String> filterList = Arrays.asList("Tất cả đơn", "Đang chờ", "Đang pha chế", "Đã xong");
     private String currentFilter = "Tất cả đơn";
     private String searchKeyword = "";
+    private final javafx.animation.PauseTransition searchDebounce = new javafx.animation.PauseTransition(javafx.util.Duration.millis(160));
 
     public ServerController(ServerKDSView view, CafeServerService serverService) {
         this.view = view;
@@ -29,10 +30,13 @@ public class ServerController {
         // Render initial filters
         view.renderFilters(filterList, currentFilter, this::onFilterChanged);
 
-        // Search listener
+        // Search listener with debounce
         view.getSearchField().textProperty().addListener((obs, oldVal, newVal) -> {
-            searchKeyword = newVal != null ? newVal.trim().toLowerCase() : "";
-            refreshTicketBoard();
+            searchDebounce.setOnFinished(e -> {
+                searchKeyword = newVal != null ? newVal.trim().toLowerCase() : "";
+                refreshTicketBoard();
+            });
+            searchDebounce.playFromStart();
         });
 
         // Clear done orders button

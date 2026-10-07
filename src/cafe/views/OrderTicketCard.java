@@ -13,12 +13,27 @@ import java.util.function.BiConsumer;
 public class OrderTicketCard extends VBox {
     private final Order order;
     private final BiConsumer<Order, String> onStatusChange;
+    private final Label lblTime = new Label();
 
     public OrderTicketCard(Order order, BiConsumer<Order, String> onStatusChange) {
         this.order = order;
         this.onStatusChange = onStatusChange;
 
         initUI();
+    }
+
+    public void updateElapsedTime() {
+        long elapsedMillis = System.currentTimeMillis() - order.getTimestamp();
+        long elapsedMinutes = Math.max(0, elapsedMillis / 60000);
+        lblTime.setText(order.getFormattedTime() + " (" + elapsedMinutes + "p trước)");
+        if (elapsedMinutes >= 15) {
+            lblTime.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 800; -fx-text-fill: #D32F2F;");
+        } else if (elapsedMinutes >= 10) {
+            lblTime.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 800; -fx-text-fill: #F57C00;");
+        } else {
+            lblTime.getStyleClass().setAll("ticket-time");
+            lblTime.setStyle("");
+        }
     }
 
     private void initUI() {
@@ -47,18 +62,7 @@ public class OrderTicketCard extends VBox {
         lblId.getStyleClass().add("ticket-order-id");
         topTitleRow.getChildren().addAll(lblType, lblId);
 
-        // Elapsed time calculation
-        long elapsedMillis = System.currentTimeMillis() - order.getTimestamp();
-        long elapsedMinutes = Math.max(0, elapsedMillis / 60000);
-
-        Label lblTime = new Label(order.getFormattedTime() + " (" + elapsedMinutes + "p trước)");
-        if (elapsedMinutes >= 15) {
-            lblTime.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 800; -fx-text-fill: #D32F2F;");
-        } else if (elapsedMinutes >= 10) {
-            lblTime.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 800; -fx-text-fill: #F57C00;");
-        } else {
-            lblTime.getStyleClass().add("ticket-time");
-        }
+        updateElapsedTime();
 
         titleBox.getChildren().addAll(topTitleRow, lblTime);
         HBox.setHgrow(titleBox, Priority.ALWAYS);

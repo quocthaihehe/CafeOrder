@@ -47,7 +47,10 @@ public class ClientSocketService {
 
     public boolean connect(String host, int port, int tableNumber) {
         try {
-            socket = new Socket(host, port);
+            socket = new Socket();
+            socket.connect(new java.net.InetSocketAddress(host, port), 2500);
+            socket.setTcpNoDelay(true);
+            socket.setKeepAlive(true);
             out = new PrintWriter(socket.getOutputStream(), true, StandardCharsets.UTF_8);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
             running = true;

@@ -155,7 +155,13 @@ public class ServerKDSView extends BorderPane {
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss • EEE, dd/MM/yyyy");
         Timeline clock = new Timeline(new KeyFrame(Duration.ZERO, e -> {
             lblClock.setText(sdf.format(new Date()));
-        }), new KeyFrame(Duration.seconds(1)));
+            // Cập nhật thời gian chờ của các vé pha chế đang hiển thị mà không cần re-render cả bảng
+            for (javafx.scene.Node node : ticketsFlowPane.getChildren()) {
+                if (node instanceof OrderTicketCard) {
+                    ((OrderTicketCard) node).updateElapsedTime();
+                }
+            }
+        }), new KeyFrame(Duration.seconds(2)));
         clock.setCycleCount(Animation.INDEFINITE);
         clock.play();
     }

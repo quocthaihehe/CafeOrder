@@ -96,34 +96,27 @@ public class ItemCard extends VBox {
 
         bottomRow.getChildren().addAll(lblPrice, spacer, btnAdd);
 
-        // Image Container with smooth rounded corners
-        StackPane imageContainer = new StackPane();
-        imageContainer.getStyleClass().add("item-image-container");
-        imageContainer.setPrefHeight(135);
-        imageContainer.setMinHeight(135);
-        imageContainer.setMaxHeight(135);
+        // Khung ảnh Responsive bo góc 4 phía, co giãn theo chiều rộng thẻ (vùng lọt lòng ~225px)
+        StackPane imageWrapper = new StackPane();
+        imageWrapper.setMinWidth(0);
+        imageWrapper.setPrefWidth(Region.USE_COMPUTED_SIZE);
+        imageWrapper.setMaxWidth(Double.MAX_VALUE);
+        imageWrapper.setMinHeight(130);
+        imageWrapper.setPrefHeight(130);
+        imageWrapper.setMaxHeight(130);
 
-        ImageView imgView = cafe.utils.ImageManager.createProductImageView(item, 220, 135, 12);
-        imgView.fitWidthProperty().bind(imageContainer.widthProperty());
-        
-        Rectangle clip = new Rectangle();
-        clip.setArcWidth(24);
-        clip.setArcHeight(24);
-        clip.widthProperty().bind(imageContainer.widthProperty());
-        clip.heightProperty().bind(imageContainer.heightProperty());
-        imageContainer.setClip(clip);
-
-        imageContainer.getChildren().add(imgView);
+        ProductImagePane imagePane = new ProductImagePane(item, 130, 12);
+        imageWrapper.getChildren().add(imagePane);
 
         // Position badges over top-left of image
         if (!topBadges.getChildren().isEmpty()) {
             StackPane.setAlignment(topBadges, Pos.TOP_LEFT);
             topBadges.setPadding(new Insets(8, 0, 0, 8));
-            imageContainer.getChildren().add(topBadges);
+            imageWrapper.getChildren().add(topBadges);
         }
 
         // Assemble card
-        getChildren().addAll(imageContainer, lblCategory, lblName, optionsHint, lblDesc, bottomRow);
+        getChildren().addAll(imageWrapper, lblCategory, lblName, optionsHint, lblDesc, bottomRow);
 
 
         setOnMouseClicked(e -> {

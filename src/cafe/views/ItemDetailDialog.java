@@ -56,8 +56,8 @@ public class ItemDetailDialog extends Stage {
         headerBox.setAlignment(Pos.CENTER_LEFT);
         headerBox.setStyle("-fx-padding: 0 0 12 0; -fx-border-color: transparent transparent #EADBCE transparent; -fx-border-width: 0 0 1 0;");
 
-        // Product thumbnail
-        javafx.scene.image.ImageView thumbImg = cafe.utils.ImageManager.createProductImageView(item, 100, 100, 14);
+        // Product thumbnail (Center-crop bo tròn 4 phía)
+        ProductImagePane thumbImg = new ProductImagePane(item, 100, 100, 14);
 
         VBox infoBox = new VBox(4);
         HBox.setHgrow(infoBox, Priority.ALWAYS);

@@ -1,5 +1,7 @@
 package cafe.models;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 public class Order {
@@ -17,7 +19,6 @@ public class Order {
         this.timestamp = timestamp;
     }
 
-    // Getters and Setters
     public int getOrderId() { return orderId; }
     public void setOrderId(int orderId) { this.orderId = orderId; }
     
@@ -32,4 +33,27 @@ public class Order {
     
     public long getTimestamp() { return timestamp; }
     public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
+
+    public int getTotalQuantity() {
+        if (items == null) return 0;
+        int count = 0;
+        for (OrderItem item : items) {
+            count += item.getQty();
+        }
+        return count;
+    }
+
+    public double getTotalAmount() {
+        if (items == null) return 0.0;
+        double total = 0.0;
+        for (OrderItem item : items) {
+            total += item.getSubtotal();
+        }
+        return total;
+    }
+
+    public String getFormattedTime() {
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+        return sdf.format(new Date(timestamp));
+    }
 }

@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "☕ 1. Khởi động Server (Quầy Pha Chế KDS)",
+      "request": "launch",
+      "mainClass": "cafe.ServerMain",
+      "vmArgs": "-Dfile.encoding=UTF-8 -XX:-PrintWarnings"
+    },
+    {
+      "type": "java",
+      "name": "📱 2. Khởi động Client (Đặt Món Kiosk)",
+      "request": "launch",
+      "mainClass": "cafe.ClientMain",
+      "vmArgs": "-Dfile.encoding=UTF-8 -XX:-PrintWarnings"
+    },
+    {
+      "type": "java",
+      "name": "🧪 3. Chạy Kiểm Thử (Verification Test)",
+      "request": "launch",
+      "mainClass": "test.SystemVerificationTest",
+      "vmArgs": "-Dfile.encoding=UTF-8 -XX:-PrintWarnings"
+    }
+  ]
+}

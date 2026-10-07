@@ -1,0 +1,249 @@
+/* ==========================================================================
+   CAFE ORDER - KITCHEN DISPLAY SYSTEM (KDS) DESIGN SYSTEM
+   Theme: Modern Barista Workstation & Relaxed Artisanal Counter
+   ========================================================================== */
+
+.root {
+    -fx-font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', 'San Francisco', sans-serif;
+    -fx-background-color: #1E1714;
+    -fx-text-fill: #FAF7F2;
+}
+
+/* --------------------------------------------------------------------------
+   HEADER
+   -------------------------------------------------------------------------- */
+.kds-header {
+    -fx-background-color: #181210;
+    -fx-border-color: transparent transparent #382C26 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 16 24 16 24;
+}
+
+.kds-brand-title {
+    -fx-font-size: 19px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #FAF7F2;
+}
+
+.kds-brand-subtitle {
+    -fx-font-size: 11px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #9E8D84;
+}
+
+.stat-pill {
+    -fx-background-radius: 18;
+    -fx-border-radius: 18;
+    -fx-border-width: 1;
+    -fx-padding: 6 14 6 14;
+}
+
+.stat-queued {
+    -fx-background-color: #38250A;
+    -fx-border-color: #92400E;
+    -fx-text-fill: #FBBF24;
+    -fx-font-weight: 700;
+    -fx-font-size: 12.5px;
+}
+
+.stat-preparing {
+    -fx-background-color: #0E2847;
+    -fx-border-color: #1E40AF;
+    -fx-text-fill: #60A5FA;
+    -fx-font-weight: 700;
+    -fx-font-size: 12.5px;
+}
+
+.stat-done {
+    -fx-background-color: #0E351E;
+    -fx-border-color: #166534;
+    -fx-text-fill: #4ADE80;
+    -fx-font-weight: 700;
+    -fx-font-size: 12.5px;
+}
+
+/* --------------------------------------------------------------------------
+   CONTROL & FILTER BAR
+   -------------------------------------------------------------------------- */
+.kds-filter-bar {
+    -fx-padding: 14 24 10 24;
+}
+
+.kds-filter-btn {
+    -fx-background-color: #2D231E;
+    -fx-background-radius: 16;
+    -fx-text-fill: #A89A92;
+    -fx-font-size: 12.5px;
+    -fx-font-weight: 600;
+    -fx-padding: 7 16 7 16;
+    -fx-cursor: hand;
+    -fx-border-color: #42342D;
+    -fx-border-radius: 16;
+    -fx-border-width: 1;
+}
+
+.kds-filter-btn:hover {
+    -fx-background-color: #3A2E28;
+    -fx-text-fill: #FAF7F2;
+}
+
+.kds-filter-btn-active {
+    -fx-background-color: #C97A44;
+    -fx-background-radius: 16;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 12.5px;
+    -fx-font-weight: 700;
+    -fx-padding: 7 16 7 16;
+    -fx-cursor: hand;
+    -fx-border-width: 0;
+}
+
+/* --------------------------------------------------------------------------
+   TICKET CARD (ORDER CARD)
+   -------------------------------------------------------------------------- */
+.ticket-scroll-pane {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+
+.ticket-scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.ticket-card {
+    -fx-background-color: #281F1A;
+    -fx-background-radius: 16;
+    -fx-border-color: #42342D;
+    -fx-border-radius: 16;
+    -fx-border-width: 1;
+    -fx-padding: 16;
+    -fx-pref-width: 290;
+    -fx-max-width: 320;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 14, 0, 0, 4);
+}
+
+.ticket-card:hover {
+    -fx-border-color: #634F45;
+}
+
+.ticket-header {
+    -fx-border-color: transparent transparent #3D2F28 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 0 0 10 0;
+}
+
+.ticket-table-name {
+    -fx-font-size: 16px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #FAF7F2;
+}
+
+.ticket-order-id {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #C97A44;
+}
+
+.ticket-time {
+    -fx-font-size: 11px;
+    -fx-text-fill: #8D7B74;
+}
+
+.ticket-status-badge {
+    -fx-background-radius: 12;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-padding: 4 10 4 10;
+}
+
+.badge-queued {
+    -fx-background-color: #38250A;
+    -fx-text-fill: #FBBF24;
+    -fx-border-color: #92400E;
+    -fx-border-radius: 12;
+}
+
+.badge-preparing {
+    -fx-background-color: #0E2847;
+    -fx-text-fill: #60A5FA;
+    -fx-border-color: #1E40AF;
+    -fx-border-radius: 12;
+}
+
+.badge-done {
+    -fx-background-color: #0E351E;
+    -fx-text-fill: #4ADE80;
+    -fx-border-color: #166534;
+    -fx-border-radius: 12;
+}
+
+.ticket-item-row {
+    -fx-padding: 5 0 5 0;
+}
+
+.ticket-item-qty {
+    -fx-font-size: 13.5px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #F3ECE6;
+    -fx-min-width: 24;
+}
+
+.ticket-item-name {
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #FAF7F2;
+}
+
+.ticket-item-note {
+    -fx-background-color: #362922;
+    -fx-background-radius: 8;
+    -fx-text-fill: #E5B28B;
+    -fx-font-size: 11px;
+    -fx-padding: 3 8 3 8;
+}
+
+/* Action buttons on Ticket */
+.btn-kds-prepare {
+    -fx-background-color: #1E40AF;
+    -fx-background-radius: 10;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 9 12 9 12;
+    -fx-cursor: hand;
+}
+
+.btn-kds-prepare:hover {
+    -fx-background-color: #2563EB;
+}
+
+.btn-kds-done {
+    -fx-background-color: #15803D;
+    -fx-background-radius: 10;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 9 12 9 12;
+    -fx-cursor: hand;
+}
+
+.btn-kds-done:hover {
+    -fx-background-color: #16A34A;
+}
+
+/* --------------------------------------------------------------------------
+   LOG DRAWER
+   -------------------------------------------------------------------------- */
+.kds-log-drawer {
+    -fx-background-color: #140E0C;
+    -fx-border-color: #382C26 transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 8 20 8 20;
+}
+
+.kds-log-text {
+    -fx-font-family: 'Consolas', monospace;
+    -fx-font-size: 11px;
+    -fx-text-fill: #7D6E68;
+}

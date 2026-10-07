@@ -1,0 +1,27 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Biên dịch & Sao chép CSS",
+      "type": "shell",
+      "command": "javac -d build/classes -cp \"lib/*;src\" (Get-ChildItem -Path src,test -Filter \"*.java\" -Recurse | Select-Object -ExpandProperty FullName); $srcRes = \"src\"; $buildRes = \"build/classes\"; Get-ChildItem -Path $srcRes -Filter \"*.css\" -Recurse | ForEach-Object { $rel = $_.FullName.Substring((Resolve-Path $srcRes).Path.Length + 1); $target = Join-Path $buildRes $rel; $targetDir = Split-Path $target -Parent; if (-not (Test-Path $targetDir)) { New-Item -ItemType Directory -Path $targetDir -Force | Out-Null }; Copy-Item -Path $_.FullName -Destination $target -Force }",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Chạy Server KDS (Terminal)",
+      "type": "shell",
+      "command": "java \"-Dfile.encoding=UTF-8\" -cp \"build/classes;lib/*\" cafe.ServerMain",
+      "problemMatcher": []
+    },
+    {
+      "label": "Chạy Client Kiosk (Terminal)",
+      "type": "shell",
+      "command": "java \"-Dfile.encoding=UTF-8\" -cp \"build/classes;lib/*\" cafe.ClientMain",
+      "problemMatcher": []
+    }
+  ]
+}

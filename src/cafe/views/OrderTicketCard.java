@@ -25,25 +25,42 @@ public class OrderTicketCard extends VBox {
         getStyleClass().add("ticket-card");
         setSpacing(10);
 
-        // Header: Table + ID + Status
+        // Header: Order Type + ID + Time + Status
         HBox header = new HBox(8);
         header.getStyleClass().add("ticket-header");
         header.setAlignment(Pos.CENTER_LEFT);
 
-        VBox titleBox = new VBox(2);
-        Label lblTable = new Label("BÀN " + (order.getTable() < 10 ? "0" + order.getTable() : order.getTable()));
-        lblTable.getStyleClass().add("ticket-table-name");
+        VBox titleBox = new VBox(3);
 
-        HBox metaRow = new HBox(6);
-        metaRow.setAlignment(Pos.CENTER_LEFT);
+        HBox topTitleRow = new HBox(6);
+        topTitleRow.setAlignment(Pos.CENTER_LEFT);
+
+        // Order Type Label
+        Label lblType = new Label(order.getOrderTypeLabel());
+        if ("TAKEAWAY".equalsIgnoreCase(order.getOrderType())) {
+            lblType.setStyle("-fx-background-color: #FFF3E0; -fx-text-fill: #E65100; -fx-font-weight: 800; -fx-font-size: 11px; -fx-padding: 2 8 2 8; -fx-background-radius: 8;");
+        } else {
+            lblType.setStyle("-fx-background-color: #EFEBE9; -fx-text-fill: #3E2723; -fx-font-weight: 800; -fx-font-size: 11px; -fx-padding: 2 8 2 8; -fx-background-radius: 8;");
+        }
+
         Label lblId = new Label("#" + order.getOrderId());
         lblId.getStyleClass().add("ticket-order-id");
+        topTitleRow.getChildren().addAll(lblType, lblId);
 
-        Label lblTime = new Label("• " + order.getFormattedTime());
-        lblTime.getStyleClass().add("ticket-time");
-        metaRow.getChildren().addAll(lblId, lblTime);
+        // Elapsed time calculation
+        long elapsedMillis = System.currentTimeMillis() - order.getTimestamp();
+        long elapsedMinutes = Math.max(0, elapsedMillis / 60000);
 
-        titleBox.getChildren().addAll(lblTable, metaRow);
+        Label lblTime = new Label(order.getFormattedTime() + " (" + elapsedMinutes + "p trước)");
+        if (elapsedMinutes >= 15) {
+            lblTime.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 800; -fx-text-fill: #D32F2F;");
+        } else if (elapsedMinutes >= 10) {
+            lblTime.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 800; -fx-text-fill: #F57C00;");
+        } else {
+            lblTime.getStyleClass().add("ticket-time");
+        }
+
+        titleBox.getChildren().addAll(topTitleRow, lblTime);
         HBox.setHgrow(titleBox, Priority.ALWAYS);
 
         // Status Badge
@@ -54,13 +71,13 @@ public class OrderTicketCard extends VBox {
         header.getChildren().addAll(titleBox, lblStatus);
         getChildren().add(header);
 
-        // Items list
+        // Items list with full customization
         VBox itemsBox = new VBox(8);
         itemsBox.setPadding(new Insets(4, 0, 8, 0));
 
         if (order.getItems() != null) {
             for (OrderItem oi : order.getItems()) {
-                VBox itemRow = new VBox(3);
+                VBox itemRow = new VBox(2);
                 itemRow.getStyleClass().add("ticket-item-row");
 
                 HBox mainLine = new HBox(8);
@@ -77,8 +94,17 @@ public class OrderTicketCard extends VBox {
                 mainLine.getChildren().addAll(lblQty, lblName);
                 itemRow.getChildren().add(mainLine);
 
+                // Customization specs line (Size, Ice, Sugar, Toppings)
+                String custom = oi.getCustomizationSummary();
+                if (!custom.isEmpty()) {
+                    Label lblCustom = new Label(custom);
+                    lblCustom.setStyle("-fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: #A0522D;");
+                    lblCustom.setWrapText(true);
+                    itemRow.getChildren().add(lblCustom);
+                }
+
                 if (oi.getNote() != null && !oi.getNote().trim().isEmpty()) {
-                    Label lblNote = new Label("📝 " + oi.getNote().trim());
+                    Label lblNote = new Label("Ghi chú: " + oi.getNote().trim());
                     lblNote.getStyleClass().add("ticket-item-note");
                     lblNote.setWrapText(true);
                     itemRow.getChildren().add(lblNote);
@@ -100,20 +126,20 @@ public class OrderTicketCard extends VBox {
 
         String st = order.getStatus();
         if ("QUEUED".equalsIgnoreCase(st)) {
-            Button btnPrepare = new Button("▶ PHA CHẾ");
+            Button btnPrepare = new Button("BẮT ĐẦU PHA");
             btnPrepare.getStyleClass().add("btn-kds-prepare");
             btnPrepare.setMaxWidth(Double.MAX_VALUE);
             HBox.setHgrow(btnPrepare, Priority.ALWAYS);
             btnPrepare.setOnAction(e -> onStatusChange.accept(order, "PREPARING"));
 
-            Button btnDone = new Button("✓ XONG");
+            Button btnDone = new Button("XONG");
             btnDone.getStyleClass().add("btn-kds-done");
             btnDone.setOnAction(e -> onStatusChange.accept(order, "DONE"));
 
             actions.getChildren().addAll(btnPrepare, btnDone);
             getChildren().add(actions);
         } else if ("PREPARING".equalsIgnoreCase(st)) {
-            Button btnDone = new Button("✓ HOÀN TẤT & GỬI BÀN");
+            Button btnDone = new Button("HOÀN TẤT & PHỤC VỤ");
             btnDone.getStyleClass().add("btn-kds-done");
             btnDone.setMaxWidth(Double.MAX_VALUE);
             HBox.setHgrow(btnDone, Priority.ALWAYS);
@@ -121,27 +147,31 @@ public class OrderTicketCard extends VBox {
 
             actions.getChildren().add(btnDone);
             getChildren().add(actions);
-        } else {
-            Label lblCompleted = new Label("✓ Đã hoàn tất phục vụ");
-            lblCompleted.setStyle("-fx-text-fill: #4ADE80; -fx-font-weight: 700; -fx-font-size: 12px;");
-            actions.getChildren().add(lblCompleted);
+        } else if ("DONE".equalsIgnoreCase(st)) {
+            Label lblDone = new Label("Đã hoàn tất phục vụ");
+            lblDone.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #2E7D32; -fx-padding: 6 0 2 0;");
+            actions.getChildren().add(lblDone);
             getChildren().add(actions);
         }
     }
 
-    private void applyStatusBadgeStyle(Label label, String rawStatus) {
-        label.getStyleClass().removeAll("badge-queued", "badge-preparing", "badge-done");
-        if ("QUEUED".equalsIgnoreCase(rawStatus)) {
-            label.setText("ĐANG CHỜ");
-            label.getStyleClass().add("badge-queued");
-        } else if ("PREPARING".equalsIgnoreCase(rawStatus)) {
-            label.setText("ĐANG PHA CHẾ");
-            label.getStyleClass().add("badge-preparing");
-        } else if ("DONE".equalsIgnoreCase(rawStatus)) {
-            label.setText("ĐÃ XONG");
-            label.getStyleClass().add("badge-done");
-        } else {
-            label.setText(MessageProtocol.translateStatus(rawStatus));
+    private void applyStatusBadgeStyle(Label lbl, String status) {
+        if (status == null) status = "QUEUED";
+        lbl.setText(MessageProtocol.translateStatus(status));
+
+        switch (status.toUpperCase()) {
+            case "QUEUED":
+                lbl.setStyle("-fx-background-color: #FFF4E5; -fx-text-fill: #B76E00; -fx-font-weight: 700; -fx-font-size: 11px; -fx-padding: 3 8 3 8; -fx-background-radius: 8;");
+                break;
+            case "PREPARING":
+                lbl.setStyle("-fx-background-color: #E3F2FD; -fx-text-fill: #1565C0; -fx-font-weight: 700; -fx-font-size: 11px; -fx-padding: 3 8 3 8; -fx-background-radius: 8;");
+                break;
+            case "DONE":
+                lbl.setStyle("-fx-background-color: #E8F5E9; -fx-text-fill: #2E7D32; -fx-font-weight: 700; -fx-font-size: 11px; -fx-padding: 3 8 3 8; -fx-background-radius: 8;");
+                break;
+            default:
+                lbl.setStyle("-fx-background-color: #EEEEEE; -fx-text-fill: #616161; -fx-font-weight: 700; -fx-font-size: 11px; -fx-padding: 3 8 3 8; -fx-background-radius: 8;");
+                break;
         }
     }
 }

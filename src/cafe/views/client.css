@@ -435,6 +435,110 @@
     -fx-border-color: #C97A44;
 }
 
+/* --------------------------------------------------------------------------
+   OPTION SELECTION TOGGLE BUTTONS (Modal Item Customization)
+   -------------------------------------------------------------------------- */
+.option-toggle-btn {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 12;
+    -fx-border-color: #DCCFC6;
+    -fx-border-radius: 12;
+    -fx-border-width: 1.5;
+    -fx-text-fill: #5D4037;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+    -fx-padding: 9 18 9 18;
+    -fx-cursor: hand;
+    -fx-alignment: center;
+}
+
+.option-toggle-btn:hover {
+    -fx-background-color: #F8EDE5;
+    -fx-border-color: #C97A44;
+    -fx-text-fill: #2C1810;
+}
+
+.option-toggle-btn:selected {
+    -fx-background-color: #C97A44;
+    -fx-background-radius: 12;
+    -fx-border-color: #8D4925;
+    -fx-border-radius: 12;
+    -fx-border-width: 1.5;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-effect: dropshadow(gaussian, rgba(201, 122, 68, 0.45), 8, 0, 0, 2);
+}
+
+.option-toggle-btn:selected:hover {
+    -fx-background-color: #B86733;
+    -fx-border-color: #6D3418;
+}
+
+/* Percentage Toggle Buttons (Sugar & Ice) */
+.option-level-btn {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 10;
+    -fx-border-color: #DCCFC6;
+    -fx-border-radius: 10;
+    -fx-border-width: 1.5;
+    -fx-text-fill: #5D4037;
+    -fx-font-size: 12.5px;
+    -fx-font-weight: 700;
+    -fx-pref-width: 56;
+    -fx-pref-height: 36;
+    -fx-cursor: hand;
+    -fx-alignment: center;
+}
+
+.option-level-btn:hover {
+    -fx-background-color: #F8EDE5;
+    -fx-border-color: #C97A44;
+    -fx-text-fill: #2C1810;
+}
+
+.option-level-btn:selected {
+    -fx-background-color: #3E2723;
+    -fx-background-radius: 10;
+    -fx-border-color: #1A0D08;
+    -fx-border-radius: 10;
+    -fx-border-width: 2;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 12.5px;
+    -fx-font-weight: 800;
+    -fx-effect: dropshadow(gaussian, rgba(62, 39, 35, 0.45), 6, 0, 0, 2);
+}
+
+.option-level-btn:selected:hover {
+    -fx-background-color: #2C1810;
+}
+
+.topping-chip {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 10;
+    -fx-border-color: #E2D5CA;
+    -fx-border-radius: 10;
+    -fx-border-width: 1.2;
+    -fx-padding: 7 14 7 10;
+    -fx-cursor: hand;
+    -fx-font-size: 12px;
+    -fx-text-fill: #2C1810;
+    -fx-font-weight: 600;
+}
+
+.topping-chip:hover {
+    -fx-background-color: #FAF2EC;
+    -fx-border-color: #C97A44;
+}
+
+.topping-chip:selected {
+    -fx-background-color: #F8EDE5;
+    -fx-border-color: #C97A44;
+    -fx-border-width: 1.5;
+    -fx-text-fill: #8D4925;
+    -fx-font-weight: 700;
+}
+
 .btn-secondary {
     -fx-background-color: #EFE7DF;
     -fx-background-radius: 12;

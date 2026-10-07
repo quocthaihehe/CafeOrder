@@ -15,7 +15,7 @@ public class CartItemRow extends VBox {
     public CartItemRow(OrderItem item, BiConsumer<OrderItem, Integer> onQtyChange, Consumer<OrderItem> onDelete) {
         this.item = item;
         getStyleClass().add("cart-item-row");
-        setSpacing(6);
+        setSpacing(5);
 
         // Header: Name + Subtotal
         HBox topRow = new HBox(8);
@@ -31,17 +31,24 @@ public class CartItemRow extends VBox {
         topRow.getChildren().addAll(lblName, lblPrice);
         getChildren().add(topRow);
 
-        // Note line (if present)
-        if (item.getNote() != null && !item.getNote().trim().isEmpty()) {
-            Label lblNote = new Label("📝 " + item.getNote().trim());
-            lblNote.getStyleClass().add("cart-item-note");
-            lblNote.setWrapText(true);
-            getChildren().add(lblNote);
+        // Customization line (Size, Ice, Sugar, Toppings)
+        String customSummary = item.getCustomizationSummary();
+        if (!customSummary.isEmpty()) {
+            Label lblCustom = new Label(customSummary);
+            lblCustom.setStyle("-fx-font-size: 11px; -fx-text-fill: #947E74; -fx-font-style: italic;");
+            lblCustom.setWrapText(true);
+            getChildren().add(lblCustom);
         }
 
         // Stepper row
         HBox bottomRow = new HBox(8);
         bottomRow.setAlignment(Pos.CENTER_LEFT);
+
+        Label lblUnit = new Label(CurrencyFormatter.format(item.getUnitPrice()) + "/món");
+        lblUnit.setStyle("-fx-font-size: 10.5px; -fx-text-fill: #A89A92;");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button btnMinus = new Button("-");
         btnMinus.getStyleClass().add("stepper-btn");
@@ -54,15 +61,12 @@ public class CartItemRow extends VBox {
         btnPlus.getStyleClass().add("stepper-btn");
         btnPlus.setOnAction(e -> onQtyChange.accept(item, 1));
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        Button btnDelete = new Button("✕");
+        Button btnDelete = new Button("X");
         btnDelete.getStyleClass().add("cart-delete-btn");
         btnDelete.setTooltip(new javafx.scene.control.Tooltip("Xóa món này"));
         btnDelete.setOnAction(e -> onDelete.accept(item));
 
-        bottomRow.getChildren().addAll(btnMinus, lblQty, btnPlus, spacer, btnDelete);
+        bottomRow.getChildren().addAll(lblUnit, spacer, btnMinus, lblQty, btnPlus, btnDelete);
         getChildren().add(bottomRow);
     }
 }

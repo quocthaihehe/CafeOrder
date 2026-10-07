@@ -25,7 +25,7 @@ public class ServerKDSView extends BorderPane {
     // Control bar
     private final TextField txtSearch = new TextField();
     private final HBox filterButtonsBox = new HBox(8);
-    private final Button btnClearDone = new Button("🗑 Xóa đơn đã xong");
+    private final Button btnClearDone = new Button("Xóa đơn đã xong");
 
     // Tickets container
     private final FlowPane ticketsFlowPane = new FlowPane(16, 16);
@@ -55,7 +55,7 @@ public class ServerKDSView extends BorderPane {
         HBox bottomLogBar = new HBox(10);
         bottomLogBar.getStyleClass().add("kds-log-drawer");
         bottomLogBar.setAlignment(Pos.CENTER_LEFT);
-        Label logIcon = new Label("⚡ Log:");
+        Label logIcon = new Label("Log:");
         logIcon.setStyle("-fx-font-weight: 700; -fx-text-fill: #C97A44; -fx-font-size: 11px;");
         lblLatestLog.getStyleClass().add("kds-log-text");
         HBox.setHgrow(lblLatestLog, Priority.ALWAYS);
@@ -99,7 +99,7 @@ public class ServerKDSView extends BorderPane {
         HBox controlBar = new HBox(12);
         controlBar.setAlignment(Pos.CENTER_LEFT);
 
-        txtSearch.setPromptText("🔍 Tìm theo số bàn hoặc mã đơn (VD: 1, 1002)...");
+        txtSearch.setPromptText("Tìm theo số bàn hoặc mã đơn (VD: 1, 1002)...");
         txtSearch.setStyle(
             "-fx-background-color: #281F1A; " +
             "-fx-background-radius: 16; " +
@@ -137,11 +137,9 @@ public class ServerKDSView extends BorderPane {
 
         emptyTicketsBox.setAlignment(Pos.CENTER);
         emptyTicketsBox.setPadding(new Insets(80, 20, 80, 20));
-        Label emptyIcon = new Label("☕");
-        emptyIcon.setStyle("-fx-font-size: 48px; -fx-opacity: 0.4;");
         Label emptyText = new Label("Hiện không có đơn hàng nào trong mục này.");
         emptyText.setStyle("-fx-font-size: 15px; -fx-font-weight: 600; -fx-text-fill: #7D6E68;");
-        emptyTicketsBox.getChildren().addAll(emptyIcon, emptyText);
+        emptyTicketsBox.getChildren().addAll(emptyText);
 
         StackPane contentStack = new StackPane(emptyTicketsBox, ticketsFlowPane);
         ticketsScrollPane.setContent(contentStack);

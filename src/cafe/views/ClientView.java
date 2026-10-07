@@ -6,6 +6,7 @@ import cafe.utils.CurrencyFormatter;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -26,17 +27,34 @@ public class ClientView extends BorderPane {
     // Catalog controls
     private final TextField txtSearch = new TextField();
     private final HBox categoryTabsBox = new HBox(8);
-    private final FlowPane itemsFlowPane = new FlowPane(16, 16);
+    private final GridPane itemsGridPane = new GridPane();
+    private final VBox emptySearchBox = new VBox(10);
+    private final StackPane catalogContentHolder = new StackPane();
     private final ScrollPane catalogScrollPane = new ScrollPane();
+    private List<MenuItem> currentMenuItems = new java.util.ArrayList<>();
+    private Consumer<MenuItem> currentOnSelect;
 
     // Cart controls
     private final Label lblCartCount = new Label("0 món");
+    private final ToggleGroup orderTypeGroup = new ToggleGroup();
+    private final ToggleButton btnDineIn = new ToggleButton("Dùng tại bàn");
+    private final ToggleButton btnTakeaway = new ToggleButton("Mang về");
+
     private final VBox cartItemsContainer = new VBox(10);
     private final ScrollPane cartScrollPane = new ScrollPane();
     private final VBox emptyCartBox = new VBox(8);
+
+    // Voucher controls
+    private final TextField txtVoucher = new TextField();
+    private final Button btnApplyVoucher = new Button("Áp dụng");
+    private final Label lblVoucherFeedback = new Label();
+    private final Label lblDiscountLabel = new Label("Giảm giá (Voucher):");
+    private final Label lblDiscountValue = new Label("-0 đ");
+    private final HBox rowDiscount = new HBox();
+
     private final Label lblSubtotalValue = new Label("0 đ");
     private final Label lblGrandTotalValue = new Label("0 đ");
-    private final Button btnSubmitOrder = new Button("☕ GỬI BẾP ORDER");
+    private final Button btnSubmitOrder = new Button("GỬI BẾP ORDER");
 
     // Live Order Status Tracking Box
     private final VBox activeOrderBox = new VBox(6);
@@ -90,12 +108,6 @@ public class ClientView extends BorderPane {
         // Brand Badge
         HBox brand = new HBox(10);
         brand.setAlignment(Pos.CENTER_LEFT);
-        
-        StackPane brandLogo = new StackPane();
-        brandLogo.getStyleClass().add("brand-badge");
-        Label logoIcon = new Label("☕");
-        logoIcon.getStyleClass().add("brand-icon");
-        brandLogo.getChildren().add(logoIcon);
 
         VBox brandText = new VBox(1);
         Label lblBrandName = new Label("L'Amour Artisan Cafe");
@@ -104,7 +116,7 @@ public class ClientView extends BorderPane {
         lblSlogan.getStyleClass().add("brand-subtitle");
         brandText.getChildren().addAll(lblBrandName, lblSlogan);
 
-        brand.getChildren().addAll(brandLogo, brandText);
+        brand.getChildren().add(brandText);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -130,44 +142,70 @@ public class ClientView extends BorderPane {
 
     private VBox buildCatalogSection() {
         VBox section = new VBox(12);
-        section.setPadding(new Insets(16, 20, 16, 24));
+        // Padding bên phải = 0 để ScrollBar nằm sát mép tiếp giáp Giỏ hàng (Requirement 6)
+        section.setPadding(new Insets(16, 0, 16, 24));
 
         // Search & Category Tabs
         VBox filterBar = new VBox(12);
+        filterBar.setPadding(new Insets(0, 20, 0, 0)); // Chừa lề phải cho thanh search và tabs
 
         HBox searchBox = new HBox(8);
         searchBox.getStyleClass().add("search-box");
         searchBox.setAlignment(Pos.CENTER_LEFT);
-        Label searchIcon = new Label("🔍");
-        searchIcon.setStyle("-fx-font-size: 14px; -fx-opacity: 0.6;");
         txtSearch.getStyleClass().add("search-field");
         txtSearch.setPromptText("Tìm kiếm món yêu thích (Cà phê, Trà đào, Matcha...)...");
         HBox.setHgrow(txtSearch, Priority.ALWAYS);
-        searchBox.getChildren().addAll(searchIcon, txtSearch);
+        searchBox.getChildren().addAll(txtSearch);
 
         categoryTabsBox.setAlignment(Pos.CENTER_LEFT);
 
         filterBar.getChildren().addAll(searchBox, categoryTabsBox);
 
-        // FlowPane for Menu Item Cards
-        itemsFlowPane.setPadding(new Insets(8, 4, 20, 4));
-        itemsFlowPane.setAlignment(Pos.TOP_LEFT);
+        // Responsive GridPane for Menu Item Cards
+        itemsGridPane.setHgap(16);
+        itemsGridPane.setVgap(16);
+        itemsGridPane.setPadding(new Insets(8, 16, 20, 0));
+        itemsGridPane.setAlignment(Pos.TOP_LEFT);
 
-        catalogScrollPane.setContent(itemsFlowPane);
+        // Empty Search Results Placeholder (Requirement: thông báo khi 0 kết quả)
+        emptySearchBox.setAlignment(Pos.CENTER);
+        emptySearchBox.setPadding(new Insets(70, 20, 70, 20));
+        Label emptySearchTitle = new Label("Không tìm thấy món ăn phù hợp");
+        emptySearchTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: 700; -fx-text-fill: #5D4037;");
+        Label emptySearchDesc = new Label("Vui lòng thử từ khóa khác hoặc chọn nhóm danh mục bên trên.");
+        emptySearchDesc.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #9E8E87;");
+        emptySearchBox.getChildren().addAll(emptySearchTitle, emptySearchDesc);
+        emptySearchBox.setVisible(false);
+        emptySearchBox.setManaged(false);
+
+        catalogContentHolder.getChildren().addAll(itemsGridPane, emptySearchBox);
+        catalogContentHolder.setAlignment(Pos.TOP_LEFT);
+
+        catalogScrollPane.setContent(catalogContentHolder);
         catalogScrollPane.getStyleClass().add("catalog-scroll-pane");
         catalogScrollPane.setFitToWidth(true);
+        catalogScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        catalogScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         VBox.setVgrow(catalogScrollPane, Priority.ALWAYS);
+
+        // Tự động tính toán lại số cột và co dãn thẻ theo chiều rộng viewport
+        catalogScrollPane.viewportBoundsProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && newVal.getWidth() > 0) {
+                relayoutMenuItems();
+            }
+        });
 
         section.getChildren().addAll(filterBar, catalogScrollPane);
         return section;
     }
 
     private VBox buildCartSidebar() {
-        VBox sidebar = new VBox(14);
+        VBox sidebar = new VBox(12);
         sidebar.getStyleClass().add("cart-sidebar");
+        // Giữ nguyên cố định 350px để vùng Center chiếm trọn vẹn phần còn lại (Requirement 5)
         sidebar.setPrefWidth(350);
-        sidebar.setMinWidth(320);
-        sidebar.setMaxWidth(380);
+        sidebar.setMinWidth(350);
+        sidebar.setMaxWidth(350);
 
         // Header
         HBox header = new HBox(8);
@@ -179,18 +217,32 @@ public class ClientView extends BorderPane {
         lblCartCount.getStyleClass().add("cart-badge-count");
         header.getChildren().addAll(lblCartTitle, lblCartCount);
 
+        // Order Type Selector (DINE_IN vs TAKEAWAY)
+        HBox orderTypeBox = new HBox(8);
+        orderTypeBox.setAlignment(Pos.CENTER);
+        btnDineIn.setToggleGroup(orderTypeGroup);
+        btnDineIn.setSelected(true);
+        btnDineIn.getStyleClass().add("category-tab");
+        btnDineIn.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(btnDineIn, Priority.ALWAYS);
+
+        btnTakeaway.setToggleGroup(orderTypeGroup);
+        btnTakeaway.getStyleClass().add("category-tab");
+        btnTakeaway.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(btnTakeaway, Priority.ALWAYS);
+
+        orderTypeBox.getChildren().addAll(btnDineIn, btnTakeaway);
+
         // Items Container with ScrollPane
         cartItemsContainer.setPadding(new Insets(4, 2, 4, 2));
 
         // Empty state
         emptyCartBox.getStyleClass().add("cart-empty-box");
-        Label emptyIcon = new Label("☕");
-        emptyIcon.getStyleClass().add("cart-empty-icon");
         Label emptyText = new Label("Chưa có món nào được chọn");
         emptyText.getStyleClass().add("cart-empty-text");
         Label emptySub = new Label("Hãy chạm vào thẻ món để thêm vào giỏ nhé!");
         emptySub.setStyle("-fx-font-size: 11px; -fx-text-fill: #B59F95;");
-        emptyCartBox.getChildren().addAll(emptyIcon, emptyText, emptySub);
+        emptyCartBox.getChildren().addAll(emptyText, emptySub);
 
         StackPane cartContentHolder = new StackPane(emptyCartBox, cartItemsContainer);
         cartScrollPane.setContent(cartContentHolder);
@@ -206,8 +258,24 @@ public class ClientView extends BorderPane {
         activeOrderBox.setVisible(false);
         activeOrderBox.setManaged(false);
 
+        // Voucher Input Section
+        VBox voucherSection = new VBox(4);
+        HBox voucherInputBox = new HBox(6);
+        voucherInputBox.setAlignment(Pos.CENTER_LEFT);
+        txtVoucher.setPromptText("Mã giảm giá (WELCOME10, GIAM15K)");
+        txtVoucher.setStyle("-fx-font-size: 11px; -fx-background-color: #FFFFFF; -fx-background-radius: 8; -fx-border-color: #E0D3C9; -fx-border-radius: 8; -fx-padding: 5 8 5 8;");
+        HBox.setHgrow(txtVoucher, Priority.ALWAYS);
+
+        btnApplyVoucher.setStyle("-fx-background-color: #5D4037; -fx-text-fill: white; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 8; -fx-padding: 5 10 5 10; -fx-cursor: hand;");
+        voucherInputBox.getChildren().addAll(txtVoucher, btnApplyVoucher);
+
+        lblVoucherFeedback.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 600; -fx-padding: 0 0 0 2;");
+        lblVoucherFeedback.setVisible(false);
+        lblVoucherFeedback.setManaged(false);
+        voucherSection.getChildren().addAll(voucherInputBox, lblVoucherFeedback);
+
         // Bill Summary
-        VBox summaryBox = new VBox(8);
+        VBox summaryBox = new VBox(7);
         summaryBox.getStyleClass().add("bill-summary-box");
 
         HBox row1 = new HBox();
@@ -217,6 +285,16 @@ public class ClientView extends BorderPane {
         HBox.setHgrow(sp1, Priority.ALWAYS);
         lblSubtotalValue.getStyleClass().add("bill-value");
         row1.getChildren().addAll(lblSubLabel, sp1, lblSubtotalValue);
+
+        // Voucher Discount row
+        rowDiscount.setAlignment(Pos.CENTER_LEFT);
+        lblDiscountLabel.getStyleClass().add("bill-label");
+        Region spDisc = new Region();
+        HBox.setHgrow(spDisc, Priority.ALWAYS);
+        lblDiscountValue.setStyle("-fx-font-size: 12px; -fx-text-fill: #2E7D32; -fx-font-weight: 700;");
+        rowDiscount.getChildren().addAll(lblDiscountLabel, spDisc, lblDiscountValue);
+        rowDiscount.setVisible(false);
+        rowDiscount.setManaged(false);
 
         HBox row2 = new HBox();
         Label lblService = new Label("Phí phục vụ:");
@@ -237,14 +315,14 @@ public class ClientView extends BorderPane {
         lblGrandTotalValue.getStyleClass().add("bill-total-value");
         rowTotal.getChildren().addAll(lblTotalLabel, sp3, lblGrandTotalValue);
 
-        summaryBox.getChildren().addAll(row1, row2, sep, rowTotal);
+        summaryBox.getChildren().addAll(row1, rowDiscount, row2, sep, rowTotal);
 
         // Submit Button
         btnSubmitOrder.getStyleClass().add("btn-checkout");
         btnSubmitOrder.setMaxWidth(Double.MAX_VALUE);
         btnSubmitOrder.setDisable(true);
 
-        sidebar.getChildren().addAll(header, cartScrollPane, activeOrderBox, summaryBox, btnSubmitOrder);
+        sidebar.getChildren().addAll(header, orderTypeBox, cartScrollPane, activeOrderBox, voucherSection, summaryBox, btnSubmitOrder);
         return sidebar;
     }
 
@@ -288,14 +366,65 @@ public class ClientView extends BorderPane {
     }
 
     public void renderMenuItems(List<MenuItem> items, Consumer<MenuItem> onSelect) {
-        itemsFlowPane.getChildren().clear();
-        for (MenuItem item : items) {
-            ItemCard card = new ItemCard(item, onSelect);
-            itemsFlowPane.getChildren().add(card);
+        this.currentMenuItems = items != null ? items : new java.util.ArrayList<>();
+        this.currentOnSelect = onSelect;
+        relayoutMenuItems();
+    }
+
+    private void relayoutMenuItems() {
+        if (currentMenuItems == null || currentMenuItems.isEmpty()) {
+            itemsGridPane.getChildren().clear();
+            itemsGridPane.getColumnConstraints().clear();
+            emptySearchBox.setVisible(true);
+            emptySearchBox.setManaged(true);
+            return;
+        }
+
+        emptySearchBox.setVisible(false);
+        emptySearchBox.setManaged(false);
+
+        // Chiều rộng thực tế của viewport (loại trừ thanh cuộn dọc nếu có)
+        double viewportW = catalogScrollPane.getViewportBounds().getWidth();
+        // Trừ padding phải (16px) và biên an toàn (4px)
+        double availableWidth = (viewportW > 100) ? (viewportW - 20) : 850.0;
+
+        final double MIN_CARD_WIDTH = 210.0;
+        final double GAP = 16.0;
+
+        // Thuật toán Responsive chuẩn theo yêu cầu:
+        // Số cột = max(1, (availableWidth + GAP) / (MIN_CARD_WIDTH + GAP))
+        int cols = Math.max(1, (int) ((availableWidth + GAP) / (MIN_CARD_WIDTH + GAP)));
+        // Chiều rộng mỗi thẻ = (availableWidth - GAP * (cột - 1)) / cột
+        double cardWidth = Math.floor((availableWidth - GAP * (cols - 1)) / cols);
+
+        itemsGridPane.getChildren().clear();
+        itemsGridPane.getColumnConstraints().clear();
+
+        // Thiết lập ràng buộc kích thước từng cột
+        for (int c = 0; c < cols; c++) {
+            ColumnConstraints cc = new ColumnConstraints();
+            cc.setPrefWidth(cardWidth);
+            cc.setMinWidth(cardWidth);
+            cc.setMaxWidth(cardWidth);
+            cc.setHgrow(Priority.NEVER);
+            cc.setHalignment(HPos.LEFT);
+            itemsGridPane.getColumnConstraints().add(cc);
+        }
+
+        // Đổ các thẻ vào lưới, hàng cuối cùng vẫn giữ nguyên chiều rộng và căn trái
+        for (int i = 0; i < currentMenuItems.size(); i++) {
+            MenuItem item = currentMenuItems.get(i);
+            ItemCard card = new ItemCard(item, currentOnSelect);
+            card.setPrefWidth(cardWidth);
+            card.setMinWidth(cardWidth);
+            card.setMaxWidth(Double.MAX_VALUE);
+            int col = i % cols;
+            int row = i / cols;
+            itemsGridPane.add(card, col, row);
         }
     }
 
-    public void renderCart(List<OrderItem> items, double totalAmount, int totalCount,
+    public void renderCart(List<OrderItem> items, double subtotal, double discount, double grandTotal, int totalCount,
                            BiConsumer<OrderItem, Integer> onQtyChange, Consumer<OrderItem> onDelete) {
         cartItemsContainer.getChildren().clear();
         boolean hasItems = items != null && !items.isEmpty();
@@ -312,16 +441,28 @@ public class ClientView extends BorderPane {
         }
 
         lblCartCount.setText(totalCount + " món");
-        String formatted = CurrencyFormatter.format(totalAmount);
-        lblSubtotalValue.setText(formatted);
-        lblGrandTotalValue.setText(formatted);
+        lblSubtotalValue.setText(CurrencyFormatter.format(subtotal));
+
+        boolean hasDiscount = discount > 0;
+        rowDiscount.setVisible(hasDiscount);
+        rowDiscount.setManaged(hasDiscount);
+        lblDiscountValue.setText("-" + CurrencyFormatter.format(discount));
+
+        lblGrandTotalValue.setText(CurrencyFormatter.format(grandTotal));
         btnSubmitOrder.setDisable(!hasItems);
     }
+
+    public ToggleGroup getOrderTypeGroup() { return orderTypeGroup; }
+    public ToggleButton getBtnDineIn() { return btnDineIn; }
+    public ToggleButton getBtnTakeaway() { return btnTakeaway; }
+    public TextField getVoucherField() { return txtVoucher; }
+    public Button getApplyVoucherButton() { return btnApplyVoucher; }
+    public Label getVoucherFeedbackLabel() { return lblVoucherFeedback; }
 
     public void updateActiveOrderStatus(int orderId, String statusDisplay) {
         activeOrderBox.setVisible(true);
         activeOrderBox.setManaged(true);
-        lblActiveOrderId.setText("⚡ Đơn gần nhất: #" + orderId);
+        lblActiveOrderId.setText("Đơn gần nhất: #" + orderId);
         lblActiveOrderStatus.setText("Trạng thái: " + statusDisplay);
     }
 

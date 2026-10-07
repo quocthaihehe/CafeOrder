@@ -106,12 +106,20 @@ public class CafeServerService {
                             Order newOrder = new Order(
                                 newOrderId,
                                 orderMsg.table,
+                                orderMsg.orderType,
                                 orderMsg.items,
                                 "QUEUED",
+                                orderMsg.discountAmount,
+                                0.0,
+                                orderMsg.voucherCode,
+                                orderMsg.note,
                                 System.currentTimeMillis()
                             );
                             activeOrders.put(newOrderId, newOrder);
-                            log("Nhận Đơn hàng #" + newOrderId + " từ Bàn " + orderMsg.table + " (" + newOrder.getTotalQuantity() + " món).");
+                            log("Nhận Đơn hàng #" + newOrderId + " (" + newOrder.getOrderTypeLabel() + ") - " + newOrder.getTotalQuantity() + " món.");
+
+                            // Tự động lưu bền vững vào SQL Server Database CafeOrderDB
+                            DatabaseManager.saveOrder(newOrder);
 
                             // Phản hồi ORDER_ACK
                             MessageProtocol.OrderAckMessage ack = new MessageProtocol.OrderAckMessage(newOrderId, "QUEUED", activeOrders.size());

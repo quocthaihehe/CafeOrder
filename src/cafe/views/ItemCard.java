@@ -22,36 +22,62 @@ public class ItemCard extends VBox {
 
     private void initUI() {
         getStyleClass().add("item-card");
-        setSpacing(10);
-        setPrefWidth(220);
-        setMaxWidth(260);
+        setSpacing(8);
+        setMinWidth(180);
+        setMaxWidth(Double.MAX_VALUE);
 
-        // Glyph Box
-        StackPane glyphBox = new StackPane();
-        glyphBox.getStyleClass().add("item-glyph-box");
-        glyphBox.setPrefHeight(95);
+        // Top Badges Row (Bestseller / Mới)
+        HBox topBadges = new HBox(6);
+        topBadges.setAlignment(Pos.CENTER_LEFT);
 
-        Label glyph = new Label(item.getIconEmoji());
-        glyph.getStyleClass().add("item-glyph");
-        glyphBox.getChildren().add(glyph);
+        if (item.isBestseller()) {
+            Label badgeBest = new Label("BESTSELLER");
+            badgeBest.setStyle("-fx-background-color: #E65100; -fx-text-fill: white; -fx-font-size: 9.5px; -fx-font-weight: 800; -fx-background-radius: 6; -fx-padding: 3 8 3 8;");
+            topBadges.getChildren().add(badgeBest);
+        } else if (item.isNew()) {
+            Label badgeNew = new Label("MỚI");
+            badgeNew.setStyle("-fx-background-color: #2E7D32; -fx-text-fill: white; -fx-font-size: 9.5px; -fx-font-weight: 800; -fx-background-radius: 6; -fx-padding: 3 8 3 8;");
+            topBadges.getChildren().add(badgeNew);
+        }
 
-        // Title & Category
+        // Sub-badges row (Size S/M/L, Nóng / Đá)
+        HBox optionsHint = new HBox(6);
+        optionsHint.setAlignment(Pos.CENTER_LEFT);
+        if (item.isAllowSize()) {
+            Label lblSizeHint = new Label("Size S / M / L");
+            lblSizeHint.setStyle("-fx-background-color: #F1ECE6; -fx-text-fill: #7D6E68; -fx-font-size: 9.5px; -fx-font-weight: 700; -fx-background-radius: 4; -fx-padding: 2 6 2 6;");
+            optionsHint.getChildren().add(lblSizeHint);
+        }
+        if (item.isHotAvailable()) {
+            Label lblHotHint = new Label("Nóng / Đá");
+            lblHotHint.setStyle("-fx-background-color: #FBE9E7; -fx-text-fill: #D84315; -fx-font-size: 9.5px; -fx-font-weight: 700; -fx-background-radius: 4; -fx-padding: 2 6 2 6;");
+            optionsHint.getChildren().add(lblHotHint);
+        }
+
+        // Category Tag
         Label lblCategory = new Label(item.getCategory().toUpperCase());
-        lblCategory.setStyle("-fx-font-size: 10px; -fx-font-weight: 700; -fx-text-fill: #A89A92; -fx-letter-spacing: 1px;");
+        lblCategory.setStyle("-fx-font-size: 10px; -fx-font-weight: 800; -fx-text-fill: #A89A92; -fx-letter-spacing: 0.5px;");
 
+        // Product Name
         Label lblName = new Label(item.getName());
         lblName.getStyleClass().add("item-card-title");
         lblName.setWrapText(true);
+        lblName.setMinHeight(42);
+        lblName.setPrefHeight(42);
+        lblName.setMaxHeight(42);
 
+        // Description
         Label lblDesc = new Label(item.getDescription());
         lblDesc.getStyleClass().add("item-card-desc");
         lblDesc.setWrapText(true);
-        lblDesc.setPrefHeight(38);
+        lblDesc.setMinHeight(46);
+        lblDesc.setPrefHeight(46);
+        lblDesc.setMaxHeight(46);
 
-        // Bottom row: Price + Button
+        // Bottom row: Price + Select Button
         HBox bottomRow = new HBox(8);
         bottomRow.setAlignment(Pos.CENTER_LEFT);
-        bottomRow.setPadding(new Insets(4, 0, 0, 0));
+        bottomRow.setPadding(new Insets(6, 0, 0, 0));
 
         Label lblPrice = new Label(CurrencyFormatter.format(item.getPrice()));
         lblPrice.getStyleClass().add("item-card-price");
@@ -68,9 +94,12 @@ public class ItemCard extends VBox {
 
         bottomRow.getChildren().addAll(lblPrice, spacer, btnAdd);
 
-        getChildren().addAll(glyphBox, lblCategory, lblName, lblDesc, bottomRow);
+        // Assemble card
+        if (!topBadges.getChildren().isEmpty()) {
+            getChildren().add(topBadges);
+        }
+        getChildren().addAll(lblCategory, lblName, optionsHint, lblDesc, bottomRow);
 
-        // Click anywhere on card to select
         setOnMouseClicked(e -> {
             if (onSelect != null) onSelect.accept(item);
         });

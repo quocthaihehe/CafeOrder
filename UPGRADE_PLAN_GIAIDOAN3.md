@@ -231,6 +231,228 @@ CREATE TABLE IF NOT EXISTS payments (
 
 ---
 
+### 5. GIẢI ĐÁP & HƯỚNG DẪN: SỬ DỤNG MICROSOFT SQL SERVER VÀ CÁCH KHỞI TẠO TỪ A-Z
+
+#### ❓ Câu hỏi 1: Tôi dùng SQL Server (2019 / 2022) cho dự án này được không?
+👉 **TRẢ LỜI CỦA PRINCIPAL ARCHITECT: HOÀN TOÀN ĐƯỢC VÀ RẤT MẠNH MẼ.**
+
+Microsoft SQL Server là một trong những hệ quản trị cơ sở dữ liệu quan hệ (RDBMS) cấp doanh nghiệp (Enterprise-grade) hàng đầu thế giới. Việc lựa chọn SQL Server mang lại các lợi thế và thách thức rõ ràng:
+
+* **Ưu điểm vượt trội của SQL Server:**
+  1. **Khả năng mở rộng quy mô (Enterprise Scalability):** Rất phù hợp nếu dự án CafeOrder mở rộng từ 1 quán đơn lẻ lên chuỗi nhiều chi nhánh (Multi-branch Chain). Các quầy POS/Kiosk từ các chi nhánh khác nhau có thể đồng bộ về một Server cơ sở dữ liệu trung tâm qua mạng Internet/VPN.
+  2. **Công cụ quản trị số 1 thế giới (SSMS & Azure Data Studio):** Giao diện trực quan, dễ dàng theo dõi số liệu, viết truy vấn, sao lưu (Backup) và phục hồi (Restore) dữ liệu chỉ bằng vài cú click chuột.
+  3. **Hỗ trợ T-SQL & Tính toàn vẹn cao:** Hỗ trợ Stored Procedures, Triggers (ví dụ: tự động trigger trừ kho khi đơn hàng đổi sang trạng thái `DONE`), Constraints và ACID Transactions cực kỳ nghiêm ngặt.
+  4. **Driver chính thức từ Microsoft cho Java 21:** Thư viện `mssql-jdbc` được Microsoft tối ưu riêng cho môi trường Java hiện đại, hỗ trợ SSL/TLS, kết nối đa luồng mượt mà.
+
+* **Bảng so sánh quyết định kiến trúc: SQL Server vs. SQLite:**
+
+| Tiêu chí | SQLite | Microsoft SQL Server (2019/2022) |
+| :--- | :--- | :--- |
+| **Mô hình triển khai** | Cục bộ nhúng trong app (Embedded 1 file `.db`) | Client-Server RDBMS độc lập (chạy service nền) |
+| **Yêu cầu cài đặt** | Không cần cài đặt (Zero-config) | Cần cài SQL Server + SSMS, cấu hình cổng TCP `1433` |
+| **Tài nguyên RAM/CPU** | Cực kỳ nhẹ (~10MB RAM) | Nặng hơn (~1GB - 2GB RAM cho service) |
+| **Phù hợp nhất cho** | Quán cafe đơn lẻ, chạy Kiosk/POS offline-first | Chuỗi quán, hệ thống có Server trung tâm chuyên dụng |
+| **Độ khó bảo trì** | Rất dễ (sao lưu bằng cách copy 1 file) | Cần kỹ năng quản trị DB (Account, Port, Firewall, Backup Plan) |
+
+---
+
+#### 🛠️ Câu hỏi 2: Nếu dùng SQL Server thì tạo Database như thế nào?
+
+Dưới đây là quy trình chuẩn kỹ thuật từ A-Z để thiết lập cơ sở dữ liệu `CafeOrderDB` trên Microsoft SQL Server:
+
+##### BƯỚC 1: Tạo Database với Collation tiếng Việt
+Mở **SQL Server Management Studio (SSMS)**, mở tab **New Query** và chạy lệnh:
+
+```sql
+-- Tạo Database hỗ trợ tiếng Việt có dấu chuẩn xác (Vietnamese_CI_AS)
+CREATE DATABASE CafeOrderDB
+COLLATE Vietnamese_CI_AS;
+GO
+
+USE CafeOrderDB;
+GO
+```
+
+##### BƯỚC 2: Kịch bản T-SQL khởi tạo toàn bộ cấu trúc bảng (DDL Script)
+
+```sql
+-- 1. Bảng Danh mục món ăn
+CREATE TABLE Categories (
+    category_id INT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(100) NOT NULL UNIQUE,
+    display_order INT DEFAULT 0
+);
+GO
+
+-- 2. Bảng Sản phẩm (Món ăn / Thức uống)
+CREATE TABLE Products (
+    product_id INT IDENTITY(1,1) PRIMARY KEY,
+    category_id INT NOT NULL,
+    name NVARCHAR(150) NOT NULL,
+    base_price DECIMAL(18, 2) NOT NULL CHECK(base_price >= 0),
+    description NVARCHAR(500) NULL,
+    icon_emoji NVARCHAR(20) DEFAULT N'☕',
+    is_active BIT DEFAULT 1,
+    CONSTRAINT FK_Products_Categories FOREIGN KEY (category_id) REFERENCES Categories(category_id)
+);
+GO
+
+-- 3. Bảng Nguyên vật liệu kho
+CREATE TABLE Ingredients (
+    ingredient_id INT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(150) NOT NULL,
+    unit NVARCHAR(30) NOT NULL, -- 'gram', 'ml', 'cái'
+    current_stock DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    min_alert_threshold DECIMAL(18, 2) NOT NULL DEFAULT 10
+);
+GO
+
+-- 4. Bảng Công thức định lượng (Recipe: 1 ly dùng bao nhiêu nguyên liệu)
+CREATE TABLE Recipes (
+    product_id INT NOT NULL,
+    ingredient_id INT NOT NULL,
+    quantity_needed DECIMAL(18, 2) NOT NULL CHECK(quantity_needed > 0),
+    PRIMARY KEY (product_id, ingredient_id),
+    CONSTRAINT FK_Recipes_Products FOREIGN KEY (product_id) REFERENCES Products(product_id),
+    CONSTRAINT FK_Recipes_Ingredients FOREIGN KEY (ingredient_id) REFERENCES Ingredients(ingredient_id)
+);
+GO
+
+-- 5. Bảng Quản lý bàn
+CREATE TABLE Tables (
+    table_id INT IDENTITY(1,1) PRIMARY KEY,
+    table_number INT NOT NULL UNIQUE,
+    area_zone NVARCHAR(50) DEFAULT N'Tầng 1',
+    status NVARCHAR(30) DEFAULT 'AVAILABLE' -- 'AVAILABLE', 'OCCUPIED'
+);
+GO
+
+-- 6. Bảng Đơn hàng (Orders)
+CREATE TABLE Orders (
+    order_id INT IDENTITY(1000,1) PRIMARY KEY,
+    table_id INT NOT NULL,
+    status NVARCHAR(30) NOT NULL DEFAULT 'QUEUED', -- 'QUEUED', 'PREPARING', 'DONE', 'PAID', 'CANCELLED'
+    total_amount DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    idempotency_key NVARCHAR(64) NULL UNIQUE, -- Khóa UUID chống gửi trùng đơn
+    created_at DATETIME2(0) DEFAULT SYSDATETIME(),
+    completed_at DATETIME2(0) NULL,
+    CONSTRAINT FK_Orders_Tables FOREIGN KEY (table_id) REFERENCES Tables(table_id)
+);
+GO
+
+-- 7. Bảng Chi tiết từng món trong đơn (OrderDetails)
+CREATE TABLE OrderDetails (
+    detail_id INT IDENTITY(1,1) PRIMARY KEY,
+    order_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL CHECK(quantity > 0),
+    unit_price DECIMAL(18, 2) NOT NULL,
+    customer_note NVARCHAR(255) NULL,
+    CONSTRAINT FK_OrderDetails_Orders FOREIGN KEY (order_id) REFERENCES Orders(order_id) ON DELETE CASCADE,
+    CONSTRAINT FK_OrderDetails_Products FOREIGN KEY (product_id) REFERENCES Products(product_id)
+);
+GO
+
+-- 8. Bảng Thanh toán (Payments)
+CREATE TABLE Payments (
+    payment_id INT IDENTITY(1,1) PRIMARY KEY,
+    order_id INT NOT NULL UNIQUE,
+    payment_method NVARCHAR(50) NOT NULL, -- 'CASH', 'VIETQR', 'MOMO', 'CARD'
+    transaction_code NVARCHAR(100) NULL,
+    amount_paid DECIMAL(18, 2) NOT NULL,
+    paid_at DATETIME2(0) DEFAULT SYSDATETIME(),
+    CONSTRAINT FK_Payments_Orders FOREIGN KEY (order_id) REFERENCES Orders(order_id)
+);
+GO
+```
+
+##### BƯỚC 3: Kịch bản nạp dữ liệu mẫu thực đơn quán (Seed Data Script)
+
+```sql
+USE CafeOrderDB;
+GO
+
+-- Thêm danh mục
+INSERT INTO Categories (name, display_order) VALUES 
+(N'Cà phê', 1),
+(N'Trà & Trái cây', 2),
+(N'Đá xay & Sinh tố', 3),
+(N'Bánh ngọt', 4);
+GO
+
+-- Thêm các món ăn chuẩn phong cách quán cà phê
+INSERT INTO Products (category_id, name, base_price, description, icon_emoji) VALUES
+(1, N'Cà phê Đen Phin', 25000, N'Robusta Đắk Lắk rang mộc đậm đà, hậu vị đắng thanh dịu nhẹ.', N'☕'),
+(1, N'Cà phê Sữa Đá', 29000, N'Cà phê phin truyền thống phối hợp sữa đặc béo ngậy hảo hạng.', N'☕'),
+(1, N'Bạc Xỉu Kem Béo', 32000, N'Ba tầng nghệ thuật với sữa tươi béo thơm và chút nhấn cà phê.', N'🥛'),
+(1, N'Cà phê Muối Cố Đô', 35000, N'Lớp kem muối mặn mòi sánh mịn phủ trên nền cà phê đậm đà.', N'🧂'),
+(1, N'Cold Brew Cam Vàng', 42000, N'Cà phê ủ lạnh 18h thơm nồng hoa quả kết hợp tép cam mọng nước.', N'🍊'),
+(1, N'Caramel Macchiato', 45000, N'Espresso thơm lừng hòa quyện sữa nóng và sốt caramel óng ánh.', N'🍮'),
+
+(2, N'Trà Đào Cam Sả', 39000, N'Hương sả thanh khiết, cam tươi mọng nước cùng miếng đào giòn ngọt.', N'🍑'),
+(2, N'Trà Vải Hoa Hồng', 42000, N'Hương hoa hồng dịu mát phối hợp trái vải giòn tan thơm mát mùa hè.', N'🌹'),
+(2, N'Trà Sen Vàng Kem Cheese', 45000, N'Hạt sen bùi thơm, trân châu ngọc trai và lớp kem cheese béo mặn.', N'🪷'),
+(2, N'Trà Ô Long Mãng Cầu', 42000, N'Vị chua ngọt bùng nổ từ mãng cầu xiêm tươi cùng nền trà ô long thanh vị.', N'🍹'),
+
+(3, N'Matcha Đá Xay Uji', 49000, N'Bột trà xanh Uji Kyoto chuẩn Nhật Bản xay cùng sữa và kem tươi.', N'🍵'),
+(3, N'Cookie & Cream Đá Xay', 48000, N'Oreo giòn rụm kết hợp sốt sôcôla Bỉ ngọt ngào và kem whipping bông tuyết.', N'🍪'),
+(3, N'Sinh Tố Bơ Dừa Non', 45000, N'Bơ sáp Đắk Lắk dẻo thơm hòa quyện nước cốt dừa béo bùi thanh mát.', N'🥑'),
+
+(4, N'Croissant Bơ Pháp', 32000, N'Bánh sừng bò ngàn lớp nướng vàng giòn rụm, nồng nàn hương bơ Pháp.', N'🥐'),
+(4, N'Tiramisu Cacao Ý', 38000, N'Bánh bông lan cà phê phủ phô mai mascarpone mềm tan cùng bột cacao.', N'🍰'),
+(4, N'Cheesecake Nướng Basque', 45000, N'Lớp mặt cháy caramel đặc trưng, lõi phô mai tan chảy béo ngậy.', N'🧀');
+GO
+
+-- Thêm các bàn mặc định
+INSERT INTO Tables (table_number, area_zone) VALUES 
+(1, N'Tầng 1'), (2, N'Tầng 1'), (3, N'Tầng 1'), (4, N'Tầng 1'),
+(5, N'Sân Vườn'), (6, N'Sân Vườn'), (7, N'Phòng Lạnh'), (8, N'Phòng Lạnh');
+GO
+```
+
+##### BƯỚC 4: Cấu hình SQL Server để ứng dụng Java kết nối thành công
+Để Java kết nối được vào SQL Server qua mạng, bạn cần thực hiện 2 thao tác bắt buộc trong Windows:
+
+1. **Bật TCP/IP trong SQL Server Configuration Manager:**
+   * Mở `SQL Server Configuration Manager`.
+   * Chọn `SQL Server Network Configuration` ➔ `Protocols for MSSQLSERVER` (hoặc `SQLEXPRESS`).
+   * Nhấp đúp vào **TCP/IP** ➔ Chuyển **Enabled** thành **Yes**.
+   * Sang tab **IP Addresses** ➔ Kéo xuống mục **IPAll** ➔ Điền **TCP Port = 1433**.
+   * Khởi động lại dịch vụ SQL Server (`SQL Server Services` ➔ Nhấp chuột phải chọn `Restart`).
+2. **Kích hoạt tài khoản xác thực kết hợp (Mixed Mode Authentication):**
+   * Mở SSMS, nhấp chuột phải vào tên Server ➔ Chọn **Properties** ➔ Tab **Security**.
+   * Chọn: **SQL Server and Windows Authentication mode**.
+   * Vào mục `Security` ➔ `Logins` ➔ Nhấp đúp vào tài khoản `sa` ➔ Đặt mật khẩu (VD: `P@ssword123`) ➔ Tab `Status` chọn `Login: Enabled`.
+
+##### BƯỚC 5: Cấu hình mã nguồn Java 21 kết nối SQL Server
+
+1. **Thêm thư viện JDBC Driver:**
+   * Tải tệp `mssql-jdbc-12.6.1.jre11.jar` bỏ vào thư mục `lib/` của dự án.
+2. **Chuỗi kết nối (Connection String):**
+   ```text
+   jdbc:sqlserver://localhost:1433;databaseName=CafeOrderDB;encrypt=true;trustServerCertificate=true;characterEncoding=UTF-8;
+   ```
+3. **Mã nguồn Java mẫu quản lý kết nối (Singleton DAO Connection):**
+   ```java
+   package cafe.services;
+
+   import java.sql.Connection;
+   import java.sql.DriverManager;
+   import java.sql.SQLException;
+
+   public class DatabaseManager {
+       private static final String URL = "jdbc:sqlserver://localhost:1433;databaseName=CafeOrderDB;encrypt=true;trustServerCertificate=true;characterEncoding=UTF-8;";
+       private static final String USER = "sa";
+       private static final String PASSWORD = "P@ssword123";
+
+       public static Connection getConnection() throws SQLException {
+           return DriverManager.getConnection(URL, USER, PASSWORD);
+       }
+   }
+   ```
+
+---
+
 ## 💡 III. CÁC TÍNH NĂNG MỚI, SÁNG TẠO & ĐỘT PHÁ CHO GIAI ĐOẠN 3
 
 ### 1. Smart KDS: Điều Phối Pha Chế Thông Minh (Intelligent Barista Assistance)

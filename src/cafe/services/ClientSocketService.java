@@ -82,11 +82,15 @@ public class ClientSocketService {
     }
 
     public boolean sendOrder(int tableNumber, List<OrderItem> items) {
+        return sendOrder(tableNumber, "DINE_IN", 0.0, null, null, items);
+    }
+
+    public boolean sendOrder(int tableNumber, String orderType, double discount, String voucherCode, String note, List<OrderItem> items) {
         if (!isConnected() || out == null || items == null || items.isEmpty()) {
             return false;
         }
         try {
-            MessageProtocol.NewOrderMessage msg = new MessageProtocol.NewOrderMessage(tableNumber, items);
+            MessageProtocol.NewOrderMessage msg = new MessageProtocol.NewOrderMessage(tableNumber, orderType, discount, voucherCode, note, items);
             out.print(MessageProtocol.toJson(msg));
             out.flush();
             return true;

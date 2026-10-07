@@ -9,8 +9,13 @@ import javafx.collections.ObservableList;
 
 public class CartModel {
     private final ObservableList<OrderItem> items = FXCollections.observableArrayList();
+    private final DoubleProperty subtotalAmount = new SimpleDoubleProperty(0.0);
+    private final DoubleProperty discountAmount = new SimpleDoubleProperty(0.0);
     private final DoubleProperty totalAmount = new SimpleDoubleProperty(0.0);
     private final IntegerProperty totalQuantity = new SimpleIntegerProperty(0);
+
+    private String orderType = "DINE_IN"; // "DINE_IN" or "TAKEAWAY"
+    private Voucher appliedVoucher = null;
 
     public CartModel() {
         recalculate();
@@ -20,40 +25,65 @@ public class CartModel {
         return items;
     }
 
-    public DoubleProperty totalAmountProperty() {
-        return totalAmount;
+    public DoubleProperty subtotalAmountProperty() { return subtotalAmount; }
+    public double getSubtotalAmount() { return subtotalAmount.get(); }
+
+    public DoubleProperty discountAmountProperty() { return discountAmount; }
+    public double getDiscountAmount() { return discountAmount.get(); }
+
+    public DoubleProperty totalAmountProperty() { return totalAmount; }
+    public double getTotalAmount() { return totalAmount.get(); }
+
+    public IntegerProperty totalQuantityProperty() { return totalQuantity; }
+    public int getTotalQuantity() { return totalQuantity.get(); }
+
+    public String getOrderType() { return orderType; }
+    public void setOrderType(String orderType) { this.orderType = orderType; }
+
+    public Voucher getAppliedVoucher() { return appliedVoucher; }
+
+    public boolean applyVoucher(Voucher voucher) {
+        if (voucher == null) {
+            this.appliedVoucher = null;
+            recalculate();
+            return false;
+        }
+        if (getSubtotalAmount() < voucher.getMinOrderAmount()) {
+            return false;
+        }
+        this.appliedVoucher = voucher;
+        recalculate();
+        return true;
     }
 
-    public double getTotalAmount() {
-        return totalAmount.get();
-    }
-
-    public IntegerProperty totalQuantityProperty() {
-        return totalQuantity;
-    }
-
-    public int getTotalQuantity() {
-        return totalQuantity.get();
+    public void removeVoucher() {
+        this.appliedVoucher = null;
+        recalculate();
     }
 
     public void addItem(MenuItem menuItem, int qty, String note) {
         if (qty <= 0) return;
-        String cleanNote = note != null ? note.trim() : "";
+        OrderItem oi = new OrderItem(menuItem.getId(), menuItem.getName(), qty, menuItem.getPrice(),
+                "M", 0.0, 100, 100, "COLD", null, note);
+        addItem(oi);
+    }
+
+    public void addItem(OrderItem newItem) {
+        if (newItem == null || newItem.getQty() <= 0) return;
         boolean merged = false;
 
         for (OrderItem existing : items) {
-            boolean sameName = existing.getName().equalsIgnoreCase(menuItem.getName());
-            boolean sameNote = (existing.getNote() == null && cleanNote.isEmpty()) ||
-                               (existing.getNote() != null && existing.getNote().equalsIgnoreCase(cleanNote));
-            if (sameName && sameNote) {
-                existing.setQty(existing.getQty() + qty);
+            boolean sameName = existing.getName().equalsIgnoreCase(newItem.getName());
+            boolean sameCustom = existing.getCustomizationSummary().equals(newItem.getCustomizationSummary());
+            if (sameName && sameCustom) {
+                existing.setQty(existing.getQty() + newItem.getQty());
                 merged = true;
                 break;
             }
         }
 
         if (!merged) {
-            items.add(new OrderItem(menuItem.getName(), qty, cleanNote, menuItem.getPrice()));
+            items.add(newItem);
         }
         recalculate();
     }
@@ -64,7 +94,6 @@ public class CartModel {
             items.remove(item);
         } else {
             item.setQty(newQty);
-            // Trigger list update for listeners
             int idx = items.indexOf(item);
             if (idx >= 0) {
                 items.set(idx, item);
@@ -80,6 +109,7 @@ public class CartModel {
 
     public void clear() {
         items.clear();
+        this.appliedVoucher = null;
         recalculate();
     }
 
@@ -88,13 +118,24 @@ public class CartModel {
     }
 
     public void recalculate() {
-        double sum = 0.0;
+        double subtotal = 0.0;
         int count = 0;
         for (OrderItem item : items) {
-            sum += item.getSubtotal();
+            subtotal += item.getSubtotal();
             count += item.getQty();
         }
-        totalAmount.set(sum);
+        subtotalAmount.set(subtotal);
         totalQuantity.set(count);
+
+        double discount = 0.0;
+        if (appliedVoucher != null) {
+            if (subtotal >= appliedVoucher.getMinOrderAmount()) {
+                discount = appliedVoucher.calculateDiscount(subtotal);
+            } else {
+                appliedVoucher = null; // Huỷ voucher nếu đơn bị hạ dưới mức tối thiểu
+            }
+        }
+        discountAmount.set(discount);
+        totalAmount.set(Math.max(0, subtotal - discount));
     }
 }

@@ -18,9 +18,22 @@ public class MessageProtocol {
     public static class NewOrderMessage {
         public String type = MessageType.NEW_ORDER.name();
         public int table;
+        public String orderType;
+        public double discountAmount;
+        public String voucherCode;
+        public String note;
         public List<OrderItem> items;
+
         public NewOrderMessage(int table, List<OrderItem> items) {
+            this(table, "DINE_IN", 0.0, null, null, items);
+        }
+
+        public NewOrderMessage(int table, String orderType, double discountAmount, String voucherCode, String note, List<OrderItem> items) {
             this.table = table;
+            this.orderType = orderType != null ? orderType : "DINE_IN";
+            this.discountAmount = discountAmount;
+            this.voucherCode = voucherCode;
+            this.note = note;
             this.items = items;
         }
     }

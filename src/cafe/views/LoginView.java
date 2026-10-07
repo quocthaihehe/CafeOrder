@@ -7,7 +7,7 @@ import javafx.scene.layout.*;
 
 public class LoginView extends StackPane {
     private final TextField txtTable = new TextField();
-    private final Button btnLogin = new Button("BẮT ĐẦU GỌI MÓN →");
+    private final Button btnLogin = new Button("BẮT ĐẦU GỌI MÓN");
     private final Label lblError = new Label();
     private final FlowPane quickTablesPane = new FlowPane(8, 8);
 
@@ -30,15 +30,6 @@ public class LoginView extends StackPane {
             "-fx-border-width: 1; " +
             "-fx-effect: dropshadow(gaussian, rgba(62, 39, 35, 0.08), 24, 0, 0, 8);"
         );
-
-        // Logo
-        StackPane logoBox = new StackPane();
-        logoBox.setStyle("-fx-background-color: #F8EDE5; -fx-background-radius: 20;");
-        logoBox.setPrefSize(72, 72);
-        logoBox.setMaxSize(72, 72);
-        Label lblIcon = new Label("☕");
-        lblIcon.setStyle("-fx-font-size: 34px;");
-        logoBox.getChildren().add(lblIcon);
 
         Label lblTitle = new Label("L'Amour Artisan Cafe");
         lblTitle.setStyle("-fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #2C1810;");
@@ -110,7 +101,7 @@ public class LoginView extends StackPane {
             "-fx-effect: dropshadow(gaussian, rgba(201, 122, 68, 0.35), 10, 0, 0, 4);"
         );
 
-        card.getChildren().addAll(logoBox, lblTitle, lblSubtitle, inputGroup, quickGroup, lblError, btnLogin);
+        card.getChildren().addAll(lblTitle, lblSubtitle, inputGroup, quickGroup, lblError, btnLogin);
         getChildren().add(card);
     }
 

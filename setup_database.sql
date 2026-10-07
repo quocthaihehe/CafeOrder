@@ -359,9 +359,13 @@ FROM (VALUES
 JOIN Categories c ON c.name = v.cat;
 GO
 
--- Quy ước đường dẫn ảnh mặc định
+-- Quy ước tài nguyên hình ảnh món:
+-- 1. Mặc định lưu tại: src/cafe/resources/images/products/[danh-muc-slug]_[ten-mon-slug].png
+-- 2. Tự động dự phòng: Nếu chưa có ảnh, ImageManager sẽ dùng default_drink.png hoặc default_food.png
+-- 3. Cột image_path cho phép gán ảnh tùy chỉnh hoặc URL CDN khi cần mở rộng.
 UPDATE Products SET image_path = 'images/products/' + CAST(product_id AS VARCHAR(10)) + '.jpg' WHERE image_path IS NULL;
 GO
+
 
 -- Toppings
 INSERT INTO Toppings (name, price) VALUES

@@ -77,4 +77,9 @@ public class MenuItem {
     public String getFormattedPrice() {
         return String.format("%,.0f đ", price);
     }
+
+    public String getImageFileName() {
+        return cafe.utils.ImageManager.getProductImageFileName(this);
+    }
 }
+

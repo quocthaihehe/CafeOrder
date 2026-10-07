@@ -171,6 +171,12 @@
     -fx-effect: dropshadow(gaussian, rgba(201, 122, 68, 0.16), 18, 0, 0, 6);
 }
 
+.item-image-container {
+    -fx-background-color: #F8F4F0;
+    -fx-background-radius: 12;
+    -fx-alignment: center;
+}
+
 .item-glyph-box {
     -fx-background-color: linear-gradient(to bottom right, #FDF7F2, #F3E5D9);
     -fx-background-radius: 14;

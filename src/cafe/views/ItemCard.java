@@ -6,7 +6,9 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.shape.Rectangle;
 import java.util.function.Consumer;
 
 public class ItemCard extends VBox {
@@ -94,11 +96,35 @@ public class ItemCard extends VBox {
 
         bottomRow.getChildren().addAll(lblPrice, spacer, btnAdd);
 
-        // Assemble card
+        // Image Container with smooth rounded corners
+        StackPane imageContainer = new StackPane();
+        imageContainer.getStyleClass().add("item-image-container");
+        imageContainer.setPrefHeight(135);
+        imageContainer.setMinHeight(135);
+        imageContainer.setMaxHeight(135);
+
+        ImageView imgView = cafe.utils.ImageManager.createProductImageView(item, 220, 135, 12);
+        imgView.fitWidthProperty().bind(imageContainer.widthProperty());
+        
+        Rectangle clip = new Rectangle();
+        clip.setArcWidth(24);
+        clip.setArcHeight(24);
+        clip.widthProperty().bind(imageContainer.widthProperty());
+        clip.heightProperty().bind(imageContainer.heightProperty());
+        imageContainer.setClip(clip);
+
+        imageContainer.getChildren().add(imgView);
+
+        // Position badges over top-left of image
         if (!topBadges.getChildren().isEmpty()) {
-            getChildren().add(topBadges);
+            StackPane.setAlignment(topBadges, Pos.TOP_LEFT);
+            topBadges.setPadding(new Insets(8, 0, 0, 8));
+            imageContainer.getChildren().add(topBadges);
         }
-        getChildren().addAll(lblCategory, lblName, optionsHint, lblDesc, bottomRow);
+
+        // Assemble card
+        getChildren().addAll(imageContainer, lblCategory, lblName, optionsHint, lblDesc, bottomRow);
+
 
         setOnMouseClicked(e -> {
             if (onSelect != null) onSelect.accept(item);

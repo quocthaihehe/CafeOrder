@@ -51,9 +51,16 @@ public class ItemDetailDialog extends Stage {
         root.setPrefWidth(580);
         root.setMinWidth(560);
 
-        // 1. Header: Basic Info & Flavor Description
-        VBox infoBox = new VBox(5);
-        infoBox.setStyle("-fx-padding: 0 0 10 0; -fx-border-color: transparent transparent #EADBCE transparent; -fx-border-width: 0 0 1 0;");
+        // 1. Header: Image + Basic Info & Flavor Description
+        HBox headerBox = new HBox(16);
+        headerBox.setAlignment(Pos.CENTER_LEFT);
+        headerBox.setStyle("-fx-padding: 0 0 12 0; -fx-border-color: transparent transparent #EADBCE transparent; -fx-border-width: 0 0 1 0;");
+
+        // Product thumbnail
+        javafx.scene.image.ImageView thumbImg = cafe.utils.ImageManager.createProductImageView(item, 100, 100, 14);
+
+        VBox infoBox = new VBox(4);
+        HBox.setHgrow(infoBox, Priority.ALWAYS);
 
         Label lblCategory = new Label(item.getCategory().toUpperCase());
         lblCategory.setStyle("-fx-font-size: 11px; -fx-font-weight: 800; -fx-text-fill: #A89A92; -fx-letter-spacing: 0.8px;");
@@ -75,6 +82,9 @@ public class ItemDetailDialog extends Stage {
         lblPrice.getStyleClass().add("modal-price");
         lblPrice.setStyle("-fx-font-size: 20px; -fx-font-weight: 800; -fx-text-fill: #C97A44; -fx-padding: 3 0 0 0;");
         infoBox.getChildren().add(lblPrice);
+
+        headerBox.getChildren().addAll(thumbImg, infoBox);
+
 
         // Scrollable Options Content (Generous height)
         VBox optionsList = new VBox(16);
@@ -340,7 +350,7 @@ public class ItemDetailDialog extends Stage {
 
         updatePrice();
 
-        root.getChildren().addAll(infoBox, scrollContent, sep, footer);
+        root.getChildren().addAll(headerBox, scrollContent, sep, footer);
 
         Scene scene = new Scene(root);
         scene.getStylesheets().add(getClass().getResource("client.css").toExternalForm());

@@ -25,7 +25,7 @@ public class ProductImagePane extends Pane {
      * Khởi tạo khung ảnh Responsive (Tự co giãn theo chiều rộng thẻ, chiều cao cố định).
      */
     public ProductImagePane(MenuItem item, double height, double cornerRadius) {
-        this(item, -1, height, cornerRadius);
+        this(item, -1, height, cornerRadius > 0 ? cornerRadius : 12.0);
     }
 
     /**

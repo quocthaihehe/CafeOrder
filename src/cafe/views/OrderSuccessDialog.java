@@ -1,22 +1,26 @@
 package cafe.views;
 
+import cafe.utils.AnimationHelper;
 import cafe.utils.CurrencyFormatter;
+import cafe.utils.SvgIcons;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.SVGPath;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
 /**
  * OrderSuccessDialog - Calm, editorial order confirmation slip dialog.
- * Hallmark Discipline:
- * - Minimal, architectural layout
- * - Restrained typography (Editorial Serif title), no cheesy celebratory cartoon graphics
- * - Clear order number, table, status, and back-to-menu action
+ * Refined per CafeOrder Animation & UI Plan:
+ * - 12px rounded canvas with sheet entrance animation via AnimationHelper.playDialogEntrance
+ * - Crisp SVG checkmark icon
+ * - Clear order number, table, status, and back-to-menu action with tactile press
  */
 public class OrderSuccessDialog extends Stage {
     private final int orderId;
@@ -46,15 +50,16 @@ public class OrderSuccessDialog extends Stage {
         root.getStyleClass().add("modal-canvas");
         root.setAlignment(Pos.CENTER);
         root.setPadding(new Insets(28, 32, 28, 32));
-        root.setPrefWidth(400);
+        root.setPrefWidth(420);
 
-        // Subtle Icon / Checkmark
-        Label lblCheck = new Label("✓");
-        lblCheck.setStyle(
-            "-fx-font-size: 24px; -fx-font-weight: 800; -fx-text-fill: #183C32; " +
-            "-fx-background-color: #EDF7ED; -fx-background-radius: 20px; " +
-            "-fx-min-width: 44px; -fx-min-height: 44px; -fx-alignment: center;"
-        );
+        // Entrance animation
+        AnimationHelper.playDialogEntrance(root);
+
+        // Subtle Icon / Checkmark with SVG
+        StackPane iconCircle = new StackPane();
+        iconCircle.setStyle("-fx-background-color: #EDF7ED; -fx-background-radius: 24px; -fx-min-width: 48px; -fx-min-height: 48px; -fx-max-width: 48px; -fx-max-height: 48px;");
+        SVGPath checkIcon = SvgIcons.createOutlineIcon(SvgIcons.CHECK, 1.1, Color.web("#183C32"));
+        iconCircle.getChildren().add(checkIcon);
 
         // Titles
         Label lblTitle = new Label("ĐƠN HÀNG ĐÃ XÁC NHẬN");
@@ -63,7 +68,7 @@ public class OrderSuccessDialog extends Stage {
         Label lblSub = new Label("Quầy pha chế đang chuẩn bị thức uống của bạn.");
         lblSub.getStyleClass().add("editorial-subtitle");
 
-        // Receipt Slip
+        // Receipt Slip (10px radius)
         VBox slip = new VBox(10);
         slip.getStyleClass().add("receipt-slip");
         slip.setAlignment(Pos.CENTER);
@@ -90,7 +95,7 @@ public class OrderSuccessDialog extends Stage {
         Region sp2 = new Region();
         HBox.setHgrow(sp2, Priority.ALWAYS);
         Label lblTVal = new Label(CurrencyFormatter.format(totalAmount));
-        lblTVal.setStyle("-fx-font-size: 14px; -fx-font-weight: 800; -fx-text-fill: #A66A42;");
+        lblTVal.setStyle("-fx-font-size: 14.5px; -fx-font-weight: 800; -fx-text-fill: #A66A42;");
         rowTotal.getChildren().addAll(lblTText, sp2, lblTVal);
 
         slip.getChildren().addAll(lblOrderTag, sep, rowMethod, rowTotal);
@@ -99,6 +104,7 @@ public class OrderSuccessDialog extends Stage {
         Button btnBack = new Button("Quay lại Menu thực đơn");
         btnBack.getStyleClass().add("btn-primary");
         btnBack.setMaxWidth(Double.MAX_VALUE);
+        AnimationHelper.applyButtonPress(btnBack);
         btnBack.setOnAction(e -> {
             close();
             if (onDismiss != null) {
@@ -106,7 +112,7 @@ public class OrderSuccessDialog extends Stage {
             }
         });
 
-        root.getChildren().addAll(lblCheck, lblTitle, lblSub, slip, btnBack);
+        root.getChildren().addAll(iconCircle, lblTitle, lblSub, slip, btnBack);
 
         Scene scene = new Scene(root);
         try {

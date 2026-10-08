@@ -1,12 +1,12 @@
 /* ==========================================================================
    BREW & BEAN CAFE — DESIGN SYSTEM & CENTRAL THEME STYLESHEET
-   Direction: Japanese coffee shop × modern editorial × premium POS
-   Hallmark Disciplines:
-   - Locked tokens: No inline hex/rgb improvisations
-   - Shape language: Subtle 4px radius, no excessive rounded cards/pills
-   - Typography purity: Editorial serif headings (roman/upright, no italics),
-                        Clean sans-serif UI & body
-   - Restraint: Hairline borders (#D8D1C3) over heavy dropshadows
+   Direction: Japanese Specialty Coffee Shop × Modern Editorial POS
+   Refinement:
+   - Corner Radius: 10px for controls/buttons/inputs, 12px for cards/dialogs
+   - Typography: Editorial Serif (Roman) for Display, Modern Clean Sans-Serif for UI
+   - Palette: Cream Canvas (#F4F0E8), Surface (#FBF9F4), Dark Emerald (#183C32),
+             Charcoal Text (#292722), Muted Gray (#817B70), Hairline Border (#D8D1C3),
+             Caramel Accent (#A66A42).
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
@@ -47,7 +47,7 @@
     -fx-font-size: 11px;
     -fx-font-weight: 700;
     -fx-text-fill: #817B70;
-    -fx-letter-spacing: 1px;
+    -fx-letter-spacing: 0.8px;
 }
 
 .micro-label {
@@ -58,16 +58,16 @@
 }
 
 /* --------------------------------------------------------------------------
-   BUTTON SYSTEM (Subtle 4px radius, High Contrast, Tactile States)
+   BUTTON SYSTEM (Subtle 10px radius, High Contrast, Tactile States)
    -------------------------------------------------------------------------- */
 .btn-primary {
     -fx-background-color: #183C32;
     -fx-text-fill: #FFFFFF;
     -fx-font-size: 13.5px;
     -fx-font-weight: 700;
-    -fx-background-radius: 4px;
-    -fx-border-radius: 4px;
-    -fx-padding: 10 18 10 18;
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-padding: 10 20 10 20;
     -fx-cursor: hand;
     -fx-border-color: #183C32;
     -fx-border-width: 1px;
@@ -95,11 +95,11 @@
     -fx-text-fill: #292722;
     -fx-font-size: 13px;
     -fx-font-weight: 600;
-    -fx-background-radius: 4px;
-    -fx-border-radius: 4px;
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
     -fx-border-color: #D8D1C3;
     -fx-border-width: 1px;
-    -fx-padding: 9 16 9 16;
+    -fx-padding: 9 18 9 18;
     -fx-cursor: hand;
 }
 
@@ -117,11 +117,11 @@
     -fx-text-fill: #292722;
     -fx-font-size: 12px;
     -fx-font-weight: 600;
-    -fx-background-radius: 4px;
+    -fx-background-radius: 8px;
     -fx-border-color: #D8D1C3;
-    -fx-border-radius: 4px;
+    -fx-border-radius: 8px;
     -fx-border-width: 1px;
-    -fx-padding: 6 12 6 12;
+    -fx-padding: 7 14 7 14;
     -fx-cursor: hand;
 }
 
@@ -138,18 +138,18 @@
 }
 
 /* --------------------------------------------------------------------------
-   INPUT FIELDS & CONTROLS
+   INPUT FIELDS & CONTROLS (10px Radius)
    -------------------------------------------------------------------------- */
 .text-input-field {
     -fx-background-color: #FFFFFF;
-    -fx-background-radius: 4px;
+    -fx-background-radius: 10px;
     -fx-border-color: #D8D1C3;
-    -fx-border-radius: 4px;
+    -fx-border-radius: 10px;
     -fx-border-width: 1px;
     -fx-font-size: 13px;
     -fx-text-fill: #292722;
     -fx-prompt-text-fill: #A8A297;
-    -fx-padding: 8 12 8 12;
+    -fx-padding: 8 14 8 14;
 }
 
 .text-input-field:focused {
@@ -192,9 +192,9 @@
     -fx-text-fill: #817B70;
     -fx-font-size: 12.5px;
     -fx-font-weight: 600;
-    -fx-background-radius: 4px;
-    -fx-border-radius: 4px;
-    -fx-padding: 9 12 9 12;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-padding: 9 14 9 14;
     -fx-cursor: hand;
     -fx-alignment: center-left;
 }
@@ -211,13 +211,40 @@
 }
 
 /* --------------------------------------------------------------------------
-   PRODUCT CARD (Architectural 4px radius, Editorial Layout)
+   FLOATING CART HEADER BUTTON & BADGE
+   -------------------------------------------------------------------------- */
+.btn-floating-cart {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 20px;
+    -fx-border-color: #D8D1C3;
+    -fx-border-radius: 20px;
+    -fx-border-width: 1px;
+    -fx-padding: 6 14 6 12;
+    -fx-cursor: hand;
+}
+
+.btn-floating-cart:hover {
+    -fx-background-color: #F7F3EB;
+    -fx-border-color: #183C32;
+}
+
+.cart-counter-badge {
+    -fx-background-color: #183C32;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-background-radius: 10px;
+    -fx-padding: 2 7 2 7;
+}
+
+/* --------------------------------------------------------------------------
+   PRODUCT CARD (12px Radius, Editorial Layout, Quick-Add +)
    -------------------------------------------------------------------------- */
 .product-card {
     -fx-background-color: #FFFFFF;
-    -fx-background-radius: 4px;
-    -fx-border-color: #D8D1C3;
-    -fx-border-radius: 4px;
+    -fx-background-radius: 12px;
+    -fx-border-color: #E2DBD0;
+    -fx-border-radius: 12px;
     -fx-border-width: 1px;
     -fx-padding: 10;
     -fx-cursor: hand;
@@ -248,13 +275,13 @@
 .btn-circle-add {
     -fx-background-color: #183C32;
     -fx-text-fill: #FFFFFF;
-    -fx-font-size: 14px;
+    -fx-font-size: 15px;
     -fx-font-weight: 700;
-    -fx-background-radius: 14px;
-    -fx-min-width: 28px;
-    -fx-min-height: 28px;
-    -fx-max-width: 28px;
-    -fx-max-height: 28px;
+    -fx-background-radius: 16px;
+    -fx-min-width: 32px;
+    -fx-min-height: 32px;
+    -fx-max-width: 32px;
+    -fx-max-height: 32px;
     -fx-padding: 0;
     -fx-cursor: hand;
 }
@@ -264,32 +291,34 @@
 }
 
 /* --------------------------------------------------------------------------
-   CART & ORDER SUMMARY (Fixed Right Panel)
+   CART MODAL & SUMMARY (Matches Screen 5 in UI_mong_muon.png)
    -------------------------------------------------------------------------- */
-.cart-sidebar-pane {
+.cart-modal-pane {
     -fx-background-color: #FBF9F4;
-    -fx-border-color: transparent transparent transparent #D8D1C3;
-    -fx-border-width: 0 0 0 1;
-    -fx-padding: 18 16 18 16;
+    -fx-background-radius: 12px;
+    -fx-border-color: #D8D1C3;
+    -fx-border-radius: 12px;
+    -fx-border-width: 1px;
+    -fx-padding: 20 24 20 24;
 }
 
 .cart-item-row {
     -fx-background-color: #FFFFFF;
-    -fx-background-radius: 4px;
+    -fx-background-radius: 10px;
     -fx-border-color: #E6DFD4;
-    -fx-border-radius: 4px;
+    -fx-border-radius: 10px;
     -fx-border-width: 1px;
-    -fx-padding: 10 12 10 12;
+    -fx-padding: 10 14 10 14;
 }
 
 .cart-item-title {
-    -fx-font-size: 13px;
+    -fx-font-size: 13.5px;
     -fx-font-weight: 700;
     -fx-text-fill: #292722;
 }
 
 .cart-item-price {
-    -fx-font-size: 12.5px;
+    -fx-font-size: 13px;
     -fx-font-weight: 700;
     -fx-text-fill: #A66A42;
 }
@@ -299,12 +328,12 @@
     -fx-text-fill: #292722;
     -fx-font-size: 12px;
     -fx-font-weight: 700;
-    -fx-background-radius: 4px;
+    -fx-background-radius: 6px;
     -fx-border-color: #D8D1C3;
-    -fx-border-radius: 4px;
+    -fx-border-radius: 6px;
     -fx-border-width: 1px;
     -fx-cursor: hand;
-    -fx-padding: 3 8 3 8;
+    -fx-padding: 3 9 3 9;
 }
 
 .stepper-btn:hover {
@@ -317,10 +346,10 @@
 }
 
 .stepper-value {
-    -fx-font-size: 12.5px;
+    -fx-font-size: 13px;
     -fx-font-weight: 700;
     -fx-text-fill: #292722;
-    -fx-padding: 0 4 0 4;
+    -fx-padding: 0 6 0 6;
 }
 
 .btn-delete-item {
@@ -328,8 +357,8 @@
     -fx-text-fill: #817B70;
     -fx-font-size: 13px;
     -fx-cursor: hand;
-    -fx-padding: 2 4 2 4;
-    -fx-background-radius: 4px;
+    -fx-padding: 4 6 4 6;
+    -fx-background-radius: 6px;
 }
 
 .btn-delete-item:hover {
@@ -345,7 +374,7 @@
     -fx-text-fill: #FFFFFF;
     -fx-font-size: 8.5px;
     -fx-font-weight: 800;
-    -fx-background-radius: 4px;
+    -fx-background-radius: 6px;
     -fx-padding: 2 6 2 6;
 }
 
@@ -354,14 +383,14 @@
     -fx-text-fill: #FFFFFF;
     -fx-font-size: 8.5px;
     -fx-font-weight: 800;
-    -fx-background-radius: 4px;
+    -fx-background-radius: 6px;
     -fx-padding: 2 6 2 6;
 }
 
 .table-tag {
     -fx-background-color: #EBE5DB;
-    -fx-background-radius: 4px;
-    -fx-padding: 4 10 4 10;
+    -fx-background-radius: 8px;
+    -fx-padding: 5 12 5 12;
     -fx-font-size: 12px;
     -fx-font-weight: 700;
     -fx-text-fill: #183C32;
@@ -369,11 +398,11 @@
 
 .status-tag-active {
     -fx-background-color: #FDF4ED;
-    -fx-background-radius: 4px;
+    -fx-background-radius: 8px;
     -fx-border-color: #F4D3BC;
-    -fx-border-radius: 4px;
+    -fx-border-radius: 8px;
     -fx-border-width: 1px;
-    -fx-padding: 3 8 3 8;
+    -fx-padding: 4 10 4 10;
     -fx-font-size: 11px;
     -fx-font-weight: 600;
     -fx-text-fill: #C05621;
@@ -381,22 +410,24 @@
 
 .status-tag-done {
     -fx-background-color: #EDF7ED;
-    -fx-background-radius: 4px;
+    -fx-background-radius: 8px;
     -fx-border-color: #C8E6C9;
-    -fx-border-radius: 4px;
+    -fx-border-radius: 8px;
     -fx-border-width: 1px;
-    -fx-padding: 3 8 3 8;
+    -fx-padding: 4 10 4 10;
     -fx-font-size: 11px;
     -fx-font-weight: 600;
     -fx-text-fill: #1B5E20;
 }
 
 /* --------------------------------------------------------------------------
-   MODAL / POPUP DIALOGS (Product Detail, Payment, Success)
+   MODAL / POPUP DIALOGS (12px Radius Canvas)
    -------------------------------------------------------------------------- */
 .modal-canvas {
     -fx-background-color: #FBF9F4;
+    -fx-background-radius: 12px;
     -fx-border-color: #D8D1C3;
+    -fx-border-radius: 12px;
     -fx-border-width: 1px;
 }
 
@@ -419,9 +450,9 @@
    -------------------------------------------------------------------------- */
 .payment-method-card {
     -fx-background-color: #FFFFFF;
-    -fx-background-radius: 4px;
+    -fx-background-radius: 10px;
     -fx-border-color: #D8D1C3;
-    -fx-border-radius: 4px;
+    -fx-border-radius: 10px;
     -fx-border-width: 1px;
     -fx-padding: 14 18 14 18;
     -fx-cursor: hand;
@@ -440,11 +471,11 @@
 
 .receipt-slip {
     -fx-background-color: #FFFFFF;
-    -fx-background-radius: 4px;
+    -fx-background-radius: 10px;
     -fx-border-color: #D8D1C3;
-    -fx-border-radius: 4px;
+    -fx-border-radius: 10px;
     -fx-border-width: 1px;
-    -fx-padding: 20 24 20 24;
+    -fx-padding: 18 22 18 22;
 }
 
 /* --------------------------------------------------------------------------
@@ -458,12 +489,12 @@
 
 .scroll-bar:vertical {
     -fx-background-color: transparent;
-    -fx-pref-width: 8px;
+    -fx-pref-width: 7px;
 }
 
 .scroll-bar:vertical .thumb {
     -fx-background-color: #D8D1C3;
-    -fx-background-radius: 4px;
+    -fx-background-radius: 6px;
 }
 
 .scroll-bar:vertical .thumb:hover {

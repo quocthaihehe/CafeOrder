@@ -2,7 +2,9 @@ package cafe.views;
 
 import cafe.models.CartModel;
 import cafe.models.OrderItem;
+import cafe.utils.AnimationHelper;
 import cafe.utils.CurrencyFormatter;
+import cafe.utils.SvgIcons;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -12,6 +14,8 @@ import javafx.scene.control.RadioButton;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.SVGPath;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -20,10 +24,10 @@ import java.util.function.Consumer;
 
 /**
  * PaymentDialog - Reusable Payment Screen Dialog.
- * Hallmark Discipline:
- * - Editorial receipt layout, subtle 4px radius, hairline borders
- * - Clear total hierarchy, 3 explicit payment options (Cash, QR, Card)
- * - Zero artificial slop gradients, high tactile contrast
+ * Refined per CafeOrder Animation & UI Plan:
+ * - 12px rounded canvas with sheet entrance animation via AnimationHelper.playDialogEntrance
+ * - 3 prominent payment cards: Cash, Bank Card, E-Wallet with SVG vector icons
+ * - Clear bill summary and prominent confirmation CTA button
  */
 public class PaymentDialog extends Stage {
     private final int tableNumber;
@@ -50,7 +54,10 @@ public class PaymentDialog extends Stage {
         VBox root = new VBox(14);
         root.getStyleClass().add("modal-canvas");
         root.setPadding(new Insets(20, 24, 20, 24));
-        root.setPrefWidth(460);
+        root.setPrefWidth(470);
+
+        // Entrance animation
+        AnimationHelper.playDialogEntrance(root);
 
         // Header: Brand & Table
         HBox headerRow = new HBox(8);
@@ -86,11 +93,11 @@ public class PaymentDialog extends Stage {
             itemRow.setAlignment(Pos.CENTER_LEFT);
 
             Label lblItemName = new Label(oi.getQty() + "x " + oi.getName() + (oi.getSizeCode() != null ? " (" + oi.getSizeCode() + ")" : ""));
-            lblItemName.setStyle("-fx-font-size: 12px; -fx-text-fill: #292722;");
+            lblItemName.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #292722;");
             HBox.setHgrow(lblItemName, Priority.ALWAYS);
 
             Label lblItemSub = new Label(CurrencyFormatter.format(oi.getSubtotal()));
-            lblItemSub.setStyle("-fx-font-size: 12px; -fx-font-weight: 600; -fx-text-fill: #292722;");
+            lblItemSub.setStyle("-fx-font-size: 12.5px; -fx-font-weight: 600; -fx-text-fill: #292722;");
 
             itemRow.getChildren().addAll(lblItemName, lblItemSub);
             itemsList.getChildren().add(itemRow);
@@ -110,22 +117,22 @@ public class PaymentDialog extends Stage {
         // Subtotal & Discount rows
         HBox rowSubtotal = new HBox();
         Label lblSubLabel = new Label("Tạm tính:");
-        lblSubLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #817B70;");
+        lblSubLabel.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #817B70;");
         Region sp1 = new Region();
         HBox.setHgrow(sp1, Priority.ALWAYS);
         Label lblSubVal = new Label(CurrencyFormatter.format(cartModel.getSubtotalAmount()));
-        lblSubVal.setStyle("-fx-font-size: 12px; -fx-text-fill: #292722;");
+        lblSubVal.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #292722;");
         rowSubtotal.getChildren().addAll(lblSubLabel, sp1, lblSubVal);
         receiptBox.getChildren().add(rowSubtotal);
 
         if (cartModel.getDiscountAmount() > 0) {
             HBox rowDiscount = new HBox();
             Label lblDiscLabel = new Label("Giảm giá (Voucher):");
-            lblDiscLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #183C32; -fx-font-weight: 700;");
+            lblDiscLabel.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #183C32; -fx-font-weight: 700;");
             Region sp2 = new Region();
             HBox.setHgrow(sp2, Priority.ALWAYS);
             Label lblDiscVal = new Label("-" + CurrencyFormatter.format(cartModel.getDiscountAmount()));
-            lblDiscVal.setStyle("-fx-font-size: 12px; -fx-text-fill: #183C32; -fx-font-weight: 700;");
+            lblDiscVal.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #183C32; -fx-font-weight: 700;");
             rowDiscount.getChildren().addAll(lblDiscLabel, sp2, lblDiscVal);
             receiptBox.getChildren().add(rowDiscount);
         }
@@ -138,7 +145,7 @@ public class PaymentDialog extends Stage {
         Region sp3 = new Region();
         HBox.setHgrow(sp3, Priority.ALWAYS);
         Label lblTotalVal = new Label(CurrencyFormatter.format(cartModel.getTotalAmount()));
-        lblTotalVal.setStyle("-fx-font-size: 18px; -fx-font-weight: 800; -fx-text-fill: #A66A42;");
+        lblTotalVal.setStyle("-fx-font-size: 18.5px; -fx-font-weight: 800; -fx-text-fill: #A66A42;");
         rowGrandTotal.getChildren().addAll(lblTotalLabel, sp3, lblTotalVal);
         receiptBox.getChildren().add(rowGrandTotal);
 
@@ -150,23 +157,48 @@ public class PaymentDialog extends Stage {
 
         ToggleGroup payGroup = new ToggleGroup();
 
-        RadioButton rbCash = createPaymentOptionRadio("💵  Tiền mặt tại quầy", "Thanh toán trực tiếp khi nhận nước tại quầy thu ngân", "TIỀN MẶT", payGroup, true);
-        RadioButton rbQR = createPaymentOptionRadio("📱  Chuyển khoản / Ví điện tử QR", "Quét mã MoMo, ZaloPay, VietQR tiện lợi", "VÍ ĐIỆN TỬ / QR", payGroup, false);
-        RadioButton rbCard = createPaymentOptionRadio("💳  Thẻ ngân hàng / Máy POS", "Chạm hoặc quẹt thẻ ATM, Visa, MasterCard", "THẺ NGÂN HÀNG", payGroup, false);
+        RadioButton rbCash = createPaymentCard(
+            "Tiền mặt tại quầy",
+            "Thanh toán trực tiếp khi nhận nước tại quầy thu ngân",
+            SvgIcons.CASH,
+            "TIỀN MẶT",
+            payGroup,
+            true
+        );
 
-        paymentOptionsBox.getChildren().addAll(rbCash, rbQR, rbCard);
+        RadioButton rbCard = createPaymentCard(
+            "Thẻ ngân hàng / Máy POS",
+            "Chạm hoặc quẹt thẻ ATM, Visa, MasterCard",
+            SvgIcons.CREDIT_CARD,
+            "THẺ NGÂN HÀNG",
+            payGroup,
+            false
+        );
+
+        RadioButton rbQR = createPaymentCard(
+            "Chuyển khoản / Ví điện tử QR",
+            "Quét mã MoMo, ZaloPay, VietQR tiện lợi",
+            SvgIcons.WALLET,
+            "VÍ ĐIỆN TỬ / QR",
+            payGroup,
+            false
+        );
+
+        paymentOptionsBox.getChildren().addAll(rbCash, rbCard, rbQR);
 
         // Bottom Actions
-        HBox actionsRow = new HBox(10);
+        HBox actionsRow = new HBox(12);
         actionsRow.setAlignment(Pos.CENTER_RIGHT);
-        actionsRow.setPadding(new Insets(8, 0, 0, 0));
+        actionsRow.setPadding(new Insets(10, 0, 0, 0));
 
-        Button btnCancel = new Button("Quay lại giỏ");
+        Button btnCancel = new Button("Quay lại");
         btnCancel.getStyleClass().add("btn-secondary");
+        AnimationHelper.applyButtonPress(btnCancel);
         btnCancel.setOnAction(e -> close());
 
-        Button btnConfirm = new Button("Xác nhận & Gửi đơn hàng →");
+        Button btnConfirm = new Button("Xác nhận thanh toán →");
         btnConfirm.getStyleClass().add("btn-primary");
+        AnimationHelper.applyButtonPress(btnConfirm);
         btnConfirm.setOnAction(e -> {
             if (onConfirmed != null) {
                 onConfirmed.accept(selectedMethod);
@@ -186,21 +218,29 @@ public class PaymentDialog extends Stage {
         setScene(scene);
     }
 
-    private RadioButton createPaymentOptionRadio(String title, String desc, String methodKey, ToggleGroup group, boolean isSelected) {
+    private RadioButton createPaymentCard(String title, String desc, String iconSvg, String methodKey, ToggleGroup group, boolean isSelected) {
         RadioButton rb = new RadioButton();
         rb.setToggleGroup(group);
         rb.setSelected(isSelected);
         rb.setMaxWidth(Double.MAX_VALUE);
         rb.getStyleClass().add("payment-method-card");
 
+        HBox cardRow = new HBox(10);
+        cardRow.setAlignment(Pos.CENTER_LEFT);
+
+        SVGPath icon = SvgIcons.createOutlineIcon(iconSvg, 0.9, Color.web("#183C32"));
+
         VBox content = new VBox(2);
+        HBox.setHgrow(content, Priority.ALWAYS);
         Label lblT = new Label(title);
         lblT.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #292722;");
         Label lblD = new Label(desc);
         lblD.setStyle("-fx-font-size: 11px; -fx-text-fill: #817B70;");
         content.getChildren().addAll(lblT, lblD);
 
-        rb.setGraphic(content);
+        cardRow.getChildren().addAll(icon, content);
+        rb.setGraphic(cardRow);
+
         rb.setOnAction(e -> selectedMethod = methodKey);
 
         return rb;

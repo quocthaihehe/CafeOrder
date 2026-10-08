@@ -5,7 +5,9 @@ import cafe.models.MenuRepository;
 import cafe.models.OrderItem;
 import cafe.models.SizeItem;
 import cafe.models.ToppingItem;
+import cafe.utils.AnimationHelper;
 import cafe.utils.CurrencyFormatter;
+import cafe.utils.SvgIcons;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -17,6 +19,8 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.SVGPath;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -27,9 +31,11 @@ import java.util.function.Consumer;
 
 /**
  * ItemDetailDialog - Product Customization Dialog.
- * Hallmark Discipline:
- * - 2-column editorial layout
- * - Left column: large cover image (4px radius)
+ * Refined per CafeOrder Animation & UI Plan:
+ * - 2-column editorial layout with 12px corner radius
+ * - Hardware-accelerated sheet entrance animation via AnimationHelper.playDialogEntrance
+ * - Tactile button press interactions
+ * - Left column: large cover image (12px radius)
  * - Right column: upright serif title, clean size tags, toppings, stepper, dark emerald CTA
  */
 public class ItemDetailDialog extends Stage {
@@ -65,19 +71,22 @@ public class ItemDetailDialog extends Stage {
     private void initUI() {
         HBox root = new HBox(16);
         root.getStyleClass().add("modal-canvas");
-        root.setPadding(new Insets(18));
-        root.setPrefWidth(660);
-        root.setPrefHeight(490);
+        root.setPadding(new Insets(20));
+        root.setPrefWidth(680);
+        root.setPrefHeight(510);
+
+        // Entrance animation
+        AnimationHelper.playDialogEntrance(root);
 
         // =====================================================================
         // 1. LEFT COLUMN: LARGE PRODUCT IMAGE
         // =====================================================================
         VBox leftCol = new VBox(10);
         leftCol.setAlignment(Pos.TOP_CENTER);
-        leftCol.setPrefWidth(240);
-        leftCol.setMinWidth(240);
+        leftCol.setPrefWidth(250);
+        leftCol.setMinWidth(250);
 
-        ProductImagePane largeImg = new ProductImagePane(item, 240, 240, 4);
+        ProductImagePane largeImg = new ProductImagePane(item, 250, 250, 12);
 
         HBox badgeBox = new HBox(6);
         badgeBox.setAlignment(Pos.CENTER);
@@ -112,7 +121,9 @@ public class ItemDetailDialog extends Stage {
         lblPrice.setStyle("-fx-font-size: 16px; -fx-font-weight: 800; -fx-text-fill: #A66A42;");
         titleBox.getChildren().addAll(lblName, lblPrice);
 
-        Button btnClose = new Button("✕");
+        Button btnClose = new Button();
+        SVGPath closeIcon = SvgIcons.createOutlineIcon(SvgIcons.CLOSE, 0.7, Color.web("#817B70"));
+        btnClose.setGraphic(closeIcon);
         btnClose.getStyleClass().add("btn-delete-item");
         btnClose.setOnAction(e -> close());
 
@@ -145,6 +156,7 @@ public class ItemDetailDialog extends Stage {
                 ToggleButton tb = new ToggleButton(labelText);
                 tb.getStyleClass().add("btn-option-tag");
                 tb.setToggleGroup(sizeGroup);
+                AnimationHelper.applyButtonPress(tb);
                 if (s.getSizeCode().equalsIgnoreCase(selectedSize.getSizeCode())) {
                     tb.setSelected(true);
                 }
@@ -171,11 +183,13 @@ public class ItemDetailDialog extends Stage {
             tbCold.getStyleClass().add("btn-option-tag");
             tbCold.setToggleGroup(tempGroup);
             tbCold.setSelected(true);
+            AnimationHelper.applyButtonPress(tbCold);
             tbCold.setOnAction(e -> selectedTemperature = "COLD");
 
             ToggleButton tbHot = new ToggleButton("☕ Nóng (Hot)");
             tbHot.getStyleClass().add("btn-option-tag");
             tbHot.setToggleGroup(tempGroup);
+            AnimationHelper.applyButtonPress(tbHot);
             tbHot.setOnAction(e -> selectedTemperature = "HOT");
 
             tempButtons.getChildren().addAll(tbCold, tbHot);
@@ -184,7 +198,7 @@ public class ItemDetailDialog extends Stage {
         }
 
         // Sugar & Ice percentage (Drinks only)
-        if (!item.getCategory().equalsIgnoreCase("Món ăn nhẹ")) {
+        if (!item.getCategory().equalsIgnoreCase("Món ăn nhẹ") && !item.getCategory().equalsIgnoreCase("Bánh ngọt")) {
             VBox levelSection = new VBox(6);
             Label lblLevelTitle = new Label("MỨC ĐƯỜNG & ĐÁ");
             lblLevelTitle.getStyleClass().add("modal-section-title");
@@ -199,6 +213,7 @@ public class ItemDetailDialog extends Stage {
                 ToggleButton tb = new ToggleButton(lvl + "%");
                 tb.getStyleClass().add("btn-option-tag");
                 tb.setToggleGroup(sugarGroup);
+                AnimationHelper.applyButtonPress(tb);
                 if (lvl == 100) tb.setSelected(true);
                 tb.setOnAction(e -> selectedSugar = lvl);
                 sugarBox.getChildren().add(tb);
@@ -214,6 +229,7 @@ public class ItemDetailDialog extends Stage {
                 ToggleButton tb = new ToggleButton(lvl == 0 ? "Không đá" : lvl + "%");
                 tb.getStyleClass().add("btn-option-tag");
                 tb.setToggleGroup(iceGroup);
+                AnimationHelper.applyButtonPress(tb);
                 if (lvl == 100) tb.setSelected(true);
                 tb.setOnAction(e -> selectedIce = lvl);
                 iceBox.getChildren().add(tb);
@@ -229,7 +245,7 @@ public class ItemDetailDialog extends Stage {
             availableToppings = MenuRepository.getAllToppings();
         }
 
-        if (!availableToppings.isEmpty() && !item.getCategory().equalsIgnoreCase("Món ăn nhẹ")) {
+        if (!availableToppings.isEmpty() && !item.getCategory().equalsIgnoreCase("Món ăn nhẹ") && !item.getCategory().equalsIgnoreCase("Bánh ngọt")) {
             VBox toppingSection = new VBox(6);
             Label lblToppingTitle = new Label("TOPPING THÊM");
             lblToppingTitle.getStyleClass().add("modal-section-title");
@@ -277,10 +293,12 @@ public class ItemDetailDialog extends Stage {
 
         Button btnMinus = new Button("-");
         btnMinus.getStyleClass().add("stepper-btn");
+        AnimationHelper.applyButtonPress(btnMinus);
         Label lblQty = new Label(String.valueOf(quantity));
         lblQty.getStyleClass().add("stepper-value");
         Button btnPlus = new Button("+");
         btnPlus.getStyleClass().add("stepper-btn");
+        AnimationHelper.applyButtonPress(btnPlus);
 
         btnMinus.setOnAction(e -> {
             if (quantity > 1) {
@@ -300,6 +318,8 @@ public class ItemDetailDialog extends Stage {
         btnConfirm.getStyleClass().add("btn-primary");
         btnConfirm.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(btnConfirm, Priority.ALWAYS);
+        AnimationHelper.applyButtonPress(btnConfirm);
+
         btnConfirm.setOnAction(e -> {
             double extra = (selectedSize != null ? selectedSize.getPriceDelta() : 0.0);
             for (ToppingItem t : selectedToppings) {

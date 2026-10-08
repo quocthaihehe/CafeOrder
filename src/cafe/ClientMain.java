@@ -22,15 +22,16 @@ public class ClientMain {
             LoginView loginView = new LoginView();
             new LoginController(primaryStage, loginView, socketService);
 
-            Scene scene = new Scene(loginView, 540, 520);
+            Scene scene = new Scene(loginView, 880, 560);
             try {
+                scene.getStylesheets().add(getClass().getResource("/cafe/resources/css/cafe-theme.css").toExternalForm());
                 scene.getStylesheets().add(getClass().getResource("/cafe/views/client.css").toExternalForm());
             } catch (Exception ignored) {}
 
-            primaryStage.setTitle("Đăng Nhập Bàn • L'Amour Artisan Cafe");
+            primaryStage.setTitle("Đăng Nhập • Brew & Bean CAFE");
             primaryStage.setScene(scene);
-            primaryStage.setMinWidth(480);
-            primaryStage.setMinHeight(480);
+            primaryStage.setMinWidth(800);
+            primaryStage.setMinHeight(520);
             primaryStage.centerOnScreen();
 
             primaryStage.setOnCloseRequest(e -> {

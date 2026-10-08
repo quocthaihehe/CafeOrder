@@ -34,7 +34,69 @@ public class AssetGenerator {
         // 2. Sinh ảnh minh họa cho 67 món
         generateProductAssets(productDir);
 
+        // 3. Sinh ảnh poster đăng nhập nghệ thuật (Screen 1)
+        generateLoginHero(new File("src/cafe/resources/images"));
+
         System.out.println("=== HOÀN TẤT SINH ẢNH! TOÀN BỘ ASSETS ĐÃ ĐƯỢC LÀM MỚI SẠCH ĐẸP ===");
+    }
+
+    private static void generateLoginHero(File dir) {
+        int w = 550;
+        int h = 750;
+        BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = img.createGraphics();
+
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+
+        // Nền tối cà phê cao cấp (#13251E -> #2D1A12)
+        GradientPaint gp = new GradientPaint(0, 0, new Color(0x13, 0x25, 0x1E), w, h, new Color(0x2D, 0x1A, 0x12));
+        g.setPaint(gp);
+        g.fillRect(0, 0, w, h);
+
+        // Quầng sáng ấm trung tâm
+        g.setColor(new Color(230, 160, 100, 25));
+        g.fillOval(50, 120, 450, 450);
+
+        // Họa tiết trang trí vòng tròn nghệ thuật
+        g.setColor(new Color(255, 255, 255, 12));
+        g.drawOval(w/2 - 140, 250, 280, 280);
+        g.drawOval(w/2 - 180, 210, 360, 360);
+
+        // Biểu tượng tách cà phê tối giản phong cách Nhật
+        g.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 120));
+        FontMetrics fm = g.getFontMetrics();
+        String emoji = "☕";
+        int ew = fm.stringWidth(emoji);
+        g.setColor(new Color(255, 255, 255, 220));
+        g.drawString(emoji, (w - ew) / 2, 380);
+
+        // Brand Logo top left
+        g.setFont(new Font("Playfair Display", Font.BOLD, 22));
+        g.setColor(Color.WHITE);
+        g.drawString("Brew & Bean", 48, 64);
+        g.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        g.setColor(new Color(212, 163, 115));
+        g.drawString("C A F E", 50, 80);
+
+        // Tiêu đề nghệ thuật lớn: Good Coffee Better Moments
+        g.setFont(new Font("Playfair Display", Font.BOLD, 46));
+        g.setColor(new Color(244, 240, 232));
+        g.drawString("Good", 48, 520);
+        g.drawString("Coffee", 48, 570);
+        g.setColor(new Color(212, 163, 115));
+        g.drawString("Better", 48, 620);
+        g.setColor(new Color(244, 240, 232));
+        g.drawString("Moments", 48, 670);
+
+        // Bottom quote
+        g.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        g.setColor(new Color(200, 190, 180));
+        g.drawString("Order tại bàn. Nhanh hơn, Tiện hơn, Trọn vẹn hơn.", 48, 715);
+
+        g.dispose();
+        saveImage(img, new File(dir, "login_hero.png"));
     }
 
     private static void generateDefaultPlaceholders(File dir) {

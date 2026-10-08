@@ -27,10 +27,11 @@ public class ServerMain {
 
             Scene scene = new Scene(kdsView, 1180, 750);
             try {
+                scene.getStylesheets().add(getClass().getResource("/cafe/resources/css/cafe-theme.css").toExternalForm());
                 scene.getStylesheets().add(getClass().getResource("/cafe/views/server.css").toExternalForm());
             } catch (Exception ignored) {}
 
-            primaryStage.setTitle("Quầy Điều Phối Pha Chế (KDS) • L'Amour Artisan Cafe");
+            primaryStage.setTitle("Quầy Điều Phối Pha Chế (KDS) • Brew & Bean CAFE");
             primaryStage.setScene(scene);
             primaryStage.setMinWidth(960);
             primaryStage.setMinHeight(600);

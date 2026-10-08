@@ -53,11 +53,12 @@ public class LoginController {
 
             Scene scene = new Scene(clientView, 1100, 720);
             try {
+                scene.getStylesheets().add(getClass().getResource("/cafe/resources/css/cafe-theme.css").toExternalForm());
                 scene.getStylesheets().add(getClass().getResource("/cafe/views/client.css").toExternalForm());
             } catch (Exception ignored) {}
 
             stage.setScene(scene);
-            stage.setTitle("L'Amour Artisan Cafe • Bàn " + tableNumber);
+            stage.setTitle("Brew & Bean CAFE • Bàn " + tableNumber);
             stage.centerOnScreen();
         } else {
             view.showError("Không thể kết nối đến quầy pha chế! Vui lòng kiểm tra lại Server.");

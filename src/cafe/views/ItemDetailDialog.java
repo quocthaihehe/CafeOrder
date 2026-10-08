@@ -15,9 +15,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TextField;
-import javafx.scene.control.ToggleButton;
-import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.SVGPath;
@@ -30,13 +27,12 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * ItemDetailDialog - Product Customization Dialog.
- * Refined per CafeOrder Animation & UI Plan:
- * - 2-column editorial layout with 12px corner radius
- * - Hardware-accelerated sheet entrance animation via AnimationHelper.playDialogEntrance
- * - Tactile button press interactions
- * - Left column: large cover image (12px radius)
- * - Right column: upright serif title, clean size tags, toppings, stepper, dark emerald CTA
+ * ItemDetailDialog - Modal Chi tiết món (Screen 4 trong UI_mong_muon.png):
+ * - Bố cục ngang (Horizontal Split): Ảnh lớn bên trái (38%), Tùy chọn bên phải (62%)
+ * - Tiêu đề Playfair Display 20px, Giá Inter Bold #563521
+ * - Bộ chọn Size dạng Segmented Buttons: [ S ] [ M ] [ L ] (Nút M đang chọn #112823)
+ * - Tùy chọn thêm: Checkbox thanh lịch (Thêm shot, Ít đường, Không đường, Sữa hạnh nhân)
+ * - Cụm [-] 1 [+] và nút CTA "Thêm vào giỏ hàng" #112823
  */
 public class ItemDetailDialog extends Stage {
     private final MenuItem item;
@@ -49,8 +45,9 @@ public class ItemDetailDialog extends Stage {
     private int selectedIce = 100;
     private final List<ToppingItem> selectedToppings = new ArrayList<>();
 
-    private final Button btnConfirm = new Button();
+    private final Button btnConfirm = new Button("Thêm vào giỏ hàng");
     private final Label lblPrice = new Label();
+    private final Label lblQty = new Label("1");
 
     public ItemDetailDialog(Stage parentStage, MenuItem item, Consumer<OrderItem> onConfirmed) {
         this.item = item;
@@ -62,7 +59,7 @@ public class ItemDetailDialog extends Stage {
         initOwner(parentStage);
         initModality(Modality.APPLICATION_MODAL);
         initStyle(StageStyle.UTILITY);
-        setTitle("Tùy Chọn Món • " + item.getName());
+        setTitle("Chi Tiết Món • " + item.getName());
         setResizable(false);
 
         initUI();
@@ -70,234 +67,146 @@ public class ItemDetailDialog extends Stage {
 
     private void initUI() {
         HBox root = new HBox(16);
-        root.getStyleClass().add("modal-canvas");
-        root.setPadding(new Insets(20));
-        root.setPrefWidth(680);
-        root.setPrefHeight(510);
+        root.setStyle("-fx-background-color: #FBF9F5; -fx-background-radius: 6px; -fx-border-color: #DED7CD; -fx-border-radius: 6px; -fx-border-width: 1px;");
+        root.setPadding(new Insets(16));
+        root.setPrefWidth(580);
+        root.setPrefHeight(390);
 
         // Entrance animation
         AnimationHelper.playDialogEntrance(root);
 
         // =====================================================================
-        // 1. LEFT COLUMN: LARGE PRODUCT IMAGE
+        // 1. CỘT TRÁI (38%): ẢNH LỚN CẬN CẢNH (RADIUS 6PX)
         // =====================================================================
-        VBox leftCol = new VBox(10);
-        leftCol.setAlignment(Pos.TOP_CENTER);
-        leftCol.setPrefWidth(250);
-        leftCol.setMinWidth(250);
+        VBox leftCol = new VBox();
+        leftCol.setAlignment(Pos.CENTER);
+        leftCol.setPrefWidth(210);
+        leftCol.setMinWidth(200);
+        leftCol.setMaxWidth(220);
 
-        ProductImagePane largeImg = new ProductImagePane(item, 250, 250, 12);
-
-        HBox badgeBox = new HBox(6);
-        badgeBox.setAlignment(Pos.CENTER);
-        if (item.isBestseller()) {
-            Label b = new Label("BESTSELLER");
-            b.getStyleClass().add("badge-bestseller");
-            badgeBox.getChildren().add(b);
-        } else if (item.isNew()) {
-            Label b = new Label("MÓN MỚI");
-            b.getStyleClass().add("badge-new");
-            badgeBox.getChildren().add(b);
-        }
-
-        leftCol.getChildren().addAll(largeImg, badgeBox);
+        ProductImagePane largeImg = new ProductImagePane(item, 210, 330, 6);
+        leftCol.getChildren().add(largeImg);
 
         // =====================================================================
-        // 2. RIGHT COLUMN: CUSTOMIZATION OPTIONS
+        // 2. CỘT PHẢI (62%): NỘI DUNG TÙY BIẾN CHUẨN SCREEN 4
         // =====================================================================
-        VBox rightCol = new VBox(10);
+        VBox rightCol = new VBox(8);
         HBox.setHgrow(rightCol, Priority.ALWAYS);
 
-        // Header (Name + Price + Close)
-        HBox headerRow = new HBox(8);
-        headerRow.setAlignment(Pos.CENTER_LEFT);
+        // Header: Close Button X ở góc phải
+        HBox topRow = new HBox();
+        topRow.setAlignment(Pos.CENTER_RIGHT);
 
-        VBox titleBox = new VBox(2);
-        HBox.setHgrow(titleBox, Priority.ALWAYS);
-
-        Label lblName = new Label(item.getName());
-        lblName.getStyleClass().add("modal-dialog-title");
-
-        lblPrice.setStyle("-fx-font-size: 16px; -fx-font-weight: 800; -fx-text-fill: #A66A42;");
-        titleBox.getChildren().addAll(lblName, lblPrice);
-
-        Button btnClose = new Button();
-        SVGPath closeIcon = SvgIcons.createOutlineIcon(SvgIcons.CLOSE, 0.7, Color.web("#817B70"));
-        btnClose.setGraphic(closeIcon);
-        btnClose.getStyleClass().add("btn-delete-item");
+        Button btnClose = new Button("✕");
+        btnClose.setStyle("-fx-background-color: transparent; -fx-text-fill: #817A70; -fx-font-size: 13px; -fx-cursor: hand; -fx-padding: 0;");
         btnClose.setOnAction(e -> close());
+        topRow.getChildren().add(btnClose);
 
-        headerRow.getChildren().addAll(titleBox, btnClose);
+        // Tên món (Playfair Display) & Giá
+        Label lblName = new Label(item.getName());
+        lblName.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 20px; -fx-font-weight: 700; -fx-text-fill: #292722;");
 
-        if (item.getDescription() != null && !item.getDescription().trim().isEmpty()) {
-            Label lblDesc = new Label(item.getDescription().trim());
-            lblDesc.getStyleClass().add("editorial-subtitle");
-            lblDesc.setWrapText(true);
-            titleBox.getChildren().add(lblDesc);
-        }
+        lblPrice.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: #563521;");
+
+        // Mô tả món
+        Label lblDesc = new Label(item.getDescription() != null && !item.getDescription().isEmpty() ? item.getDescription() : "Cà phê espresso kết hợp cùng sữa tươi thượng hạng, tạo nên hương vị béo ngậy, êm dịu.");
+        lblDesc.setWrapText(true);
+        lblDesc.setStyle("-fx-font-size: 11px; -fx-text-fill: #817A70; -fx-line-spacing: 1.5px;");
+        lblDesc.setMaxHeight(40);
 
         // Scrollable Options Area
-        VBox optionsList = new VBox(12);
-        optionsList.setPadding(new Insets(4, 8, 8, 0));
+        VBox optionsList = new VBox(10);
+        optionsList.setPadding(new Insets(2, 4, 4, 0));
 
-        // Size Selector
-        if (item.isAllowSize()) {
-            VBox sizeSection = new VBox(6);
-            Label lblSizeTitle = new Label("CHỌN KÍCH CỠ (SIZE)");
-            lblSizeTitle.getStyleClass().add("modal-section-title");
+        // 1. Size Selector: [ S ]  [ M ]  [ L ]
+        VBox sizeSection = new VBox(4);
+        Label lblSizeTitle = new Label("Size");
+        lblSizeTitle.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 700; -fx-text-fill: #292722;");
 
-            HBox sizeButtons = new HBox(8);
-            ToggleGroup sizeGroup = new ToggleGroup();
-            for (SizeItem s : MenuRepository.getSizes()) {
-                String labelText = s.getDisplayName() + " (" + s.getSizeCode() + ")";
-                if (s.getPriceDelta() > 0) {
-                    labelText += " +" + CurrencyFormatter.format(s.getPriceDelta());
+        HBox sizeButtons = new HBox(6);
+        List<SizeItem> sizes = MenuRepository.getSizes();
+        List<Button> sizeBtnList = new ArrayList<>();
+
+        for (SizeItem s : sizes) {
+            Button btnSize = new Button(s.getSizeCode());
+            btnSize.setPrefWidth(42);
+            btnSize.setPrefHeight(28);
+            AnimationHelper.applyButtonPress(btnSize);
+
+            boolean isCurrent = s.getSizeCode().equalsIgnoreCase(selectedSize.getSizeCode());
+            applySizeBtnStyle(btnSize, isCurrent);
+
+            btnSize.setOnAction(e -> {
+                selectedSize = s;
+                for (int i = 0; i < sizes.size(); i++) {
+                    applySizeBtnStyle(sizeBtnList.get(i), sizes.get(i).getSizeCode().equalsIgnoreCase(selectedSize.getSizeCode()));
                 }
-                ToggleButton tb = new ToggleButton(labelText);
-                tb.getStyleClass().add("btn-option-tag");
-                tb.setToggleGroup(sizeGroup);
-                AnimationHelper.applyButtonPress(tb);
-                if (s.getSizeCode().equalsIgnoreCase(selectedSize.getSizeCode())) {
-                    tb.setSelected(true);
-                }
-                tb.setOnAction(e -> {
-                    selectedSize = s;
-                    updateTotalPrice();
-                });
-                sizeButtons.getChildren().add(tb);
-            }
-            sizeSection.getChildren().addAll(lblSizeTitle, sizeButtons);
-            optionsList.getChildren().add(sizeSection);
+                updateTotalPrice();
+            });
+
+            sizeBtnList.add(btnSize);
+            sizeButtons.getChildren().add(btnSize);
         }
+        sizeSection.getChildren().addAll(lblSizeTitle, sizeButtons);
+        optionsList.getChildren().add(sizeSection);
 
-        // Temperature (Nóng / Đá)
-        if (item.isHotAvailable()) {
-            VBox tempSection = new VBox(6);
-            Label lblTempTitle = new Label("NHIỆT ĐỘ");
-            lblTempTitle.getStyleClass().add("modal-section-title");
+        // 2. Checklist Tùy chọn thêm (Toppings / Options)
+        VBox toppingSection = new VBox(4);
+        Label lblToppingTitle = new Label("Tùy chọn thêm");
+        lblToppingTitle.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 700; -fx-text-fill: #292722;");
 
-            HBox tempButtons = new HBox(8);
-            ToggleGroup tempGroup = new ToggleGroup();
-
-            ToggleButton tbCold = new ToggleButton("🧊 Đá (Cold)");
-            tbCold.getStyleClass().add("btn-option-tag");
-            tbCold.setToggleGroup(tempGroup);
-            tbCold.setSelected(true);
-            AnimationHelper.applyButtonPress(tbCold);
-            tbCold.setOnAction(e -> selectedTemperature = "COLD");
-
-            ToggleButton tbHot = new ToggleButton("☕ Nóng (Hot)");
-            tbHot.getStyleClass().add("btn-option-tag");
-            tbHot.setToggleGroup(tempGroup);
-            AnimationHelper.applyButtonPress(tbHot);
-            tbHot.setOnAction(e -> selectedTemperature = "HOT");
-
-            tempButtons.getChildren().addAll(tbCold, tbHot);
-            tempSection.getChildren().addAll(lblTempTitle, tempButtons);
-            optionsList.getChildren().add(tempSection);
-        }
-
-        // Sugar & Ice percentage (Drinks only)
-        if (!item.getCategory().equalsIgnoreCase("Món ăn nhẹ") && !item.getCategory().equalsIgnoreCase("Bánh ngọt")) {
-            VBox levelSection = new VBox(6);
-            Label lblLevelTitle = new Label("MỨC ĐƯỜNG & ĐÁ");
-            lblLevelTitle.getStyleClass().add("modal-section-title");
-
-            HBox sugarBox = new HBox(6);
-            sugarBox.setAlignment(Pos.CENTER_LEFT);
-            Label lblSugar = new Label("Đường:");
-            lblSugar.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #817B70; -fx-min-width: 50px;");
-            ToggleGroup sugarGroup = new ToggleGroup();
-            int[] sugarLevels = {100, 70, 50, 30, 0};
-            for (int lvl : sugarLevels) {
-                ToggleButton tb = new ToggleButton(lvl + "%");
-                tb.getStyleClass().add("btn-option-tag");
-                tb.setToggleGroup(sugarGroup);
-                AnimationHelper.applyButtonPress(tb);
-                if (lvl == 100) tb.setSelected(true);
-                tb.setOnAction(e -> selectedSugar = lvl);
-                sugarBox.getChildren().add(tb);
-            }
-
-            HBox iceBox = new HBox(6);
-            iceBox.setAlignment(Pos.CENTER_LEFT);
-            Label lblIce = new Label("Đá:");
-            lblIce.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #817B70; -fx-min-width: 50px;");
-            ToggleGroup iceGroup = new ToggleGroup();
-            int[] iceLevels = {100, 70, 50, 0};
-            for (int lvl : iceLevels) {
-                ToggleButton tb = new ToggleButton(lvl == 0 ? "Không đá" : lvl + "%");
-                tb.getStyleClass().add("btn-option-tag");
-                tb.setToggleGroup(iceGroup);
-                AnimationHelper.applyButtonPress(tb);
-                if (lvl == 100) tb.setSelected(true);
-                tb.setOnAction(e -> selectedIce = lvl);
-                iceBox.getChildren().add(tb);
-            }
-
-            levelSection.getChildren().addAll(lblLevelTitle, sugarBox, iceBox);
-            optionsList.getChildren().add(levelSection);
-        }
-
-        // Toppings Checkboxes
+        VBox toppingChecks = new VBox(4);
         List<ToppingItem> availableToppings = MenuRepository.getToppingsForCategory(item.getCategory());
         if (availableToppings.isEmpty()) {
             availableToppings = MenuRepository.getAllToppings();
         }
 
-        if (!availableToppings.isEmpty() && !item.getCategory().equalsIgnoreCase("Món ăn nhẹ") && !item.getCategory().equalsIgnoreCase("Bánh ngọt")) {
-            VBox toppingSection = new VBox(6);
-            Label lblToppingTitle = new Label("TOPPING THÊM");
-            lblToppingTitle.getStyleClass().add("modal-section-title");
-
-            FlowPane toppingPane = new FlowPane(8, 8);
-            for (ToppingItem t : availableToppings) {
-                CheckBox cb = new CheckBox(t.getName() + " (+" + CurrencyFormatter.format(t.getPrice()) + ")");
-                cb.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #292722; -fx-cursor: hand;");
-                cb.setOnAction(e -> {
-                    if (cb.isSelected()) {
-                        selectedToppings.add(t);
-                    } else {
-                        selectedToppings.remove(t);
-                    }
-                    updateTotalPrice();
-                });
-                toppingPane.getChildren().add(cb);
+        for (int i = 0; i < Math.min(4, availableToppings.size()); i++) {
+            ToppingItem t = availableToppings.get(i);
+            CheckBox cb = new CheckBox(t.getName() + " (+" + CurrencyFormatter.format(t.getPrice()) + ")");
+            cb.setStyle("-fx-font-size: 11px; -fx-text-fill: #292722; -fx-cursor: hand;");
+            if (i == 0) {
+                cb.setSelected(true);
+                selectedToppings.add(t);
             }
-            toppingSection.getChildren().addAll(lblToppingTitle, toppingPane);
-            optionsList.getChildren().add(toppingSection);
+            cb.setOnAction(e -> {
+                if (cb.isSelected()) {
+                    selectedToppings.add(t);
+                } else {
+                    selectedToppings.remove(t);
+                }
+                updateTotalPrice();
+            });
+            toppingChecks.getChildren().add(cb);
         }
 
-        // Special Note Input
-        VBox noteSection = new VBox(4);
-        Label lblNote = new Label("GHI CHÚ ĐẶC BIỆT");
-        lblNote.getStyleClass().add("modal-section-title");
-        TextField txtNote = new TextField();
-        txtNote.getStyleClass().add("text-input-field");
-        txtNote.setPromptText("VD: Ít ngọt, dùng ly giấy, ít đá...");
-        noteSection.getChildren().addAll(lblNote, txtNote);
-        optionsList.getChildren().add(noteSection);
+        toppingSection.getChildren().addAll(lblToppingTitle, toppingChecks);
+        optionsList.getChildren().add(toppingSection);
 
         ScrollPane scrollOptions = new ScrollPane(optionsList);
         scrollOptions.setFitToWidth(true);
+        scrollOptions.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
         VBox.setVgrow(scrollOptions, Priority.ALWAYS);
 
-        // Bottom Action Bar: Stepper [-] Qty [+] & Add Button
-        HBox bottomBar = new HBox(12);
+        // Bottom Action Bar: Stepper [-] 1 [+] & Button "Thêm vào giỏ hàng"
+        HBox bottomBar = new HBox(8);
         bottomBar.setAlignment(Pos.CENTER_LEFT);
-        bottomBar.setPadding(new Insets(10, 0, 0, 0));
-        bottomBar.setStyle("-fx-border-color: #D8D1C3 transparent transparent transparent; -fx-border-width: 1 0 0 0;");
+        bottomBar.setPadding(new Insets(6, 0, 0, 0));
 
-        HBox stepper = new HBox(4);
-        stepper.setAlignment(Pos.CENTER_LEFT);
+        // Stepper chữ nhật bo góc 5px cao 28px
+        HBox stepper = new HBox();
+        stepper.setAlignment(Pos.CENTER);
+        stepper.setStyle("-fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-background-radius: 5px;");
+        stepper.setPrefHeight(28);
 
         Button btnMinus = new Button("-");
-        btnMinus.getStyleClass().add("stepper-btn");
+        btnMinus.setStyle("-fx-background-color: transparent; -fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #292722; -fx-cursor: hand; -fx-padding: 2 8 2 8;");
         AnimationHelper.applyButtonPress(btnMinus);
-        Label lblQty = new Label(String.valueOf(quantity));
-        lblQty.getStyleClass().add("stepper-value");
+
+        lblQty.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #292722; -fx-min-width: 20px; -fx-alignment: center;");
+
         Button btnPlus = new Button("+");
-        btnPlus.getStyleClass().add("stepper-btn");
+        btnPlus.setStyle("-fx-background-color: transparent; -fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #292722; -fx-cursor: hand; -fx-padding: 2 8 2 8;");
         AnimationHelper.applyButtonPress(btnPlus);
 
         btnMinus.setOnAction(e -> {
@@ -315,7 +224,8 @@ public class ItemDetailDialog extends Stage {
 
         stepper.getChildren().addAll(btnMinus, lblQty, btnPlus);
 
-        btnConfirm.getStyleClass().add("btn-primary");
+        // Primary Button "Thêm vào giỏ hàng" (#112823, cao 32px, radius 5px)
+        btnConfirm.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 11.5px; -fx-font-weight: 600; -fx-background-radius: 5px; -fx-pref-height: 30px; -fx-cursor: hand;");
         btnConfirm.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(btnConfirm, Priority.ALWAYS);
         AnimationHelper.applyButtonPress(btnConfirm);
@@ -337,7 +247,7 @@ public class ItemDetailDialog extends Stage {
                 selectedIce,
                 selectedTemperature,
                 new ArrayList<>(selectedToppings),
-                txtNote.getText().trim()
+                ""
             );
 
             if (onConfirmed != null) {
@@ -348,7 +258,7 @@ public class ItemDetailDialog extends Stage {
 
         bottomBar.getChildren().addAll(stepper, btnConfirm);
 
-        rightCol.getChildren().addAll(headerRow, scrollOptions, bottomBar);
+        rightCol.getChildren().addAll(topRow, lblName, lblPrice, lblDesc, scrollOptions, bottomBar);
 
         root.getChildren().addAll(leftCol, rightCol);
 
@@ -359,6 +269,14 @@ public class ItemDetailDialog extends Stage {
 
         setScene(scene);
         updateTotalPrice();
+    }
+
+    private void applySizeBtnStyle(Button btn, boolean isSelected) {
+        if (isSelected) {
+            btn.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 11px; -fx-font-weight: 600; -fx-background-radius: 5px; -fx-cursor: hand;");
+        } else {
+            btn.setStyle("-fx-background-color: #FBF9F5; -fx-text-fill: #292722; -fx-font-size: 11px; -fx-font-weight: 500; -fx-background-radius: 5px; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-border-width: 1px; -fx-cursor: hand;");
+        }
     }
 
     private void updateTotalPrice() {
@@ -372,6 +290,6 @@ public class ItemDetailDialog extends Stage {
         double total = unitPrice * quantity;
 
         lblPrice.setText(CurrencyFormatter.format(unitPrice));
-        btnConfirm.setText("Thêm vào đơn hàng • " + CurrencyFormatter.format(total));
+        btnConfirm.setText("Thêm vào giỏ hàng • " + CurrencyFormatter.format(total));
     }
 }

@@ -1,43 +1,54 @@
 package cafe.views;
 
+import cafe.utils.AnimationHelper;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
 
 import java.net.URL;
 
 /**
- * LoginView - Màn hình đăng nhập / Chọn bàn theo phong cách Editorial Split Screen.
- * Hallmark Discipline:
- * - Cột trái: Poster nghệ thuật "Good Coffee Better Moments" với nhận diện Brew & Bean CAFE.
- * - Cột phải: Form tối giản, subtle 4px radius, nút Dark Emerald (#183C32), không card-in-card.
+ * LoginView - Screen 1 trong bản thiết kế UI_mong_muon.png:
+ * - Cột trái (Hero Poster): Nền ảnh ấm, Logo "Brew & Bean CAFE", Tiêu đề "Good Coffee Better Moments"
+ *   (Playfair Display #D2A679), Footer "Order tại bàn. Nhanh hơn. Tiện hơn. Trọn vẹn hơn."
+ * - Cột phải: Form nền #FBF9F5, Icon hạt cafe, "Chào mừng trở lại!", "Tài khoản", "Mật khẩu" (icon mắt),
+ *   Nút "Đăng nhập" #112823 (radius 5px), "Hoặc đăng nhập bằng", [👤 Nhân viên] / [💼 Quản lý], "Brew & Bean © 2025"
  */
 public class LoginView extends HBox {
 
-    private final TextField txtTable = new TextField();
+    private final TextField txtAccount = new TextField();
+    private final PasswordField txtPassword = new PasswordField();
+    private final TextField txtPasswordVisible = new TextField();
+    private final Button btnToggleEye = new Button("👁");
     private final Button btnLogin = new Button("Đăng nhập");
     private final Label lblError = new Label();
-    private final FlowPane quickTablesPane = new FlowPane(6, 6);
+
+    private final Button btnStaff = new Button("👤  Nhân viên");
+    private final Button btnManager = new Button("💼  Quản lý");
+
+    private boolean isPasswordVisible = false;
 
     public LoginView() {
         initUI();
     }
 
     private void initUI() {
-        setStyle("-fx-background-color: #F4F0E8;");
+        setStyle("-fx-background-color: #F5F0E8;");
         setAlignment(Pos.CENTER);
 
         // =====================================================================
-        // 1. CỘT TRÁI: POSTER NGHỆ THUẬT (HERO BANNER)
+        // 1. CỘT TRÁI: POSTER NGHỆ THUẬT (HERO BANNER 50%)
         // =====================================================================
         StackPane leftHeroPane = new StackPane();
         leftHeroPane.setPrefWidth(420);
         leftHeroPane.setMinWidth(360);
-        leftHeroPane.setMaxWidth(460);
+        leftHeroPane.setMaxWidth(480);
         HBox.setHgrow(leftHeroPane, Priority.ALWAYS);
 
         URL heroUrl = getClass().getResource("/cafe/resources/images/login_hero.png");
@@ -56,111 +67,229 @@ public class LoginView extends HBox {
 
             leftHeroPane.getChildren().add(heroView);
         } else {
-            leftHeroPane.setStyle("-fx-background-color: #183C32;");
+            leftHeroPane.setStyle("-fx-background-color: #112823;");
         }
 
+        // Overlay thông điệp nghệ thuật chuẩn Screen 1
+        VBox overlayBox = new VBox();
+        overlayBox.setAlignment(Pos.TOP_LEFT);
+        overlayBox.setPadding(new Insets(32, 28, 32, 28));
+        overlayBox.setStyle("-fx-background-color: linear-gradient(to bottom, rgba(20, 15, 10, 0.45) 0%, rgba(20, 15, 10, 0.25) 50%, rgba(15, 10, 8, 0.75) 100%);");
+
+        // Top Logo
+        VBox brandBox = new VBox(1);
+        Label lblTopBrand = new Label("Brew & Bean");
+        lblTopBrand.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 16px; -fx-font-weight: 700; -fx-text-fill: #FFFFFF;");
+        Label lblTopSub = new Label("C A F E");
+        lblTopSub.setStyle("-fx-font-size: 8.5px; -fx-font-weight: 700; -fx-text-fill: #D2A679; -fx-letter-spacing: 2px;");
+        brandBox.getChildren().addAll(lblTopBrand, lblTopSub);
+
+        Region spTop = new Region();
+        VBox.setVgrow(spTop, Priority.ALWAYS);
+
+        // Headline chính giữa: "Good Coffee Better Moments"
+        VBox headlineBox = new VBox(2);
+        headlineBox.setPadding(new Insets(0, 0, 40, 0));
+
+        Label line1 = new Label("Good");
+        Label line2 = new Label("Coffee");
+        Label line3 = new Label("Better");
+        Label line4 = new Label("Moments");
+
+        String headlineStyle = "-fx-font-family: 'Playfair Display', 'Georgia', serif; -fx-font-size: 32px; -fx-font-weight: 500; -fx-text-fill: #D2A679; -fx-line-spacing: -2px;";
+        line1.setStyle(headlineStyle);
+        line2.setStyle(headlineStyle);
+        line3.setStyle(headlineStyle);
+        line4.setStyle(headlineStyle);
+
+        headlineBox.getChildren().addAll(line1, line2, line3, line4);
+
+        Region spBottom = new Region();
+        VBox.setVgrow(spBottom, Priority.ALWAYS);
+
+        // Footer slogan
+        Label lblFooterSlogan = new Label("Order tại bàn. Nhanh hơn.\nTiện hơn. Trọn vẹn hơn.");
+        lblFooterSlogan.setStyle("-fx-font-size: 10.5px; -fx-text-fill: #FFFFFF; -fx-opacity: 0.92; -fx-line-spacing: 2px;");
+
+        overlayBox.getChildren().addAll(brandBox, spTop, headlineBox, spBottom, lblFooterSlogan);
+        leftHeroPane.getChildren().add(overlayBox);
+
         // =====================================================================
-        // 2. CỘT PHẢI: FORM ĐĂNG NHẬP / CHỌN BÀN
+        // 2. CỘT PHẢI: FORM ĐĂNG NHẬP CHUẨN SCREEN 1 (NỀN #FBF9F5)
         // =====================================================================
-        VBox rightFormPane = new VBox(18);
+        VBox rightFormPane = new VBox(14);
         rightFormPane.setAlignment(Pos.CENTER_LEFT);
-        rightFormPane.setPadding(new Insets(36, 44, 36, 44));
-        rightFormPane.setPrefWidth(460);
-        rightFormPane.setMinWidth(400);
-        rightFormPane.setStyle("-fx-background-color: #FBF9F4; -fx-border-color: transparent transparent transparent #D8D1C3; -fx-border-width: 0 0 0 1;");
+        rightFormPane.setPadding(new Insets(32, 40, 32, 40));
+        rightFormPane.setPrefWidth(440);
+        rightFormPane.setMinWidth(380);
+        rightFormPane.setStyle("-fx-background-color: #FBF9F5; -fx-border-color: transparent transparent transparent #DED7CD; -fx-border-width: 0 0 0 1;");
         HBox.setHgrow(rightFormPane, Priority.ALWAYS);
 
-        // Icon tách cà phê tối giản
+        // Icon hạt cafe đôi ở đỉnh
         Label iconBean = new Label("☕");
-        iconBean.setStyle("-fx-font-size: 26px; -fx-text-fill: #183C32;");
+        iconBean.setStyle("-fx-font-size: 24px; -fx-text-fill: #112823;");
 
         // Tiêu đề & Lời chào
-        VBox titleBox = new VBox(4);
+        VBox titleBox = new VBox(3);
         Label lblWelcome = new Label("Chào mừng trở lại!");
-        lblWelcome.getStyleClass().add("editorial-display");
+        lblWelcome.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 18px; -fx-font-weight: 700; -fx-text-fill: #292722;");
 
         Label lblDesc = new Label("Đăng nhập để bắt đầu phục vụ khách hàng.");
-        lblDesc.getStyleClass().add("editorial-subtitle");
+        lblDesc.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #817A70;");
         titleBox.getChildren().addAll(lblWelcome, lblDesc);
 
-        // Input số bàn
-        VBox inputGroup = new VBox(6);
-        Label lblTableTitle = new Label("SỐ BÀN PHỤC VỤ:");
-        lblTableTitle.getStyleClass().add("section-label");
+        // 1. Ô Tài khoản
+        VBox accountGroup = new VBox(5);
+        HBox lblAccBox = new HBox(6);
+        lblAccBox.setAlignment(Pos.CENTER_LEFT);
+        Label iconUser = new Label("👤");
+        iconUser.setStyle("-fx-font-size: 11px; -fx-text-fill: #817A70;");
+        Label lblAccountTitle = new Label("Tài khoản");
+        lblAccountTitle.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 600; -fx-text-fill: #292722;");
+        lblAccBox.getChildren().addAll(iconUser, lblAccountTitle);
 
-        txtTable.setPromptText("Nhập số bàn (VD: 1, 2, 5...)");
-        txtTable.getStyleClass().add("text-input-field");
-        txtTable.setPrefHeight(42);
-        txtTable.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: #183C32;");
-        inputGroup.getChildren().addAll(lblTableTitle, txtTable);
+        txtAccount.setPromptText("Nhập tên đăng nhập (hoặc số bàn 1..12)");
+        txtAccount.getStyleClass().add("text-input-field");
+        txtAccount.setPrefHeight(32);
+        txtAccount.setStyle("-fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-font-size: 11.5px; -fx-padding: 6 10 6 10;");
+        accountGroup.getChildren().addAll(lblAccBox, txtAccount);
 
-        // Quick Table Chips (4px radius)
-        VBox quickBox = new VBox(6);
-        Label lblQuick = new Label("HOẶC CHỌN NHANH BÀN CÓ SẴN:");
-        lblQuick.getStyleClass().add("section-label");
+        // 2. Ô Mật khẩu kèm Icon Mắt
+        VBox passGroup = new VBox(5);
+        HBox lblPassBox = new HBox(6);
+        lblPassBox.setAlignment(Pos.CENTER_LEFT);
+        Label iconLock = new Label("🔒");
+        iconLock.setStyle("-fx-font-size: 11px; -fx-text-fill: #817A70;");
+        Label lblPassTitle = new Label("Mật khẩu");
+        lblPassTitle.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 600; -fx-text-fill: #292722;");
+        lblPassBox.getChildren().addAll(iconLock, lblPassTitle);
 
-        quickTablesPane.getChildren().clear();
-        for (int i = 1; i <= 8; i++) {
-            final int t = i;
-            Button chip = new Button("Bàn " + (t < 10 ? "0" + t : t));
-            chip.getStyleClass().add("btn-option-tag");
-            chip.setOnAction(e -> {
-                txtTable.setText(String.valueOf(t));
-                clearError();
-            });
-            quickTablesPane.getChildren().add(chip);
-        }
-        quickBox.getChildren().addAll(lblQuick, quickTablesPane);
+        txtPassword.setPromptText("Nhập mật khẩu");
+        txtPassword.setPrefHeight(32);
+        txtPassword.setStyle("-fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-font-size: 11.5px; -fx-padding: 6 32 6 10;");
+
+        txtPasswordVisible.setPromptText("Nhập mật khẩu");
+        txtPasswordVisible.setPrefHeight(32);
+        txtPasswordVisible.setStyle("-fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-font-size: 11.5px; -fx-padding: 6 32 6 10;");
+        txtPasswordVisible.setVisible(false);
+        txtPasswordVisible.setManaged(false);
+
+        // Sync text between password fields
+        txtPassword.textProperty().bindBidirectional(txtPasswordVisible.textProperty());
+
+        btnToggleEye.setStyle("-fx-background-color: transparent; -fx-cursor: hand; -fx-font-size: 11px; -fx-padding: 2 6 2 6; -fx-text-fill: #817A70;");
+        btnToggleEye.setOnAction(e -> togglePasswordVisibility());
+
+        StackPane passWrapper = new StackPane();
+        passWrapper.getChildren().addAll(txtPassword, txtPasswordVisible, btnToggleEye);
+        StackPane.setAlignment(btnToggleEye, Pos.CENTER_RIGHT);
+
+        passGroup.getChildren().addAll(lblPassBox, passWrapper);
 
         // Thông báo lỗi
-        lblError.setStyle("-fx-text-fill: #C62828; -fx-font-size: 11.5px; -fx-font-weight: 600;");
+        lblError.setStyle("-fx-text-fill: #C62828; -fx-font-size: 11px; -fx-font-weight: 600;");
         lblError.setVisible(false);
         lblError.setManaged(false);
 
-        // Nút Đăng nhập chính (Primary Button Dark Emerald)
+        // Nút Đăng nhập chính (#112823, cao 32px, radius 5px)
         btnLogin.setMaxWidth(Double.MAX_VALUE);
-        btnLogin.setPrefHeight(44);
-        btnLogin.getStyleClass().add("btn-primary");
+        btnLogin.setPrefHeight(32);
+        btnLogin.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 11.5px; -fx-font-weight: 600; -fx-background-radius: 5px; -fx-cursor: hand;");
+        AnimationHelper.applyButtonPress(btnLogin);
 
-        // Fast role buttons
-        VBox roleSection = new VBox(8);
-        roleSection.setAlignment(Pos.CENTER);
-        Label lblOr = new Label("HOẶC ĐĂNG NHẬP PHÂN QUYỀN:");
-        lblOr.getStyleClass().add("section-label");
+        // Phân cách: "Hoặc đăng nhập bằng"
+        HBox dividerBox = new HBox(8);
+        dividerBox.setAlignment(Pos.CENTER);
+        dividerBox.setPadding(new Insets(4, 0, 4, 0));
 
-        HBox roleButtons = new HBox(8);
+        Line lineLeft = new Line(0, 0, 75, 0);
+        lineLeft.setStroke(Color.web("#DED7CD"));
+        Line lineRight = new Line(0, 0, 75, 0);
+        lineRight.setStroke(Color.web("#DED7CD"));
+
+        Label lblOr = new Label("Hoặc đăng nhập bằng");
+        lblOr.setStyle("-fx-font-size: 10px; -fx-text-fill: #817A70;");
+
+        dividerBox.getChildren().addAll(lineLeft, lblOr, lineRight);
+
+        // Nút phân quyền: [👤 Nhân viên] và [💼 Quản lý]
+        HBox roleButtons = new HBox(10);
         roleButtons.setAlignment(Pos.CENTER);
-        Button btnStaff = new Button("👤  Nhân viên");
-        btnStaff.getStyleClass().add("btn-secondary");
-        btnStaff.setOnAction(e -> txtTable.setText("1"));
 
-        Button btnManager = new Button("💼  Quản lý");
-        btnManager.getStyleClass().add("btn-secondary");
-        btnManager.setOnAction(e -> txtTable.setText("5"));
+        btnStaff.setMaxWidth(Double.MAX_VALUE);
+        btnStaff.setPrefHeight(30);
+        btnStaff.setStyle("-fx-background-color: #FBF9F5; -fx-text-fill: #292722; -fx-font-size: 11px; -fx-font-weight: 500; -fx-background-radius: 5px; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-cursor: hand;");
+        HBox.setHgrow(btnStaff, Priority.ALWAYS);
+        AnimationHelper.applyButtonPress(btnStaff);
+        btnStaff.setOnAction(e -> {
+            txtAccount.setText("5");
+            txtPassword.setText("123456");
+            clearError();
+        });
+
+        btnManager.setMaxWidth(Double.MAX_VALUE);
+        btnManager.setPrefHeight(30);
+        btnManager.setStyle("-fx-background-color: #FBF9F5; -fx-text-fill: #292722; -fx-font-size: 11px; -fx-font-weight: 500; -fx-background-radius: 5px; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-cursor: hand;");
+        HBox.setHgrow(btnManager, Priority.ALWAYS);
+        AnimationHelper.applyButtonPress(btnManager);
+        btnManager.setOnAction(e -> {
+            txtAccount.setText("1");
+            txtPassword.setText("admin123");
+            clearError();
+        });
+
         roleButtons.getChildren().addAll(btnStaff, btnManager);
-        roleSection.getChildren().addAll(lblOr, roleButtons);
 
         // Footer thương hiệu
-        Label lblFooter = new Label("Brew & Bean CAFE © 2026");
-        lblFooter.setStyle("-fx-font-size: 10.5px; -fx-text-fill: #817B70; -fx-padding: 8 0 0 0;");
+        Label lblFooter = new Label("Brew & Bean © 2025");
+        lblFooter.setStyle("-fx-font-size: 9.5px; -fx-text-fill: #817A70; -fx-padding: 8 0 0 0;");
+        lblFooter.setAlignment(Pos.CENTER);
 
         rightFormPane.getChildren().addAll(
             iconBean,
             titleBox,
-            inputGroup,
-            quickBox,
+            accountGroup,
+            passGroup,
             lblError,
             btnLogin,
-            new Separator(),
-            roleSection,
+            dividerBox,
+            roleButtons,
             lblFooter
         );
 
         getChildren().addAll(leftHeroPane, rightFormPane);
     }
 
+    private void togglePasswordVisibility() {
+        isPasswordVisible = !isPasswordVisible;
+        if (isPasswordVisible) {
+            txtPasswordVisible.setText(txtPassword.getText());
+            txtPassword.setVisible(false);
+            txtPassword.setManaged(false);
+            txtPasswordVisible.setVisible(true);
+            txtPasswordVisible.setManaged(true);
+            btnToggleEye.setText("🔒");
+        } else {
+            txtPassword.setText(txtPasswordVisible.getText());
+            txtPasswordVisible.setVisible(false);
+            txtPasswordVisible.setManaged(false);
+            txtPassword.setVisible(true);
+            txtPassword.setManaged(true);
+            btnToggleEye.setText("👁");
+        }
+    }
+
+    public TextField getAccountField() {
+        return txtAccount;
+    }
+
     public TextField getTableField() {
-        return txtTable;
+        // Tương thích với LoginController
+        return txtAccount;
+    }
+
+    public PasswordField getPasswordField() {
+        return txtPassword;
     }
 
     public Button getLoginButton() {

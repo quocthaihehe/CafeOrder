@@ -43,8 +43,15 @@ public class LoginController {
                 return;
             }
         } catch (NumberFormatException e) {
-            view.showError("Số bàn không hợp lệ! Vui lòng chỉ nhập số.");
-            return;
+            String lower = text.toLowerCase();
+            if (lower.contains("nhanvien") || lower.contains("staff")) {
+                tableNumber = 5;
+            } else if (lower.contains("quanly") || lower.contains("admin") || lower.contains("manager")) {
+                tableNumber = 1;
+            } else {
+                view.showError("Vui lòng nhập số bàn (1..12) hoặc tài khoản nhân viên!");
+                return;
+            }
         }
 
         // Kết nối tới Server

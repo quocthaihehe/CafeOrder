@@ -11,12 +11,12 @@ import javafx.scene.layout.*;
 import java.util.function.Consumer;
 
 /**
- * ItemCard (ProductCard) - Reusable component for displaying a menu item.
- * Refined per CafeOrder Animation & UI Plan:
- * - 12px corner radius, subtle hairline border #E2DBD0
- * - Micro-lift hover animation via AnimationHelper.applyCardHover
- * - Quick-Add (+) circular button with 90-degree rotation animation
- * - 3 clean essential elements: Cover Image -> Product Name -> Price VND
+ * ItemCard (ProductCard) - Thẻ sản phẩm chuẩn Screen 3 trong UI_mong_muon.png:
+ * - 6px corner radius, hairline border #DED7CD, nền #FBF9F5
+ * - Micro-lift hover animation
+ * - Ảnh bo góc 5px chiếm ~67% chiều cao
+ * - Quick-Add (+) nút tròn 20px #112823 đặt nổi ở góc dưới bên phải ảnh
+ * - Tên món (#292722) và Giá tiền (#563521)
  */
 public class ItemCard extends VBox {
     private final MenuItem item;
@@ -37,48 +37,30 @@ public class ItemCard extends VBox {
 
     private void initUI() {
         getStyleClass().add("product-card");
-        setSpacing(6);
-        setPadding(new Insets(8));
-        setMinWidth(170);
+        setSpacing(4);
+        setPadding(new Insets(6));
+        setMinWidth(150);
         setMaxWidth(Double.MAX_VALUE);
+        setStyle("-fx-background-color: #FBF9F5; -fx-background-radius: 6px; -fx-border-color: #DED7CD; -fx-border-radius: 6px; -fx-border-width: 1px; -fx-cursor: hand;");
 
         // Micro-lift card hover animation
         AnimationHelper.applyCardHover(this);
 
-        // 1. Product Image with 12px corner radius
+        // 1. Product Image with 5px corner radius
         StackPane imageWrapper = new StackPane();
         imageWrapper.setMinWidth(0);
         imageWrapper.setPrefWidth(Region.USE_COMPUTED_SIZE);
         imageWrapper.setMaxWidth(Double.MAX_VALUE);
-        imageWrapper.setMinHeight(135);
-        imageWrapper.setPrefHeight(135);
-        imageWrapper.setMaxHeight(135);
+        imageWrapper.setMinHeight(125);
+        imageWrapper.setPrefHeight(125);
+        imageWrapper.setMaxHeight(125);
 
-        ProductImagePane imagePane = new ProductImagePane(item, 135, 12);
+        ProductImagePane imagePane = new ProductImagePane(item, 125, 5);
         imageWrapper.getChildren().add(imagePane);
 
-        // Bestseller / New badges
-        HBox topBadges = new HBox(4);
-        topBadges.setAlignment(Pos.CENTER_LEFT);
-        if (item.isBestseller()) {
-            Label badgeBest = new Label("BESTSELLER");
-            badgeBest.getStyleClass().add("badge-bestseller");
-            topBadges.getChildren().add(badgeBest);
-        } else if (item.isNew()) {
-            Label badgeNew = new Label("MỚI");
-            badgeNew.getStyleClass().add("badge-new");
-            topBadges.getChildren().add(badgeNew);
-        }
-
-        if (!topBadges.getChildren().isEmpty()) {
-            StackPane.setAlignment(topBadges, Pos.TOP_LEFT);
-            topBadges.setPadding(new Insets(6, 0, 0, 6));
-            imageWrapper.getChildren().add(topBadges);
-        }
-
-        // Circular (+) Quick-Add Button
+        // Circular (+) Quick-Add Button (đường kính 20px, màu #112823)
         Button btnAddCircle = new Button("+");
-        btnAddCircle.getStyleClass().add("btn-circle-add");
+        btnAddCircle.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 10px; -fx-min-width: 20px; -fx-min-height: 20px; -fx-max-width: 20px; -fx-max-height: 20px; -fx-padding: 0; -fx-cursor: hand;");
         AnimationHelper.applyButtonPress(btnAddCircle);
 
         btnAddCircle.setOnAction(e -> {
@@ -92,20 +74,19 @@ public class ItemCard extends VBox {
         });
 
         StackPane.setAlignment(btnAddCircle, Pos.BOTTOM_RIGHT);
-        StackPane.setMargin(btnAddCircle, new Insets(0, 8, 8, 0));
+        StackPane.setMargin(btnAddCircle, new Insets(0, 4, 4, 0));
         imageWrapper.getChildren().add(btnAddCircle);
 
         // 2. Product Name
         Label lblName = new Label(item.getName());
-        lblName.getStyleClass().add("product-card-title");
+        lblName.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 700; -fx-text-fill: #292722;");
         lblName.setWrapText(true);
-        lblName.setMinHeight(34);
-        lblName.setPrefHeight(34);
-        lblName.setMaxHeight(34);
+        lblName.setMinHeight(26);
+        lblName.setPrefHeight(26);
 
         // 3. Price
         Label lblPrice = new Label(CurrencyFormatter.format(item.getPrice()));
-        lblPrice.getStyleClass().add("product-card-price");
+        lblPrice.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 700; -fx-text-fill: #563521;");
 
         getChildren().addAll(imageWrapper, lblName, lblPrice);
 

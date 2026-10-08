@@ -2,7 +2,6 @@ package cafe.views;
 
 import cafe.models.CartModel;
 import cafe.models.OrderItem;
-import cafe.models.Voucher;
 import cafe.utils.AnimationHelper;
 import cafe.utils.CurrencyFormatter;
 import cafe.utils.SvgIcons;
@@ -21,15 +20,12 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
- * CartModalDialog - Floating Cart Modal Dialog matching Screen 5 in UI_mong_muon.png.
- * Features:
- * - 12px rounded canvas with entrance animation
- * - Dine-in / Takeaway toggle buttons
- * - List of CartItemRow items with thumbnail, size, notes, stepper [- 1 +], delete
- * - Voucher code entry with validation feedback
- * - Bill summary: Subtotal, Discount, Total
- * - Note input for entire order
- * - Two bottom actions: [Thêm món] (Close & continue ordering) and [Thanh toán →] (Proceed to payment)
+ * CartModalDialog - Floating Cart Modal Dialog matching Screen 5 in UI_mong_muon.png:
+ * - Header: Tiêu đề "Giỏ hàng", Badge "Bàn 05", Nút đóng ✕
+ * - Danh sách món: Thumbnail, Tên món, Giá, Stepper [- 1 +], Nút xóa
+ * - Ghi chú đơn hàng: Ô nhập "Ví dụ: Không đá, ít đường,..."
+ * - Tổng cộng: "Tổng cộng (2 món)" ... "110.000đ"
+ * - 2 Nút hành động đáy: [Thêm món] và [Thanh toán →]
  */
 public class CartModalDialog extends Stage {
     private final CartModel cartModel;
@@ -39,20 +35,16 @@ public class CartModalDialog extends Stage {
     private final Runnable onProceedToPayment;
 
     // UI Controls
-    private final VBox cartItemsContainer = new VBox(8);
+    private final VBox cartItemsContainer = new VBox(6);
     private final ScrollPane scrollItems = new ScrollPane();
     private final VBox emptyCartBox = new VBox(8);
 
-    private final ToggleButton btnDineIn = new ToggleButton("Dùng tại bàn");
-    private final ToggleButton btnTakeaway = new ToggleButton("Mang về");
-
+    private final TextField txtOrderNote = new TextField();
     private final TextField txtVoucher = new TextField();
     private final Button btnApplyVoucher = new Button("Áp dụng");
     private final Label lblVoucherFeedback = new Label();
 
-    private final Label lblSubtotalValue = new Label("0 đ");
-    private final Label lblDiscountValue = new Label("-0 đ");
-    private final HBox rowDiscount = new HBox();
+    private final Label lblSummaryCount = new Label("Tổng cộng (0 món)");
     private final Label lblGrandTotalValue = new Label("0 đ");
 
     private final Button btnContinueOrdering = new Button("Thêm món");
@@ -80,154 +72,90 @@ public class CartModalDialog extends Stage {
 
     private void initUI() {
         VBox root = new VBox(12);
-        root.getStyleClass().add("cart-modal-pane");
-        root.setPrefWidth(480);
-        root.setMaxWidth(520);
-        root.setPrefHeight(600);
+        root.setStyle("-fx-background-color: #FBF9F5; -fx-background-radius: 6px; -fx-border-color: #DED7CD; -fx-border-radius: 6px; -fx-border-width: 1px;");
+        root.setPadding(new Insets(18, 20, 18, 20));
+        root.setPrefWidth(380);
+        root.setMaxWidth(420);
+        root.setPrefHeight(530);
 
         // Entrance animation
         AnimationHelper.playDialogEntrance(root);
 
-        // 1. Header (Title, Item count, Close button)
-        HBox header = new HBox(10);
+        // 1. Header (Title "Giỏ hàng", Badge "Bàn 05", Close button ✕)
+        HBox header = new HBox(8);
         header.setAlignment(Pos.CENTER_LEFT);
 
-        Label lblTitle = new Label("ĐƠN HÀNG CỦA BẠN");
-        lblTitle.getStyleClass().add("editorial-title");
-        HBox.setHgrow(lblTitle, Priority.ALWAYS);
+        Label lblTitle = new Label("Giỏ hàng");
+        lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 18px; -fx-font-weight: 700; -fx-text-fill: #292722;");
 
-        Label lblCount = new Label(cartModel.getTotalQuantity() + " món");
-        lblCount.getStyleClass().add("table-tag");
+        Region sp = new Region();
+        HBox.setHgrow(sp, Priority.ALWAYS);
 
-        Button btnClose = new Button();
-        SVGPath closeIcon = SvgIcons.createOutlineIcon(SvgIcons.CLOSE, 0.7, Color.web("#817B70"));
-        btnClose.setGraphic(closeIcon);
-        btnClose.getStyleClass().add("btn-delete-item");
+        Label lblTableBadge = new Label("Bàn 05");
+        lblTableBadge.setStyle("-fx-background-color: #EBE5DB; -fx-text-fill: #563521; -fx-font-size: 10.5px; -fx-font-weight: 700; -fx-background-radius: 4px; -fx-padding: 3 8 3 8;");
+
+        Button btnClose = new Button("✕");
+        btnClose.setStyle("-fx-background-color: transparent; -fx-text-fill: #817A70; -fx-font-size: 13px; -fx-cursor: hand; -fx-padding: 0 0 0 6;");
         btnClose.setOnAction(e -> close());
 
-        header.getChildren().addAll(lblTitle, lblCount, btnClose);
+        header.getChildren().addAll(lblTitle, sp, lblTableBadge, btnClose);
 
-        // 2. Order Type Toggle (Dine-in / Takeaway)
-        HBox typeRow = new HBox(8);
-        typeRow.setAlignment(Pos.CENTER);
-
-        ToggleGroup typeGroup = new ToggleGroup();
-        btnDineIn.setToggleGroup(typeGroup);
-        btnTakeaway.setToggleGroup(typeGroup);
-
-        if ("TAKEAWAY".equalsIgnoreCase(cartModel.getOrderType())) {
-            btnTakeaway.setSelected(true);
-        } else {
-            btnDineIn.setSelected(true);
-        }
-
-        btnDineIn.getStyleClass().add("btn-option-tag");
-        btnTakeaway.getStyleClass().add("btn-option-tag");
-        btnDineIn.setMaxWidth(Double.MAX_VALUE);
-        btnTakeaway.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(btnDineIn, Priority.ALWAYS);
-        HBox.setHgrow(btnTakeaway, Priority.ALWAYS);
-
-        typeGroup.selectedToggleProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal == btnTakeaway) {
-                cartModel.setOrderType("TAKEAWAY");
-            } else {
-                cartModel.setOrderType("DINE_IN");
-            }
-        });
-
-        typeRow.getChildren().addAll(btnDineIn, btnTakeaway);
-
-        // 3. Cart Items Scroll List
+        // 2. Cart Items Scroll List
         cartItemsContainer.setSpacing(6);
-        cartItemsContainer.setPadding(new Insets(2, 2, 8, 2));
+        cartItemsContainer.setPadding(new Insets(2, 2, 6, 2));
 
         scrollItems.setContent(cartItemsContainer);
         scrollItems.setFitToWidth(true);
         scrollItems.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scrollItems.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollItems.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
         VBox.setVgrow(scrollItems, Priority.ALWAYS);
 
         // Empty cart placeholder
         emptyCartBox.setAlignment(Pos.CENTER);
-        emptyCartBox.setPadding(new Insets(60, 20, 60, 20));
-        SVGPath emptyCartIcon = SvgIcons.createOutlineIcon(SvgIcons.SHOPPING_BAG, 1.8, Color.web("#D8D1C3"));
+        emptyCartBox.setPadding(new Insets(40, 20, 40, 20));
+        SVGPath emptyCartIcon = SvgIcons.createOutlineIcon(SvgIcons.SHOPPING_BAG, 1.6, Color.web("#DED7CD"));
         Label emptyTitle = new Label("Giỏ hàng đang trống");
-        emptyTitle.getStyleClass().add("editorial-title");
+        emptyTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 16px; -fx-font-weight: 700; -fx-text-fill: #292722;");
         Label emptySub = new Label("Vui lòng chọn món ngon từ thực đơn.");
-        emptySub.getStyleClass().add("editorial-subtitle");
+        emptySub.setStyle("-fx-font-size: 11px; -fx-text-fill: #817A70;");
         emptyCartBox.getChildren().addAll(emptyCartIcon, emptyTitle, emptySub);
 
-        // 4. Voucher Row
-        VBox voucherSection = new VBox(4);
-        HBox voucherRow = new HBox(8);
-        voucherRow.setAlignment(Pos.CENTER_LEFT);
+        // 3. Bill Summary Row
+        HBox rowSummary = new HBox();
+        rowSummary.setAlignment(Pos.CENTER_LEFT);
+        rowSummary.setPadding(new Insets(8, 0, 4, 0));
+        rowSummary.setStyle("-fx-border-color: #E6DFD4 transparent transparent transparent; -fx-border-width: 1 0 0 0;");
 
-        txtVoucher.setPromptText("Nhập mã ưu đãi (VD: BANMOI, CAFE10)...");
-        txtVoucher.getStyleClass().add("text-input-field");
-        HBox.setHgrow(txtVoucher, Priority.ALWAYS);
+        lblSummaryCount.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #292722;");
+        Region spSum = new Region();
+        HBox.setHgrow(spSum, Priority.ALWAYS);
+        lblGrandTotalValue.setStyle("-fx-font-size: 14px; -fx-font-weight: 800; -fx-text-fill: #292722;");
 
-        btnApplyVoucher.getStyleClass().add("btn-secondary");
-        AnimationHelper.applyButtonPress(btnApplyVoucher);
-        btnApplyVoucher.setOnAction(e -> {
-            if (onApplyVoucher != null) {
-                onApplyVoucher.accept(txtVoucher.getText().trim());
-            }
-        });
+        rowSummary.getChildren().addAll(lblSummaryCount, spSum, lblGrandTotalValue);
 
-        voucherRow.getChildren().addAll(txtVoucher, btnApplyVoucher);
-        lblVoucherFeedback.setVisible(false);
-        lblVoucherFeedback.setManaged(false);
-        voucherSection.getChildren().addAll(voucherRow, lblVoucherFeedback);
+        // 4. Order Note Input
+        VBox noteBox = new VBox(4);
+        Label lblNote = new Label("Ghi chú đơn hàng");
+        lblNote.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 600; -fx-text-fill: #292722;");
 
-        // 5. Bill Summary Breakdown
-        VBox summaryBox = new VBox(6);
-        summaryBox.setPadding(new Insets(10, 0, 4, 0));
-        summaryBox.setStyle("-fx-border-color: #E6DFD4 transparent transparent transparent; -fx-border-width: 1 0 0 0;");
+        txtOrderNote.setPromptText("Ví dụ: Không đá, ít đường,...");
+        txtOrderNote.setStyle("-fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-font-size: 11px; -fx-padding: 6 10 6 10;");
 
-        HBox rowSubtotal = new HBox();
-        Label lblSub = new Label("Tạm tính:");
-        lblSub.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #817B70;");
-        Region s1 = new Region();
-        HBox.setHgrow(s1, Priority.ALWAYS);
-        lblSubtotalValue.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #292722; -fx-font-weight: 600;");
-        rowSubtotal.getChildren().addAll(lblSub, s1, lblSubtotalValue);
+        noteBox.getChildren().addAll(lblNote, txtOrderNote);
 
-        Label lblDiscLabel = new Label("Giảm giá (Voucher):");
-        lblDiscLabel.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #183C32; -fx-font-weight: 700;");
-        Region s2 = new Region();
-        HBox.setHgrow(s2, Priority.ALWAYS);
-        lblDiscountValue.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #183C32; -fx-font-weight: 700;");
-        rowDiscount.getChildren().addAll(lblDiscLabel, s2, lblDiscountValue);
-        rowDiscount.setVisible(false);
-        rowDiscount.setManaged(false);
-
-        HBox rowTotal = new HBox();
-        rowTotal.setAlignment(Pos.CENTER_LEFT);
-        rowTotal.setPadding(new Insets(4, 0, 0, 0));
-        Label lblTot = new Label("TỔNG THANH TOÁN:");
-        lblTot.setStyle("-fx-font-size: 14px; -fx-font-weight: 800; -fx-text-fill: #292722;");
-        Region s3 = new Region();
-        HBox.setHgrow(s3, Priority.ALWAYS);
-        lblGrandTotalValue.setStyle("-fx-font-size: 19px; -fx-font-weight: 800; -fx-text-fill: #A66A42;");
-        rowTotal.getChildren().addAll(lblTot, s3, lblGrandTotalValue);
-
-        summaryBox.getChildren().addAll(rowSubtotal, rowDiscount, rowTotal);
-
-        // 6. Two Bottom Actions: [Thêm món] and [Thanh toán →]
-        HBox bottomActions = new HBox(12);
+        // 5. Two Bottom Actions: [Thêm món] and [Thanh toán →]
+        HBox bottomActions = new HBox(10);
         bottomActions.setAlignment(Pos.CENTER);
         bottomActions.setPadding(new Insets(6, 0, 0, 0));
 
-        btnContinueOrdering.getStyleClass().add("btn-secondary");
-        btnContinueOrdering.setPrefHeight(42);
+        btnContinueOrdering.setStyle("-fx-background-color: #FBF9F5; -fx-text-fill: #292722; -fx-font-size: 11.5px; -fx-font-weight: 500; -fx-background-radius: 5px; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-pref-height: 36px; -fx-cursor: hand;");
         btnContinueOrdering.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(btnContinueOrdering, Priority.ALWAYS);
         AnimationHelper.applyButtonPress(btnContinueOrdering);
         btnContinueOrdering.setOnAction(e -> close());
 
-        btnProceedToPayment.getStyleClass().add("btn-primary");
-        btnProceedToPayment.setPrefHeight(42);
+        btnProceedToPayment.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 11.5px; -fx-font-weight: 600; -fx-background-radius: 5px; -fx-pref-height: 36px; -fx-cursor: hand;");
         btnProceedToPayment.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(btnProceedToPayment, Priority.ALWAYS);
         AnimationHelper.applyButtonPress(btnProceedToPayment);
@@ -240,7 +168,7 @@ public class CartModalDialog extends Stage {
 
         bottomActions.getChildren().addAll(btnContinueOrdering, btnProceedToPayment);
 
-        root.getChildren().addAll(header, typeRow, scrollItems, voucherSection, summaryBox, bottomActions);
+        root.getChildren().addAll(header, scrollItems, rowSummary, noteBox, bottomActions);
 
         Scene scene = new Scene(root);
         try {
@@ -256,10 +184,8 @@ public class CartModalDialog extends Stage {
 
         if (cartModel.isEmpty()) {
             scrollItems.setContent(emptyCartBox);
-            lblSubtotalValue.setText("0 đ");
+            lblSummaryCount.setText("Tổng cộng (0 món)");
             lblGrandTotalValue.setText("0 đ");
-            rowDiscount.setVisible(false);
-            rowDiscount.setManaged(false);
             btnProceedToPayment.setDisable(true);
             return;
         }
@@ -282,24 +208,16 @@ public class CartModalDialog extends Stage {
             cartItemsContainer.getChildren().add(row);
         }
 
-        lblSubtotalValue.setText(CurrencyFormatter.format(cartModel.getSubtotalAmount()));
-        if (cartModel.getDiscountAmount() > 0) {
-            lblDiscountValue.setText("-" + CurrencyFormatter.format(cartModel.getDiscountAmount()));
-            rowDiscount.setVisible(true);
-            rowDiscount.setManaged(true);
-        } else {
-            rowDiscount.setVisible(false);
-            rowDiscount.setManaged(false);
-        }
+        lblSummaryCount.setText("Tổng cộng (" + cartModel.getTotalQuantity() + " món)");
         lblGrandTotalValue.setText(CurrencyFormatter.format(cartModel.getTotalAmount()));
     }
 
     public void setVoucherFeedback(String text, boolean isSuccess) {
         lblVoucherFeedback.setText(text);
         if (isSuccess) {
-            lblVoucherFeedback.setStyle("-fx-text-fill: #183C32; -fx-font-size: 11px; -fx-font-weight: 700;");
+            lblVoucherFeedback.setStyle("-fx-text-fill: #112823; -fx-font-size: 10.5px; -fx-font-weight: 700;");
         } else {
-            lblVoucherFeedback.setStyle("-fx-text-fill: #C62828; -fx-font-size: 11px; -fx-font-weight: 700;");
+            lblVoucherFeedback.setStyle("-fx-text-fill: #C62828; -fx-font-size: 10.5px; -fx-font-weight: 700;");
         }
         lblVoucherFeedback.setVisible(true);
         lblVoucherFeedback.setManaged(true);

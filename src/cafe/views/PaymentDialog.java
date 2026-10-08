@@ -1,7 +1,6 @@
 package cafe.views;
 
 import cafe.models.CartModel;
-import cafe.models.OrderItem;
 import cafe.utils.AnimationHelper;
 import cafe.utils.CurrencyFormatter;
 import cafe.utils.SvgIcons;
@@ -10,9 +9,6 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.RadioButton;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.SVGPath;
@@ -20,14 +16,16 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * PaymentDialog - Reusable Payment Screen Dialog.
- * Refined per CafeOrder Animation & UI Plan:
- * - 12px rounded canvas with sheet entrance animation via AnimationHelper.playDialogEntrance
- * - 3 prominent payment cards: Cash, Bank Card, E-Wallet with SVG vector icons
- * - Clear bill summary and prominent confirmation CTA button
+ * PaymentDialog - Màn hình Thanh toán của user (Screen 6 trong UI_mong_muon.png):
+ * - Header: Nút back ←, Tiêu đề "Thanh toán", Tag "Bàn 05"
+ * - 3 thẻ phương thức: Tiền mặt (đang chọn với viền #112823 & dấu tick ✔), Thẻ ngân hàng (>), Ví điện tử (>)
+ * - Bảng tính tiền tối giản: Tổng tiền, Giảm giá, Thành tiền (16px bold)
+ * - Nút "Xác nhận thanh toán" (#112823, cao 40px, radius 5px)
  */
 public class PaymentDialog extends Stage {
     private final int tableNumber;
@@ -35,6 +33,7 @@ public class PaymentDialog extends Stage {
     private final Consumer<String> onConfirmed;
 
     private String selectedMethod = "TIỀN MẶT";
+    private final List<HBox> methodCards = new ArrayList<>();
 
     public PaymentDialog(Stage parentStage, int tableNumber, CartModel cartModel, Consumer<String> onConfirmed) {
         this.tableNumber = tableNumber;
@@ -44,161 +43,99 @@ public class PaymentDialog extends Stage {
         initOwner(parentStage);
         initModality(Modality.APPLICATION_MODAL);
         initStyle(StageStyle.UTILITY);
-        setTitle("Thanh Toán • Brew & Bean CAFE");
+        setTitle("Thanh Toán • Bàn " + tableNumber);
         setResizable(false);
 
         initUI();
     }
 
     private void initUI() {
-        VBox root = new VBox(14);
-        root.getStyleClass().add("modal-canvas");
-        root.setPadding(new Insets(20, 24, 20, 24));
-        root.setPrefWidth(470);
+        VBox root = new VBox(12);
+        root.setStyle("-fx-background-color: #FBF9F5; -fx-background-radius: 6px; -fx-border-color: #DED7CD; -fx-border-radius: 6px; -fx-border-width: 1px;");
+        root.setPadding(new Insets(18, 20, 18, 20));
+        root.setPrefWidth(380);
 
         // Entrance animation
         AnimationHelper.playDialogEntrance(root);
 
-        // Header: Brand & Table
+        // 1. Header: Back ←, "Thanh toán", Badge Bàn 05
         HBox headerRow = new HBox(8);
         headerRow.setAlignment(Pos.CENTER_LEFT);
 
-        VBox titleBox = new VBox(2);
-        HBox.setHgrow(titleBox, Priority.ALWAYS);
+        Button btnBack = new Button("←");
+        btnBack.setStyle("-fx-background-color: transparent; -fx-text-fill: #292722; -fx-font-size: 15px; -fx-cursor: hand; -fx-padding: 0 4 0 0;");
+        btnBack.setOnAction(e -> close());
 
-        Label lblTitle = new Label("XÁC NHẬN THANH TOÁN");
-        lblTitle.getStyleClass().add("editorial-title");
+        Label lblTitle = new Label("Thanh toán");
+        lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 17px; -fx-font-weight: 700; -fx-text-fill: #292722;");
 
-        Label lblSub = new Label("Vui lòng kiểm tra lại đơn hàng và chọn hình thức thanh toán.");
-        lblSub.getStyleClass().add("editorial-subtitle");
+        Region sp = new Region();
+        HBox.setHgrow(sp, Priority.ALWAYS);
 
-        titleBox.getChildren().addAll(lblTitle, lblSub);
+        Label lblTableBadge = new Label("Bàn " + (tableNumber < 10 ? "0" + tableNumber : tableNumber));
+        lblTableBadge.setStyle("-fx-background-color: #EBE5DB; -fx-text-fill: #563521; -fx-font-size: 10.5px; -fx-font-weight: 700; -fx-background-radius: 4px; -fx-padding: 3 8 3 8;");
 
-        Label lblTable = new Label("BÀN " + (tableNumber < 10 ? "0" + tableNumber : tableNumber));
-        lblTable.getStyleClass().add("table-tag");
+        headerRow.getChildren().addAll(btnBack, lblTitle, sp, lblTableBadge);
 
-        headerRow.getChildren().addAll(titleBox, lblTable);
+        // 2. Section Title
+        Label lblSection = new Label("Phương thức thanh toán");
+        lblSection.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #292722;");
 
-        // Receipt Summary Box (Editorial Slip)
-        VBox receiptBox = new VBox(8);
-        receiptBox.getStyleClass().add("receipt-slip");
+        // 3. Three Payment Method Cards
+        VBox methodsBox = new VBox(8);
 
-        Label lblOrderSummaryTitle = new Label("TÓM TẮT ĐƠN HÀNG (" + cartModel.getTotalQuantity() + " món)");
-        lblOrderSummaryTitle.getStyleClass().add("section-label");
-        receiptBox.getChildren().add(lblOrderSummaryTitle);
+        HBox cardCash = createMethodCard("Tiền mặt", SvgIcons.CASH, true, "TIỀN MẶT");
+        HBox cardBank = createMethodCard("Thẻ ngân hàng", SvgIcons.CREDIT_CARD, false, "THẺ NGÂN HÀNG");
+        HBox cardWallet = createMethodCard("Ví điện tử", SvgIcons.WALLET, false, "VÍ ĐIỆN TỬ");
 
-        VBox itemsList = new VBox(4);
-        for (OrderItem oi : cartModel.getItems()) {
-            HBox itemRow = new HBox(8);
-            itemRow.setAlignment(Pos.CENTER_LEFT);
+        methodCards.add(cardCash);
+        methodCards.add(cardBank);
+        methodCards.add(cardWallet);
 
-            Label lblItemName = new Label(oi.getQty() + "x " + oi.getName() + (oi.getSizeCode() != null ? " (" + oi.getSizeCode() + ")" : ""));
-            lblItemName.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #292722;");
-            HBox.setHgrow(lblItemName, Priority.ALWAYS);
+        methodsBox.getChildren().addAll(cardCash, cardBank, cardWallet);
 
-            Label lblItemSub = new Label(CurrencyFormatter.format(oi.getSubtotal()));
-            lblItemSub.setStyle("-fx-font-size: 12.5px; -fx-font-weight: 600; -fx-text-fill: #292722;");
+        // 4. Breakdown Summary Box
+        VBox summaryBox = new VBox(6);
+        summaryBox.setPadding(new Insets(10, 0, 4, 0));
 
-            itemRow.getChildren().addAll(lblItemName, lblItemSub);
-            itemsList.getChildren().add(itemRow);
-        }
+        HBox rowSub = new HBox();
+        Label lblSubT = new Label("Tổng tiền");
+        lblSubT.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #817A70;");
+        Region spSub = new Region();
+        HBox.setHgrow(spSub, Priority.ALWAYS);
+        Label lblSubV = new Label(CurrencyFormatter.format(cartModel.getSubtotalAmount()));
+        lblSubV.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 600; -fx-text-fill: #292722;");
+        rowSub.getChildren().addAll(lblSubT, spSub, lblSubV);
 
-        ScrollPane scrollItems = new ScrollPane(itemsList);
-        scrollItems.setFitToWidth(true);
-        scrollItems.setMaxHeight(120);
-        scrollItems.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        receiptBox.getChildren().add(scrollItems);
+        HBox rowDisc = new HBox();
+        Label lblDiscT = new Label("Giảm giá");
+        lblDiscT.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #817A70;");
+        Region spDisc = new Region();
+        HBox.setHgrow(spDisc, Priority.ALWAYS);
+        Label lblDiscV = new Label(cartModel.getDiscountAmount() > 0 ? "-" + CurrencyFormatter.format(cartModel.getDiscountAmount()) : "0đ");
+        lblDiscV.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 600; -fx-text-fill: " + (cartModel.getDiscountAmount() > 0 ? "#112823" : "#817A70") + ";");
+        rowDisc.getChildren().addAll(lblDiscT, spDisc, lblDiscV);
 
-        // Divider
-        Region div = new Region();
-        div.setStyle("-fx-background-color: #E6DFD4; -fx-pref-height: 1px;");
-        receiptBox.getChildren().add(div);
+        HBox rowTotal = new HBox();
+        rowTotal.setAlignment(Pos.CENTER_LEFT);
+        rowTotal.setPadding(new Insets(4, 0, 0, 0));
+        Label lblTotalT = new Label("Thành tiền");
+        lblTotalT.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #292722;");
+        Region spTotal = new Region();
+        HBox.setHgrow(spTotal, Priority.ALWAYS);
+        Label lblTotalV = new Label(CurrencyFormatter.format(cartModel.getTotalAmount()));
+        lblTotalV.setStyle("-fx-font-size: 15px; -fx-font-weight: 800; -fx-text-fill: #292722;");
+        rowTotal.getChildren().addAll(lblTotalT, spTotal, lblTotalV);
 
-        // Subtotal & Discount rows
-        HBox rowSubtotal = new HBox();
-        Label lblSubLabel = new Label("Tạm tính:");
-        lblSubLabel.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #817B70;");
-        Region sp1 = new Region();
-        HBox.setHgrow(sp1, Priority.ALWAYS);
-        Label lblSubVal = new Label(CurrencyFormatter.format(cartModel.getSubtotalAmount()));
-        lblSubVal.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #292722;");
-        rowSubtotal.getChildren().addAll(lblSubLabel, sp1, lblSubVal);
-        receiptBox.getChildren().add(rowSubtotal);
+        summaryBox.getChildren().addAll(rowSub, rowDisc, rowTotal);
 
-        if (cartModel.getDiscountAmount() > 0) {
-            HBox rowDiscount = new HBox();
-            Label lblDiscLabel = new Label("Giảm giá (Voucher):");
-            lblDiscLabel.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #183C32; -fx-font-weight: 700;");
-            Region sp2 = new Region();
-            HBox.setHgrow(sp2, Priority.ALWAYS);
-            Label lblDiscVal = new Label("-" + CurrencyFormatter.format(cartModel.getDiscountAmount()));
-            lblDiscVal.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #183C32; -fx-font-weight: 700;");
-            rowDiscount.getChildren().addAll(lblDiscLabel, sp2, lblDiscVal);
-            receiptBox.getChildren().add(rowDiscount);
-        }
-
-        // Grand Total Row
-        HBox rowGrandTotal = new HBox();
-        rowGrandTotal.setAlignment(Pos.CENTER_LEFT);
-        Label lblTotalLabel = new Label("TỔNG THANH TOÁN:");
-        lblTotalLabel.setStyle("-fx-font-size: 13.5px; -fx-font-weight: 800; -fx-text-fill: #292722;");
-        Region sp3 = new Region();
-        HBox.setHgrow(sp3, Priority.ALWAYS);
-        Label lblTotalVal = new Label(CurrencyFormatter.format(cartModel.getTotalAmount()));
-        lblTotalVal.setStyle("-fx-font-size: 18.5px; -fx-font-weight: 800; -fx-text-fill: #A66A42;");
-        rowGrandTotal.getChildren().addAll(lblTotalLabel, sp3, lblTotalVal);
-        receiptBox.getChildren().add(rowGrandTotal);
-
-        // Payment Method Options
-        VBox paymentOptionsBox = new VBox(8);
-        Label lblSelectPayment = new Label("CHỌN PHƯƠNG THỨC THANH TOÁN");
-        lblSelectPayment.getStyleClass().add("section-label");
-        paymentOptionsBox.getChildren().add(lblSelectPayment);
-
-        ToggleGroup payGroup = new ToggleGroup();
-
-        RadioButton rbCash = createPaymentCard(
-            "Tiền mặt tại quầy",
-            "Thanh toán trực tiếp khi nhận nước tại quầy thu ngân",
-            SvgIcons.CASH,
-            "TIỀN MẶT",
-            payGroup,
-            true
-        );
-
-        RadioButton rbCard = createPaymentCard(
-            "Thẻ ngân hàng / Máy POS",
-            "Chạm hoặc quẹt thẻ ATM, Visa, MasterCard",
-            SvgIcons.CREDIT_CARD,
-            "THẺ NGÂN HÀNG",
-            payGroup,
-            false
-        );
-
-        RadioButton rbQR = createPaymentCard(
-            "Chuyển khoản / Ví điện tử QR",
-            "Quét mã MoMo, ZaloPay, VietQR tiện lợi",
-            SvgIcons.WALLET,
-            "VÍ ĐIỆN TỬ / QR",
-            payGroup,
-            false
-        );
-
-        paymentOptionsBox.getChildren().addAll(rbCash, rbCard, rbQR);
-
-        // Bottom Actions
-        HBox actionsRow = new HBox(12);
-        actionsRow.setAlignment(Pos.CENTER_RIGHT);
-        actionsRow.setPadding(new Insets(10, 0, 0, 0));
-
-        Button btnCancel = new Button("Quay lại");
-        btnCancel.getStyleClass().add("btn-secondary");
-        AnimationHelper.applyButtonPress(btnCancel);
-        btnCancel.setOnAction(e -> close());
-
-        Button btnConfirm = new Button("Xác nhận thanh toán →");
-        btnConfirm.getStyleClass().add("btn-primary");
+        // 5. Confirm CTA Button (#112823, cao 40px, radius 5px)
+        Button btnConfirm = new Button("Xác nhận thanh toán");
+        btnConfirm.setMaxWidth(Double.MAX_VALUE);
+        btnConfirm.setPrefHeight(40);
+        btnConfirm.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12px; -fx-font-weight: 600; -fx-background-radius: 5px; -fx-cursor: hand;");
         AnimationHelper.applyButtonPress(btnConfirm);
+
         btnConfirm.setOnAction(e -> {
             if (onConfirmed != null) {
                 onConfirmed.accept(selectedMethod);
@@ -206,9 +143,7 @@ public class PaymentDialog extends Stage {
             close();
         });
 
-        actionsRow.getChildren().addAll(btnCancel, btnConfirm);
-
-        root.getChildren().addAll(headerRow, receiptBox, paymentOptionsBox, actionsRow);
+        root.getChildren().addAll(headerRow, lblSection, methodsBox, summaryBox, btnConfirm);
 
         Scene scene = new Scene(root);
         try {
@@ -218,31 +153,51 @@ public class PaymentDialog extends Stage {
         setScene(scene);
     }
 
-    private RadioButton createPaymentCard(String title, String desc, String iconSvg, String methodKey, ToggleGroup group, boolean isSelected) {
-        RadioButton rb = new RadioButton();
-        rb.setToggleGroup(group);
-        rb.setSelected(isSelected);
-        rb.setMaxWidth(Double.MAX_VALUE);
-        rb.getStyleClass().add("payment-method-card");
+    private HBox createMethodCard(String title, String iconSvg, boolean isSelected, String methodKey) {
+        HBox card = new HBox(10);
+        card.setAlignment(Pos.CENTER_LEFT);
+        card.setPadding(new Insets(10, 12, 10, 12));
+        card.setCursor(javafx.scene.Cursor.HAND);
+        AnimationHelper.applyButtonPress(card);
 
-        HBox cardRow = new HBox(10);
-        cardRow.setAlignment(Pos.CENTER_LEFT);
+        SVGPath icon = SvgIcons.createOutlineIcon(iconSvg, 0.85, Color.web("#292722"));
+        Label lblTitle = new Label(title);
+        lblTitle.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 600; -fx-text-fill: #292722;");
+        HBox.setHgrow(lblTitle, Priority.ALWAYS);
 
-        SVGPath icon = SvgIcons.createOutlineIcon(iconSvg, 0.9, Color.web("#183C32"));
+        card.getChildren().addAll(icon, lblTitle);
 
-        VBox content = new VBox(2);
-        HBox.setHgrow(content, Priority.ALWAYS);
-        Label lblT = new Label(title);
-        lblT.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #292722;");
-        Label lblD = new Label(desc);
-        lblD.setStyle("-fx-font-size: 11px; -fx-text-fill: #817B70;");
-        content.getChildren().addAll(lblT, lblD);
+        if (isSelected) {
+            Label checkmark = new Label("✔");
+            checkmark.setStyle("-fx-font-size: 11px; -fx-text-fill: #112823; -fx-font-weight: 700;");
+            card.getChildren().add(checkmark);
+            card.setStyle("-fx-background-color: #FBF9F5; -fx-background-radius: 5px; -fx-border-color: #112823; -fx-border-radius: 5px; -fx-border-width: 1.5px;");
+        } else {
+            Label chevron = new Label("›");
+            chevron.setStyle("-fx-font-size: 14px; -fx-text-fill: #817A70;");
+            card.getChildren().add(chevron);
+            card.setStyle("-fx-background-color: #FBF9F5; -fx-background-radius: 5px; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-border-width: 1px;");
+        }
 
-        cardRow.getChildren().addAll(icon, content);
-        rb.setGraphic(cardRow);
+        card.setOnMouseClicked(e -> {
+            selectedMethod = methodKey;
+            for (HBox c : methodCards) {
+                boolean active = (c == card);
+                if (c.getChildren().size() > 2) {
+                    Label rightIcon = (Label) c.getChildren().get(2);
+                    if (active) {
+                        rightIcon.setText("✔");
+                        rightIcon.setStyle("-fx-font-size: 11px; -fx-text-fill: #112823; -fx-font-weight: 700;");
+                        c.setStyle("-fx-background-color: #FBF9F5; -fx-background-radius: 5px; -fx-border-color: #112823; -fx-border-radius: 5px; -fx-border-width: 1.5px;");
+                    } else {
+                        rightIcon.setText("›");
+                        rightIcon.setStyle("-fx-font-size: 14px; -fx-text-fill: #817A70;");
+                        c.setStyle("-fx-background-color: #FBF9F5; -fx-background-radius: 5px; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-border-width: 1px;");
+                    }
+                }
+            }
+        });
 
-        rb.setOnAction(e -> selectedMethod = methodKey);
-
-        return rb;
+        return card;
     }
 }

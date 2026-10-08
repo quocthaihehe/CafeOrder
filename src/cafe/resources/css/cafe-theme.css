@@ -1,11 +1,17 @@
 /* ==========================================================================
    BREW & BEAN CAFE — DESIGN SYSTEM & CENTRAL THEME STYLESHEET
    Direction: Japanese coffee shop × modern editorial × premium POS
-   Palette: Warm Sand Canvas (#F4F0E8), Surface (#FBF9F4), Dark Emerald (#183C32),
-            Charcoal Text (#292722), Muted Gray (#817B70), Border (#D8D1C3),
-            Warm Amber Accent (#A66A42).
+   Hallmark Disciplines:
+   - Locked tokens: No inline hex/rgb improvisations
+   - Shape language: Subtle 4px radius, no excessive rounded cards/pills
+   - Typography purity: Editorial serif headings (roman/upright, no italics),
+                        Clean sans-serif UI & body
+   - Restraint: Hairline borders (#D8D1C3) over heavy dropshadows
    ========================================================================== */
 
+/* --------------------------------------------------------------------------
+   GLOBAL ROOT & DESIGN TOKENS
+   -------------------------------------------------------------------------- */
 .root {
     -fx-font-family: 'Inter', 'Segoe UI', -apple-system, sans-serif;
     -fx-background-color: #F4F0E8;
@@ -13,18 +19,20 @@
 }
 
 /* --------------------------------------------------------------------------
-   TYPOGRAPHY SYSTEM
+   TYPOGRAPHY SYSTEM (Editorial Serif Display + Clean Modern Sans-Serif UI)
    -------------------------------------------------------------------------- */
 .editorial-display {
-    -fx-font-family: 'Playfair Display', 'Georgia', 'Times New Roman', serif;
-    -fx-font-size: 28px;
+    -fx-font-family: 'Playfair Display', 'Georgia', serif;
+    -fx-font-style: normal;
+    -fx-font-size: 26px;
     -fx-font-weight: 700;
     -fx-text-fill: #292722;
 }
 
 .editorial-title {
-    -fx-font-family: 'Playfair Display', 'Georgia', 'Times New Roman', serif;
-    -fx-font-size: 22px;
+    -fx-font-family: 'Playfair Display', 'Georgia', serif;
+    -fx-font-style: normal;
+    -fx-font-size: 20px;
     -fx-font-weight: 700;
     -fx-text-fill: #292722;
 }
@@ -33,81 +41,96 @@
     -fx-font-size: 13px;
     -fx-font-weight: 400;
     -fx-text-fill: #817B70;
-    -fx-line-spacing: 2px;
+}
+
+.section-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #817B70;
+    -fx-letter-spacing: 1px;
 }
 
 .micro-label {
-    -fx-font-size: 10.5px;
+    -fx-font-size: 10px;
     -fx-font-weight: 700;
     -fx-text-fill: #817B70;
-    -fx-letter-spacing: 0.8px;
+    -fx-letter-spacing: 0.5px;
 }
 
 /* --------------------------------------------------------------------------
-   BUTTON SYSTEM (Primary Dark Emerald & Secondary Warm Cream)
+   BUTTON SYSTEM (Subtle 4px radius, High Contrast, Tactile States)
    -------------------------------------------------------------------------- */
 .btn-primary {
     -fx-background-color: #183C32;
     -fx-text-fill: #FFFFFF;
     -fx-font-size: 13.5px;
     -fx-font-weight: 700;
-    -fx-background-radius: 8px;
-    -fx-padding: 10 20 10 20;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-padding: 10 18 10 18;
     -fx-cursor: hand;
-    -fx-effect: dropshadow(gaussian, rgba(24, 60, 50, 0.2), 6, 0, 0, 2);
+    -fx-border-color: #183C32;
+    -fx-border-width: 1px;
 }
 
 .btn-primary:hover {
     -fx-background-color: #102C25;
-    -fx-effect: dropshadow(gaussian, rgba(16, 44, 37, 0.3), 8, 0, 0, 3);
+    -fx-border-color: #102C25;
 }
 
 .btn-primary:pressed {
-    -fx-background-color: #0B1E19;
+    -fx-background-color: #0A1C17;
+    -fx-border-color: #0A1C17;
 }
 
 .btn-primary:disabled {
-    -fx-background-color: #D8D1C3;
+    -fx-background-color: #E2DBD0;
+    -fx-border-color: #D8D1C3;
     -fx-text-fill: #817B70;
-    -fx-opacity: 0.7;
+    -fx-opacity: 0.8;
 }
 
 .btn-secondary {
-    -fx-background-color: #E8E2D8;
+    -fx-background-color: #FBF9F4;
     -fx-text-fill: #292722;
     -fx-font-size: 13px;
     -fx-font-weight: 600;
-    -fx-background-radius: 8px;
-    -fx-padding: 9 18 9 18;
-    -fx-cursor: hand;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
     -fx-border-color: #D8D1C3;
-    -fx-border-radius: 8px;
     -fx-border-width: 1px;
+    -fx-padding: 9 16 9 16;
+    -fx-cursor: hand;
 }
 
 .btn-secondary:hover {
-    -fx-background-color: #DFD7CC;
-    -fx-border-color: #C7BEAD;
+    -fx-background-color: #EFE9DE;
+    -fx-border-color: #C8BFB0;
 }
 
 .btn-secondary:pressed {
-    -fx-background-color: #D2C8BA;
+    -fx-background-color: #E5DDCF;
 }
 
-.btn-pill-option {
+.btn-option-tag {
     -fx-background-color: #FFFFFF;
     -fx-text-fill: #292722;
     -fx-font-size: 12px;
     -fx-font-weight: 600;
-    -fx-background-radius: 8px;
+    -fx-background-radius: 4px;
     -fx-border-color: #D8D1C3;
-    -fx-border-radius: 8px;
+    -fx-border-radius: 4px;
     -fx-border-width: 1px;
-    -fx-padding: 6 14 6 14;
+    -fx-padding: 6 12 6 12;
     -fx-cursor: hand;
 }
 
-.btn-pill-option:selected {
+.btn-option-tag:hover {
+    -fx-background-color: #F7F3EB;
+    -fx-border-color: #BDB29F;
+}
+
+.btn-option-tag:selected {
     -fx-background-color: #183C32;
     -fx-text-fill: #FFFFFF;
     -fx-border-color: #183C32;
@@ -115,13 +138,13 @@
 }
 
 /* --------------------------------------------------------------------------
-   INPUT & TEXT AREA
+   INPUT FIELDS & CONTROLS
    -------------------------------------------------------------------------- */
 .text-input-field {
     -fx-background-color: #FFFFFF;
-    -fx-background-radius: 8px;
+    -fx-background-radius: 4px;
     -fx-border-color: #D8D1C3;
-    -fx-border-radius: 8px;
+    -fx-border-radius: 4px;
     -fx-border-width: 1px;
     -fx-font-size: 13px;
     -fx-text-fill: #292722;
@@ -131,27 +154,27 @@
 
 .text-input-field:focused {
     -fx-border-color: #183C32;
-    -fx-effect: dropshadow(gaussian, rgba(24, 60, 50, 0.15), 4, 0, 0, 1);
 }
 
 /* --------------------------------------------------------------------------
-   LEFT SIDEBAR CATEGORY NAVIGATION (Screen 3 in UI_mong_muon.png)
+   LEFT SIDEBAR: CATEGORY NAVIGATION
    -------------------------------------------------------------------------- */
 .sidebar-category-pane {
     -fx-background-color: #FBF9F4;
     -fx-border-color: transparent #D8D1C3 transparent transparent;
     -fx-border-width: 0 1 0 0;
-    -fx-padding: 16 12 16 12;
+    -fx-padding: 16 12 16 14;
 }
 
 .brand-header-box {
-    -fx-padding: 8 8 20 8;
-    -fx-border-color: transparent transparent #EAE3D6 transparent;
+    -fx-padding: 4 8 16 8;
+    -fx-border-color: transparent transparent #E6DFD4 transparent;
     -fx-border-width: 0 0 1 0;
 }
 
 .brand-header-title {
     -fx-font-family: 'Playfair Display', 'Georgia', serif;
+    -fx-font-style: normal;
     -fx-font-size: 18px;
     -fx-font-weight: 800;
     -fx-text-fill: #183C32;
@@ -161,7 +184,7 @@
     -fx-font-size: 9.5px;
     -fx-font-weight: 700;
     -fx-text-fill: #A66A42;
-    -fx-letter-spacing: 1.5px;
+    -fx-letter-spacing: 2px;
 }
 
 .category-nav-btn {
@@ -169,14 +192,15 @@
     -fx-text-fill: #817B70;
     -fx-font-size: 12.5px;
     -fx-font-weight: 600;
-    -fx-background-radius: 8px;
-    -fx-padding: 10 14 10 14;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-padding: 9 12 9 12;
     -fx-cursor: hand;
     -fx-alignment: center-left;
 }
 
 .category-nav-btn:hover {
-    -fx-background-color: #F0EAE0;
+    -fx-background-color: #EFE9DE;
     -fx-text-fill: #292722;
 }
 
@@ -184,42 +208,39 @@
     -fx-background-color: #183C32;
     -fx-text-fill: #FFFFFF;
     -fx-font-weight: 700;
-    -fx-effect: dropshadow(gaussian, rgba(24, 60, 50, 0.25), 6, 0, 0, 2);
 }
 
 /* --------------------------------------------------------------------------
-   PRODUCT CARDS (Screen 3 in UI_mong_muon.png)
+   PRODUCT CARD (Architectural 4px radius, Editorial Layout)
    -------------------------------------------------------------------------- */
 .product-card {
     -fx-background-color: #FFFFFF;
-    -fx-background-radius: 10px;
-    -fx-border-color: #E2DBD0;
-    -fx-border-radius: 10px;
+    -fx-background-radius: 4px;
+    -fx-border-color: #D8D1C3;
+    -fx-border-radius: 4px;
     -fx-border-width: 1px;
-    -fx-padding: 12;
-    -fx-effect: dropshadow(gaussian, rgba(41, 39, 34, 0.04), 8, 0, 0, 2);
+    -fx-padding: 10;
     -fx-cursor: hand;
 }
 
 .product-card:hover {
-    -fx-border-color: #BDB29F;
-    -fx-effect: dropshadow(gaussian, rgba(24, 60, 50, 0.12), 12, 0, 0, 4);
+    -fx-border-color: #183C32;
 }
 
 .product-card-title {
-    -fx-font-size: 14.5px;
+    -fx-font-size: 14px;
     -fx-font-weight: 700;
     -fx-text-fill: #292722;
 }
 
 .product-card-desc {
-    -fx-font-size: 11px;
+    -fx-font-size: 11.5px;
     -fx-text-fill: #817B70;
     -fx-line-spacing: 1.5px;
 }
 
 .product-card-price {
-    -fx-font-size: 15px;
+    -fx-font-size: 14.5px;
     -fx-font-weight: 800;
     -fx-text-fill: #A66A42;
 }
@@ -229,7 +250,7 @@
     -fx-text-fill: #FFFFFF;
     -fx-font-size: 14px;
     -fx-font-weight: 700;
-    -fx-background-radius: 20px;
+    -fx-background-radius: 14px;
     -fx-min-width: 28px;
     -fx-min-height: 28px;
     -fx-max-width: 28px;
@@ -240,11 +261,10 @@
 
 .btn-circle-add:hover {
     -fx-background-color: #102C25;
-    -fx-effect: dropshadow(gaussian, rgba(16, 44, 37, 0.35), 6, 0, 0, 2);
 }
 
 /* --------------------------------------------------------------------------
-   CART & ORDER SUMMARY (Screen 5 in UI_mong_muon.png)
+   CART & ORDER SUMMARY (Fixed Right Panel)
    -------------------------------------------------------------------------- */
 .cart-sidebar-pane {
     -fx-background-color: #FBF9F4;
@@ -255,28 +275,41 @@
 
 .cart-item-row {
     -fx-background-color: #FFFFFF;
-    -fx-background-radius: 8px;
+    -fx-background-radius: 4px;
     -fx-border-color: #E6DFD4;
-    -fx-border-radius: 8px;
+    -fx-border-radius: 4px;
     -fx-border-width: 1px;
     -fx-padding: 10 12 10 12;
+}
+
+.cart-item-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #292722;
+}
+
+.cart-item-price {
+    -fx-font-size: 12.5px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #A66A42;
 }
 
 .stepper-btn {
     -fx-background-color: #F4F0E8;
     -fx-text-fill: #292722;
-    -fx-font-size: 13px;
+    -fx-font-size: 12px;
     -fx-font-weight: 700;
-    -fx-background-radius: 6px;
+    -fx-background-radius: 4px;
     -fx-border-color: #D8D1C3;
-    -fx-border-radius: 6px;
+    -fx-border-radius: 4px;
     -fx-border-width: 1px;
     -fx-cursor: hand;
-    -fx-padding: 2 8 2 8;
+    -fx-padding: 3 8 3 8;
 }
 
 .stepper-btn:hover {
     -fx-background-color: #EAE3D6;
+    -fx-border-color: #BDB29F;
 }
 
 .stepper-btn:pressed {
@@ -284,59 +317,168 @@
 }
 
 .stepper-value {
-    -fx-font-size: 13px;
+    -fx-font-size: 12.5px;
     -fx-font-weight: 700;
     -fx-text-fill: #292722;
-    -fx-padding: 0 6 0 6;
+    -fx-padding: 0 4 0 4;
+}
+
+.btn-delete-item {
+    -fx-background-color: transparent;
+    -fx-text-fill: #817B70;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+    -fx-padding: 2 4 2 4;
+    -fx-background-radius: 4px;
+}
+
+.btn-delete-item:hover {
+    -fx-background-color: #FDEEEE;
+    -fx-text-fill: #C62828;
 }
 
 /* --------------------------------------------------------------------------
-   STATUS BADGES & PILLS
+   BADGES & STATUS INDICATORS
    -------------------------------------------------------------------------- */
-.status-pill-table {
+.badge-bestseller {
+    -fx-background-color: #183C32;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 8.5px;
+    -fx-font-weight: 800;
+    -fx-background-radius: 4px;
+    -fx-padding: 2 6 2 6;
+}
+
+.badge-new {
+    -fx-background-color: #A66A42;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 8.5px;
+    -fx-font-weight: 800;
+    -fx-background-radius: 4px;
+    -fx-padding: 2 6 2 6;
+}
+
+.table-tag {
     -fx-background-color: #EBE5DB;
-    -fx-background-radius: 14px;
-    -fx-padding: 4 12 4 12;
+    -fx-background-radius: 4px;
+    -fx-padding: 4 10 4 10;
     -fx-font-size: 12px;
     -fx-font-weight: 700;
     -fx-text-fill: #183C32;
 }
 
-.status-pill-active {
+.status-tag-active {
     -fx-background-color: #FDF4ED;
-    -fx-background-radius: 14px;
+    -fx-background-radius: 4px;
     -fx-border-color: #F4D3BC;
-    -fx-border-radius: 14px;
+    -fx-border-radius: 4px;
     -fx-border-width: 1px;
-    -fx-padding: 4 10 4 10;
-    -fx-font-size: 11.5px;
+    -fx-padding: 3 8 3 8;
+    -fx-font-size: 11px;
     -fx-font-weight: 600;
     -fx-text-fill: #C05621;
 }
 
-.status-pill-done {
+.status-tag-done {
     -fx-background-color: #EDF7ED;
-    -fx-background-radius: 14px;
+    -fx-background-radius: 4px;
     -fx-border-color: #C8E6C9;
-    -fx-border-radius: 14px;
+    -fx-border-radius: 4px;
     -fx-border-width: 1px;
-    -fx-padding: 4 10 4 10;
-    -fx-font-size: 11.5px;
+    -fx-padding: 3 8 3 8;
+    -fx-font-size: 11px;
     -fx-font-weight: 600;
     -fx-text-fill: #1B5E20;
 }
 
 /* --------------------------------------------------------------------------
-   MODAL / POPUP DIALOG (Screen 4 in UI_mong_muon.png)
+   MODAL / POPUP DIALOGS (Product Detail, Payment, Success)
    -------------------------------------------------------------------------- */
 .modal-canvas {
     -fx-background-color: #FBF9F4;
-    -fx-padding: 24;
+    -fx-border-color: #D8D1C3;
+    -fx-border-width: 1px;
 }
 
 .modal-dialog-title {
     -fx-font-family: 'Playfair Display', 'Georgia', serif;
-    -fx-font-size: 24px;
+    -fx-font-style: normal;
+    -fx-font-size: 22px;
     -fx-font-weight: 700;
     -fx-text-fill: #292722;
+}
+
+.modal-section-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #292722;
+}
+
+/* --------------------------------------------------------------------------
+   PAYMENT & ORDER CONFIRMATION
+   -------------------------------------------------------------------------- */
+.payment-method-card {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 4px;
+    -fx-border-color: #D8D1C3;
+    -fx-border-radius: 4px;
+    -fx-border-width: 1px;
+    -fx-padding: 14 18 14 18;
+    -fx-cursor: hand;
+}
+
+.payment-method-card:hover {
+    -fx-border-color: #183C32;
+    -fx-background-color: #FAF8F2;
+}
+
+.payment-method-card:selected {
+    -fx-background-color: #F5F1E8;
+    -fx-border-color: #183C32;
+    -fx-border-width: 2px;
+}
+
+.receipt-slip {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 4px;
+    -fx-border-color: #D8D1C3;
+    -fx-border-radius: 4px;
+    -fx-border-width: 1px;
+    -fx-padding: 20 24 20 24;
+}
+
+/* --------------------------------------------------------------------------
+   SCROLLBAR STYLING (Minimalist Warm Tone)
+   -------------------------------------------------------------------------- */
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+
+.scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 8px;
+}
+
+.scroll-bar:vertical .thumb {
+    -fx-background-color: #D8D1C3;
+    -fx-background-radius: 4px;
+}
+
+.scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #BDB29F;
+}
+
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-pref-height: 0px;
+    -fx-padding: 0;
+}
+
+.scroll-bar .increment-arrow,
+.scroll-bar .decrement-arrow {
+    -fx-shape: " ";
+    -fx-padding: 0;
 }

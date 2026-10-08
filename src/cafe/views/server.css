@@ -1,7 +1,7 @@
 /* ==========================================================================
    BREW & BEAN CAFE - KITCHEN DISPLAY SYSTEM (KDS) & ORDER MANAGEMENT
    Direction: Japanese coffee shop × modern editorial × premium POS
-   Matches Screen 7 in UI_mong_muon.png
+   Harmonized with central cafe-theme.css (4px radius, locked tokens)
    ========================================================================== */
 
 .root {
@@ -22,6 +22,7 @@
 
 .kds-brand-title {
     -fx-font-family: 'Playfair Display', 'Georgia', serif;
+    -fx-font-style: normal;
     -fx-font-size: 20px;
     -fx-font-weight: 700;
     -fx-text-fill: #183C32;
@@ -34,10 +35,10 @@
 }
 
 .stat-pill {
-    -fx-background-radius: 8;
-    -fx-border-radius: 8;
-    -fx-border-width: 1;
-    -fx-padding: 6 14 6 14;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-border-width: 1px;
+    -fx-padding: 5 12 5 12;
 }
 
 .stat-queued {
@@ -45,7 +46,7 @@
     -fx-border-color: #F4D3BC;
     -fx-text-fill: #C05621;
     -fx-font-weight: 700;
-    -fx-font-size: 12px;
+    -fx-font-size: 11.5px;
 }
 
 .stat-preparing {
@@ -53,7 +54,7 @@
     -fx-border-color: #BEE3F8;
     -fx-text-fill: #2B6CB0;
     -fx-font-weight: 700;
-    -fx-font-size: 12px;
+    -fx-font-size: 11.5px;
 }
 
 .stat-done {
@@ -61,7 +62,7 @@
     -fx-border-color: #C8E6C9;
     -fx-text-fill: #1B5E20;
     -fx-font-weight: 700;
-    -fx-font-size: 12px;
+    -fx-font-size: 11.5px;
 }
 
 /* --------------------------------------------------------------------------
@@ -69,10 +70,10 @@
    -------------------------------------------------------------------------- */
 .kds-search-box {
     -fx-background-color: #FFFFFF;
-    -fx-background-radius: 8;
+    -fx-background-radius: 4px;
     -fx-border-color: #D8D1C3;
-    -fx-border-radius: 8;
-    -fx-border-width: 1;
+    -fx-border-radius: 4px;
+    -fx-border-width: 1px;
     -fx-padding: 6 12 6 12;
 }
 
@@ -81,6 +82,7 @@
     -fx-border-color: transparent;
     -fx-font-size: 12.5px;
     -fx-text-fill: #292722;
+    -fx-prompt-text-fill: #A8A297;
 }
 
 .kds-filter-btn {
@@ -88,85 +90,93 @@
     -fx-text-fill: #817B70;
     -fx-font-size: 12px;
     -fx-font-weight: 600;
-    -fx-background-radius: 8;
+    -fx-background-radius: 4px;
     -fx-border-color: #D8D1C3;
-    -fx-border-radius: 8;
-    -fx-border-width: 1;
+    -fx-border-radius: 4px;
+    -fx-border-width: 1px;
     -fx-padding: 6 14 6 14;
     -fx-cursor: hand;
 }
 
 .kds-filter-btn:hover {
-    -fx-background-color: #F0EAE0;
+    -fx-background-color: #EFE9DE;
     -fx-text-fill: #292722;
 }
 
-.kds-filter-btn-active {
+.kds-filter-btn:selected {
     -fx-background-color: #183C32;
     -fx-text-fill: #FFFFFF;
-    -fx-font-weight: 700;
     -fx-border-color: #183C32;
+    -fx-font-weight: 700;
 }
 
-.btn-clear-done {
-    -fx-background-color: #E8E2D8;
-    -fx-text-fill: #292722;
+.kds-clear-btn {
+    -fx-background-color: #FBF9F4;
+    -fx-text-fill: #817B70;
     -fx-font-size: 12px;
     -fx-font-weight: 600;
-    -fx-background-radius: 8;
+    -fx-background-radius: 4px;
     -fx-border-color: #D8D1C3;
-    -fx-border-radius: 8;
-    -fx-border-width: 1;
-    -fx-padding: 6 14 6 14;
+    -fx-border-radius: 4px;
+    -fx-border-width: 1px;
+    -fx-padding: 6 12 6 12;
     -fx-cursor: hand;
 }
 
-.btn-clear-done:hover {
-    -fx-background-color: #DFD7CC;
+.kds-clear-btn:hover {
+    -fx-background-color: #FDEEEE;
+    -fx-text-fill: #C62828;
+    -fx-border-color: #F9CBCB;
 }
 
 /* --------------------------------------------------------------------------
-   ORDER TICKET CARDS (Screen 7 in UI_mong_muon.png)
+   ORDER TICKET CARD
    -------------------------------------------------------------------------- */
 .ticket-card {
     -fx-background-color: #FFFFFF;
-    -fx-background-radius: 10;
-    -fx-border-color: #E2DBD0;
-    -fx-border-radius: 10;
-    -fx-border-width: 1;
+    -fx-background-radius: 4px;
+    -fx-border-color: #D8D1C3;
+    -fx-border-radius: 4px;
+    -fx-border-width: 1px;
     -fx-padding: 14;
-    -fx-pref-width: 290;
-    -fx-min-width: 280;
+    -fx-pref-width: 280;
     -fx-max-width: 320;
-    -fx-effect: dropshadow(gaussian, rgba(41, 39, 34, 0.05), 8, 0, 0, 2);
 }
 
 .ticket-header {
-    -fx-border-color: transparent transparent #EAE3D6 transparent;
+    -fx-padding: 0 0 10 0;
+    -fx-border-color: transparent transparent #E6DFD4 transparent;
     -fx-border-width: 0 0 1 0;
-    -fx-padding: 0 0 8 0;
 }
 
 .ticket-order-id {
-    -fx-font-size: 14px;
+    -fx-font-size: 15px;
     -fx-font-weight: 800;
     -fx-text-fill: #183C32;
 }
 
 .ticket-time {
     -fx-font-size: 11px;
+    -fx-font-weight: 500;
     -fx-text-fill: #817B70;
 }
 
+.ticket-status-badge {
+    -fx-background-radius: 4px;
+    -fx-padding: 3 8 3 8;
+    -fx-font-size: 10.5px;
+    -fx-font-weight: 700;
+}
+
 .ticket-item-row {
-    -fx-padding: 4 0 4 0;
+    -fx-padding: 3 0 3 0;
 }
 
 .ticket-item-qty {
     -fx-font-size: 13px;
     -fx-font-weight: 800;
     -fx-text-fill: #183C32;
-    -fx-min-width: 24;
+    -fx-min-width: 22px;
 }
 
 .ticket-item-name {
@@ -181,27 +191,15 @@
     -fx-padding: 0 0 0 24;
 }
 
-.ticket-status-badge {
-    -fx-background-radius: 8;
-    -fx-padding: 3 8 3 8;
-    -fx-font-size: 10.5px;
-    -fx-font-weight: 700;
+.ticket-actions-bar {
+    -fx-padding: 10 0 0 0;
+    -fx-border-color: #E6DFD4 transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
 }
 
-.ticket-btn-action {
-    -fx-background-color: #183C32;
-    -fx-text-fill: #FFFFFF;
-    -fx-font-size: 12.5px;
-    -fx-font-weight: 700;
-    -fx-background-radius: 8;
-    -fx-padding: 8 16 8 16;
-    -fx-cursor: hand;
-}
-
-.ticket-btn-action:hover {
-    -fx-background-color: #102C25;
-}
-
+/* --------------------------------------------------------------------------
+   BOTTOM LOG BAR
+   -------------------------------------------------------------------------- */
 .kds-log-drawer {
     -fx-background-color: #FBF9F4;
     -fx-border-color: #D8D1C3 transparent transparent transparent;
@@ -210,7 +208,7 @@
 }
 
 .kds-log-text {
-    -fx-font-size: 11px;
+    -fx-font-size: 11.5px;
     -fx-text-fill: #817B70;
-    -fx-font-family: monospace;
+    -fx-font-family: 'Consolas', 'Courier New', monospace;
 }

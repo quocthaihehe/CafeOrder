@@ -27,12 +27,18 @@ public class ClientController {
     private String lastPaymentMethod = "TIỀN MẶT";
     private double lastOrderTotal = 0.0;
     private CartModalDialog activeCartDialog = null;
+    private final Runnable onBackToFloorPlan;
 
     public ClientController(Stage primaryStage, ClientView view, ClientSocketService socketService, int tableNumber) {
+        this(primaryStage, view, socketService, tableNumber, null);
+    }
+
+    public ClientController(Stage primaryStage, ClientView view, ClientSocketService socketService, int tableNumber, Runnable onBackToFloorPlan) {
         this.primaryStage = primaryStage;
         this.view = view;
         this.socketService = socketService;
         this.tableNumber = tableNumber;
+        this.onBackToFloorPlan = onBackToFloorPlan;
         this.cartModel = new CartModel();
 
         init();
@@ -42,6 +48,10 @@ public class ClientController {
         view.setTableNumber(tableNumber);
         view.setConnectionState(socketService.isConnected());
         view.updateCartBadge(cartModel.getTotalQuantity());
+
+        if (onBackToFloorPlan != null) {
+            view.getFloorPlanButton().setOnAction(e -> onBackToFloorPlan.run());
+        }
 
         // Category & Search bindings
         view.renderCategories(MenuRepository.getCategories(), currentCategory, this::onCategorySelected);

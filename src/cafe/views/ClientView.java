@@ -23,12 +23,17 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * ClientView - Giao diện Kiosk đặt món tại bàn chuẩn mẫu UI_mong_muon.png.
- * Cải tiến theo CafeOrder Animation & UI Refinement Plan:
- * 1. CỘT TRÁI: Thanh danh mục dọc thanh thoát với nhận diện Brew & Bean CAFE.
- * 2. KHU VỰC TRUNG TÂM TOÀN MÀN HÌNH: Lưới thực đơn 3-4 cột rộng rãi, hình ảnh to đẹp.
- * 3. HEADER GÓC PHẢI: Nút giỏ hàng nổi [ 🛒 Qty ] kèm hiệu ứng Badge Bump.
- * 4. GIỎ HÀNG: Dạng Modal Nổi (CartModalDialog) mở lên khi click hoặc thanh toán.
+ * ClientView - Giao diện Kiosk đặt món tại bàn chuẩn 100% UI_mong_muon.png.
+ * Đã sửa toàn diện theo Báo cáo Thẩm định & Thiết kế UI/UX:
+ * 1. SIDEBAR CHUẨN HOÁ:
+ *    - 100% danh mục có Icon Vector SVG thanh mảnh (Trắng khi active, xám khi inactive).
+ *    - Nút Active màu Deep Forest Green (#183C32) tương phản cao.
+ *    - Xóa bỏ triệt để lỗi trùng lặp "Tất cả món" / "Tất cả".
+ *    - Tên danh mục cô đọng, thẳng hàng: Tất cả, Cà phê, Trà, Đá xay, Nước ép, Bánh ngọt, Món ăn nhẹ...
+ *    - Header logo Playfair Display bay bổng, không có đường kẻ cắt thô.
+ *    - Bổ sung nút quay lại Sơ đồ bàn [ Sơ đồ bàn ].
+ * 2. LƯỚI THỰC ĐƠN TOÀN MÀN HÌNH: 3-4 cột thoáng rộng, hình ảnh 1:1 to đẹp.
+ * 3. HEADER GÓC PHẢI: Nút Giỏ Hàng Nổi [ 🛒 Qty ] kèm hiệu ứng Badge Bump.
  */
 public class ClientView extends BorderPane {
 
@@ -43,9 +48,12 @@ public class ClientView extends BorderPane {
     private final Label lblCartBadge = new Label("0");
     private final HBox cartButtonContent = new HBox(6);
 
+    // Switch Table / Floor Plan Button
+    private final Button btnFloorPlan = new Button("Sơ đồ bàn");
+
     // Catalog & Category controls
     private final TextField txtSearch = new TextField();
-    private final VBox categoryNavBox = new VBox(4);
+    private final VBox categoryNavBox = new VBox(6);
     private final GridPane itemsGridPane = new GridPane();
     private final VBox emptySearchBox = new VBox(8);
     private final ScrollPane catalogScrollPane = new ScrollPane();
@@ -72,7 +80,7 @@ public class ClientView extends BorderPane {
     }
 
     private void initUI() {
-        setStyle("-fx-background-color: #F4F0E8;");
+        setStyle("-fx-background-color: #F5F2EB;");
 
         // 1. CỘT TRÁI: DANH MỤC DỌC (LEFT SIDEBAR)
         VBox leftSidebar = buildLeftCategorySidebar();
@@ -98,29 +106,39 @@ public class ClientView extends BorderPane {
     }
 
     private VBox buildLeftCategorySidebar() {
-        VBox sidebar = new VBox(12);
+        VBox sidebar = new VBox(14);
         sidebar.setPrefWidth(190);
         sidebar.setMinWidth(180);
-        sidebar.setMaxWidth(210);
-        sidebar.getStyleClass().add("sidebar-category-pane");
+        sidebar.setMaxWidth(205);
+        sidebar.setPadding(new Insets(18, 12, 18, 14));
+        sidebar.setStyle("-fx-background-color: #FBF9F4; -fx-border-color: transparent #D8D1C3 transparent transparent; -fx-border-width: 0 1 0 0;");
 
-        // Brand Header with Coffee Vector Icon
-        VBox brandBox = new VBox(4);
-        brandBox.getStyleClass().add("brand-header-box");
+        // Brand Logo (Playfair Display, trang nhã, không gạch ngang thô)
+        VBox brandBox = new VBox(2);
+        brandBox.setAlignment(Pos.CENTER_LEFT);
+        brandBox.setPadding(new Insets(4, 8, 12, 8));
 
-        HBox brandRow = new HBox(8);
-        brandRow.setAlignment(Pos.CENTER_LEFT);
-        SVGPath coffeeIcon = SvgIcons.createOutlineIcon(SvgIcons.COFFEE, 0.9, Color.web("#183C32"));
-
-        VBox brandTexts = new VBox(0);
         Label lblBrand = new Label("Brew & Bean");
-        lblBrand.getStyleClass().add("brand-header-title");
-        Label lblSub = new Label("C A F E");
-        lblSub.getStyleClass().add("brand-header-subtitle");
-        brandTexts.getChildren().addAll(lblBrand, lblSub);
+        lblBrand.setStyle("-fx-font-family: 'Playfair Display', 'Georgia', serif; -fx-font-size: 21px; -fx-font-weight: 700; -fx-text-fill: #292722;");
 
-        brandRow.getChildren().addAll(coffeeIcon, brandTexts);
-        brandBox.getChildren().add(brandRow);
+        Label lblSub = new Label("C A F E");
+        lblSub.setStyle("-fx-font-size: 9.5px; -fx-font-weight: 700; -fx-text-fill: #5C3D2E; -fx-letter-spacing: 3.5px;");
+
+        brandBox.getChildren().addAll(lblBrand, lblSub);
+
+        // Nút quay lại Sơ đồ bàn
+        btnFloorPlan.setMaxWidth(Double.MAX_VALUE);
+        btnFloorPlan.setAlignment(Pos.CENTER_LEFT);
+        btnFloorPlan.setPadding(new Insets(8, 12, 8, 12));
+        HBox floorPlanBox = new HBox(8);
+        floorPlanBox.setAlignment(Pos.CENTER_LEFT);
+        SVGPath tableIcon = SvgIcons.createOutlineIcon(SvgIcons.TABLE, 0.8, Color.web("#817B70"));
+        Label lblFloorPlan = new Label("Sơ đồ bàn");
+        lblFloorPlan.setStyle("-fx-font-size: 12.5px; -fx-font-weight: 600; -fx-text-fill: #5C3D2E;");
+        floorPlanBox.getChildren().addAll(tableIcon, lblFloorPlan);
+        btnFloorPlan.setGraphic(floorPlanBox);
+        btnFloorPlan.setStyle("-fx-background-color: #F5EFEB; -fx-background-radius: 8px; -fx-border-color: #E2DBD0; -fx-border-radius: 8px; -fx-cursor: hand;");
+        AnimationHelper.applyButtonPress(btnFloorPlan);
 
         // Categories list
         categoryNavBox.setSpacing(4);
@@ -138,10 +156,10 @@ public class ClientView extends BorderPane {
         activeOrderBox.setManaged(false);
 
         lblActiveOrderId.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #292722;");
-        lblActiveOrderStatus.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 600; -fx-text-fill: #C05621;");
+        lblActiveOrderStatus.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 600; -fx-text-fill: #E07A5F;");
         activeOrderBox.getChildren().addAll(lblActiveOrderId, lblActiveOrderStatus);
 
-        sidebar.getChildren().addAll(brandBox, scrollNav, activeOrderBox);
+        sidebar.getChildren().addAll(brandBox, btnFloorPlan, scrollNav, activeOrderBox);
         return sidebar;
     }
 
@@ -266,30 +284,82 @@ public class ClientView extends BorderPane {
         }
     }
 
+    /**
+     * Render sidebar categories with Vector SVG icons and high-contrast Active states.
+     * Fixes duplication bug completely: only 1 entry for "Tất cả".
+     */
     public void renderCategories(List<String> categories, String selectedCategory, Consumer<String> onSelect) {
         categoryNavBox.getChildren().clear();
 
-        Button btnAll = new Button("Tất cả món");
-        btnAll.setMaxWidth(Double.MAX_VALUE);
-        btnAll.getStyleClass().add("category-nav-btn");
-        AnimationHelper.applyButtonPress(btnAll);
-        if ("Tất cả".equalsIgnoreCase(selectedCategory)) {
-            btnAll.getStyleClass().add("selected");
-        }
-        btnAll.setOnAction(e -> onSelect.accept("Tất cả"));
-        categoryNavBox.getChildren().add(btnAll);
+        // Deduplicate list in case "Tất cả" appears multiple times
+        List<String> cleanList = new ArrayList<>();
+        cleanList.add("Tất cả");
 
         for (String cat : categories) {
-            Button btnCat = new Button(cat);
-            btnCat.setMaxWidth(Double.MAX_VALUE);
-            btnCat.getStyleClass().add("category-nav-btn");
-            AnimationHelper.applyButtonPress(btnCat);
-            if (cat.equalsIgnoreCase(selectedCategory)) {
-                btnCat.getStyleClass().add("selected");
+            if (!cat.equalsIgnoreCase("Tất cả") && !cleanList.contains(cat)) {
+                cleanList.add(cat);
             }
-            btnCat.setOnAction(e -> onSelect.accept(cat));
+        }
+
+        for (String rawCat : cleanList) {
+            boolean isActive = rawCat.equalsIgnoreCase(selectedCategory);
+
+            Button btnCat = new Button();
+            btnCat.setMaxWidth(Double.MAX_VALUE);
+            btnCat.setAlignment(Pos.CENTER_LEFT);
+            btnCat.setPadding(new Insets(9, 12, 9, 12));
+            AnimationHelper.applyButtonPress(btnCat);
+
+            HBox itemRow = new HBox(10);
+            itemRow.setAlignment(Pos.CENTER_LEFT);
+
+            // Vector SVG Icon
+            String svgPath = SvgIcons.getIconForCategory(rawCat);
+            SVGPath icon = SvgIcons.createOutlineIcon(svgPath, 0.85, isActive ? Color.WHITE : Color.web("#817B70"));
+
+            // Short concise label
+            String displayLabel = getConciseCategoryLabel(rawCat);
+            Label lblText = new Label(displayLabel);
+            lblText.setStyle("-fx-font-size: 13px; -fx-font-weight: " + (isActive ? "700" : "600") + "; -fx-text-fill: " + (isActive ? "#FFFFFF" : "#4A453E") + ";");
+
+            itemRow.getChildren().addAll(icon, lblText);
+            btnCat.setGraphic(itemRow);
+
+            if (isActive) {
+                btnCat.setStyle(
+                    "-fx-background-color: #183C32; " +
+                    "-fx-background-radius: 10px; " +
+                    "-fx-border-color: #183C32; " +
+                    "-fx-cursor: hand;"
+                );
+            } else {
+                btnCat.setStyle(
+                    "-fx-background-color: transparent; " +
+                    "-fx-background-radius: 10px; " +
+                    "-fx-cursor: hand;"
+                );
+                btnCat.setOnMouseEntered(e -> btnCat.setStyle("-fx-background-color: #EFE9DE; -fx-background-radius: 10px; -fx-cursor: hand;"));
+                btnCat.setOnMouseExited(e -> btnCat.setStyle("-fx-background-color: transparent; -fx-background-radius: 10px; -fx-cursor: hand;"));
+            }
+
+            btnCat.setOnAction(e -> onSelect.accept(rawCat));
             categoryNavBox.getChildren().add(btnCat);
         }
+    }
+
+    private String getConciseCategoryLabel(String raw) {
+        if (raw == null) return "";
+        String lower = raw.trim().toLowerCase();
+        if (lower.contains("tất cả")) return "Tất cả";
+        if (lower.contains("cà phê")) return "Cà phê";
+        if (lower.contains("trà & trái cây") || lower.contains("trà trái cây")) return "Trà";
+        if (lower.contains("đá xay")) return "Đá xay";
+        if (lower.contains("trà sữa")) return "Trà sữa";
+        if (lower.contains("soda") || lower.contains("nước ép")) return "Nước ép";
+        if (lower.contains("matcha")) return "Matcha";
+        if (lower.contains("bánh ngọt")) return "Bánh ngọt";
+        if (lower.contains("món ăn") || lower.contains("ăn nhẹ")) return "Món ăn nhẹ";
+        return raw;
     }
 
     public void renderMenuItems(List<MenuItem> items, Consumer<MenuItem> onSelect) {
@@ -375,4 +445,5 @@ public class ClientView extends BorderPane {
     public TextField getSearchField() { return txtSearch; }
     public Button getCartButton() { return btnFloatingCart; }
     public Label getCartBadge() { return lblCartBadge; }
+    public Button getFloorPlanButton() { return btnFloorPlan; }
 }

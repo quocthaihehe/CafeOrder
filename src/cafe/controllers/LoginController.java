@@ -2,6 +2,7 @@ package cafe.controllers;
 
 import cafe.services.ClientSocketService;
 import cafe.views.ClientView;
+import cafe.views.FloorPlanView;
 import cafe.views.LoginView;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
@@ -10,6 +11,8 @@ public class LoginController {
     private final Stage stage;
     private final LoginView view;
     private final ClientSocketService socketService;
+
+    private int activeTableNumber = 5;
 
     public LoginController(Stage stage, LoginView view, ClientSocketService socketService) {
         this.stage = stage;
@@ -47,21 +50,76 @@ public class LoginController {
         // Kết nối tới Server
         boolean connected = socketService.connect(tableNumber);
         if (connected) {
-            // Mở màn hình Kiosk đặt món chính
-            ClientView clientView = new ClientView();
-            new ClientController(stage, clientView, socketService, tableNumber);
-
-            Scene scene = new Scene(clientView, 1100, 720);
-            try {
-                scene.getStylesheets().add(getClass().getResource("/cafe/resources/css/cafe-theme.css").toExternalForm());
-                scene.getStylesheets().add(getClass().getResource("/cafe/views/client.css").toExternalForm());
-            } catch (Exception ignored) {}
-
-            stage.setScene(scene);
-            stage.setTitle("Brew & Bean CAFE • Bàn " + tableNumber);
-            stage.centerOnScreen();
+            this.activeTableNumber = tableNumber;
+            // Bước 2 theo chuẩn Báo cáo Audit: Chuyển sang Sơ đồ bàn (FloorPlanView)
+            openFloorPlan(tableNumber);
         } else {
             view.showError("Không thể kết nối đến quầy pha chế! Vui lòng kiểm tra lại Server.");
         }
+    }
+
+    private void openFloorPlan(int initialTable) {
+        this.activeTableNumber = initialTable;
+
+        FloorPlanView floorPlanView = new FloorPlanView(
+            activeTableNumber,
+            selectedTable -> {
+                this.activeTableNumber = selectedTable;
+            },
+            () -> {
+                // Chuyển sang Bước 3: Màn hình Thực đơn Kiosk
+                openClientMenu(activeTableNumber);
+            },
+            () -> {
+                // Đăng xuất: ngắt kết nối và quay lại LoginView
+                socketService.disconnect();
+                returnToLoginView();
+            }
+        );
+
+        Scene scene = new Scene(floorPlanView, 1100, 720);
+        try {
+            scene.getStylesheets().add(getClass().getResource("/cafe/resources/css/cafe-theme.css").toExternalForm());
+            scene.getStylesheets().add(getClass().getResource("/cafe/views/client.css").toExternalForm());
+        } catch (Exception ignored) {}
+
+        stage.setScene(scene);
+        stage.setTitle("Sơ Đồ Bàn • Brew & Bean CAFE");
+        stage.centerOnScreen();
+    }
+
+    private void openClientMenu(int tableNumber) {
+        this.activeTableNumber = tableNumber;
+
+        ClientView clientView = new ClientView();
+        new ClientController(
+            stage,
+            clientView,
+            socketService,
+            tableNumber,
+            () -> openFloorPlan(activeTableNumber) // Quay lại sơ đồ bàn
+        );
+
+        Scene scene = new Scene(clientView, 1100, 720);
+        try {
+            scene.getStylesheets().add(getClass().getResource("/cafe/resources/css/cafe-theme.css").toExternalForm());
+            scene.getStylesheets().add(getClass().getResource("/cafe/views/client.css").toExternalForm());
+        } catch (Exception ignored) {}
+
+        stage.setScene(scene);
+        stage.setTitle("Brew & Bean CAFE • Bàn " + (tableNumber < 10 ? "0" + tableNumber : tableNumber));
+        stage.centerOnScreen();
+    }
+
+    private void returnToLoginView() {
+        Scene scene = new Scene(view, 880, 560);
+        try {
+            scene.getStylesheets().add(getClass().getResource("/cafe/resources/css/cafe-theme.css").toExternalForm());
+            scene.getStylesheets().add(getClass().getResource("/cafe/views/client.css").toExternalForm());
+        } catch (Exception ignored) {}
+
+        stage.setScene(scene);
+        stage.setTitle("Đăng Nhập • Brew & Bean CAFE");
+        stage.centerOnScreen();
     }
 }

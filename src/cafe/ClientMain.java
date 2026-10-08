@@ -22,7 +22,8 @@ public class ClientMain {
             LoginView loginView = new LoginView();
             new LoginController(primaryStage, loginView, socketService);
 
-            Scene scene = new Scene(loginView, 880, 560);
+            // Form login mặc định tinh chỉnh theo ảnh login_hero (821x1916 -> cột trái 300px + cột phải 440px)
+            Scene scene = new Scene(loginView, 740, 700);
             try {
                 scene.getStylesheets().add(getClass().getResource("/cafe/resources/css/cafe-theme.css").toExternalForm());
                 scene.getStylesheets().add(getClass().getResource("/cafe/views/client.css").toExternalForm());
@@ -30,9 +31,14 @@ public class ClientMain {
 
             primaryStage.setTitle("Đăng Nhập • Brew & Bean CAFE");
             primaryStage.setScene(scene);
-            primaryStage.setMinWidth(800);
-            primaryStage.setMinHeight(520);
+            primaryStage.setMinWidth(720);
+            primaryStage.setMinHeight(650);
             primaryStage.centerOnScreen();
+
+            // Lắng nghe phóng to form (Maximize) để chuyển sang login_hero2
+            primaryStage.maximizedProperty().addListener((obs, wasMax, isNowMax) -> {
+                loginView.setMaximizedMode(isNowMax);
+            });
 
             primaryStage.setOnCloseRequest(e -> {
                 socketService.disconnect();

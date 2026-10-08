@@ -119,7 +119,7 @@ public class LoginController {
     }
 
     private void returnToLoginView() {
-        Scene scene = new Scene(view, 880, 560);
+        Scene scene = new Scene(view, 740, 700);
         try {
             scene.getStylesheets().add(getClass().getResource("/cafe/resources/css/cafe-theme.css").toExternalForm());
             scene.getStylesheets().add(getClass().getResource("/cafe/views/client.css").toExternalForm());
@@ -127,6 +127,9 @@ public class LoginController {
 
         stage.setScene(scene);
         stage.setTitle("Đăng Nhập • Brew & Bean CAFE");
+        stage.setMinWidth(720);
+        stage.setMinHeight(650);
+        view.setMaximizedMode(stage.isMaximized());
         stage.centerOnScreen();
     }
 }

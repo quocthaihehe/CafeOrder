@@ -1,6 +1,7 @@
 package cafe.views;
 
 import cafe.utils.AnimationHelper;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -10,15 +11,21 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
+import javafx.stage.Stage;
 
 import java.net.URL;
 
 /**
- * LoginView - Screen 1 trong bản thiết kế UI_mong_muon.png:
- * - Cột trái (Hero Poster): Nền ảnh ấm, Logo "Brew & Bean CAFE", Tiêu đề "Good Coffee Better Moments"
- *   (Playfair Display #D2A679), Footer "Order tại bàn. Nhanh hơn. Tiện hơn. Trọn vẹn hơn."
- * - Cột phải: Form nền #FBF9F5, Icon hạt cafe, "Chào mừng trở lại!", "Tài khoản", "Mật khẩu" (icon mắt),
- *   Nút "Đăng nhập" #112823 (radius 5px), "Hoặc đăng nhập bằng", [👤 Nhân viên] / [💼 Quản lý], "Brew & Bean © 2025"
+ * LoginView - Screen 1 trong bản thiết kế UI_mong_muon.png & redesign_login_form.txt:
+ * - Cột trái (Hero Poster):
+ *   + Ở trạng thái mặc định (Normal): Hiển thị ảnh login_hero.png (821 × 1916). Cột trái
+ *     tinh chỉnh theo đúng tỉ lệ ảnh (821/1916 ~ 300px ở chiều cao 700px), hiển thị trọn vẹn
+ *     100% không bị crop bất kỳ pixel nào, thấy đầy đủ "Good Coffee Better Moments" và slogan.
+ *   + Ở trạng thái phóng to (Maximized/Form to nhất): Hiển thị ảnh login_hero2.png (1058 × 1487).
+ *     Cột trái tự động điều chỉnh theo tỉ lệ ảnh (1058/1487 ~ 740px ở chiều cao 1040px), hiển thị
+ *     trọn vẹn các phần quan trọng (logo, chữ, bàn cafe, ly sữa, ly cafe, ghế).
+ * - Cột phải: Form nền #FBF9F5, formCard căn giữa sang trọng, Icon hạt cafe, "Chào mừng trở lại!",
+ *   "Tài khoản", "Mật khẩu" (icon mắt), Nút "Đăng nhập" #112823, [👤 Nhân viên] / [💼 Quản lý].
  */
 public class LoginView extends HBox {
 
@@ -34,6 +41,13 @@ public class LoginView extends HBox {
 
     private boolean isPasswordVisible = false;
 
+    // Quản lý ảnh Hero theo kích thước form
+    private final StackPane leftHeroPane = new StackPane();
+    private final ImageView heroView = new ImageView();
+    private Image imgHeroDefault;
+    private Image imgHeroMax;
+    private boolean isMaximizedMode = false;
+
     public LoginView() {
         initUI();
     }
@@ -43,49 +57,86 @@ public class LoginView extends HBox {
         setAlignment(Pos.CENTER);
 
         // =====================================================================
-        // 1. CỘT TRÁI: POSTER NGHỆ THUẬT (HERO BANNER 50%)
+        // 1. CỘT TRÁI: POSTER NGHỆ THUẬT (HERO BANNER)
         // =====================================================================
-        StackPane leftHeroPane = new StackPane();
-        leftHeroPane.setPrefWidth(420);
-        leftHeroPane.setMinWidth(360);
-        leftHeroPane.setMaxWidth(480);
-        HBox.setHgrow(leftHeroPane, Priority.ALWAYS);
+        leftHeroPane.setStyle("-fx-background-color: #112823;");
+        leftHeroPane.setAlignment(Pos.CENTER);
 
-        URL heroUrl = getClass().getResource("/cafe/resources/images/login_hero.png");
-        if (heroUrl == null) {
-            heroUrl = getClass().getResource("/cafe/resources/login_hero.png");
+        // Nạp ảnh 1 (mặc định)
+        URL hero1Url = getClass().getResource("/cafe/resources/images/login_hero.png");
+        if (hero1Url == null) {
+            hero1Url = getClass().getResource("/cafe/resources/login_hero.png");
+        }
+        if (hero1Url != null) {
+            imgHeroDefault = new Image(hero1Url.toExternalForm());
         }
 
-        if (heroUrl != null) {
-            Image heroImg = new Image(heroUrl.toExternalForm());
-            ImageView heroView = new ImageView(heroImg);
-            heroView.setPreserveRatio(true);
-            heroView.setSmooth(true);
-
-            // Căn chỉnh cover fit theo kích thước panel trái để ảnh sắc nét và bao trọn
-            leftHeroPane.widthProperty().addListener((obs, oldV, newV) -> updateCoverFit(heroView, heroImg, newV.doubleValue(), leftHeroPane.getHeight()));
-            leftHeroPane.heightProperty().addListener((obs, oldV, newV) -> updateCoverFit(heroView, heroImg, leftHeroPane.getWidth(), newV.doubleValue()));
-
-            Rectangle clip = new Rectangle();
-            clip.widthProperty().bind(leftHeroPane.widthProperty());
-            clip.heightProperty().bind(leftHeroPane.heightProperty());
-            leftHeroPane.setClip(clip);
-
-            leftHeroPane.getChildren().add(heroView);
-        } else {
-            leftHeroPane.setStyle("-fx-background-color: #112823;");
+        // Nạp ảnh 2 (khi form phóng to to nhất)
+        URL hero2Url = getClass().getResource("/cafe/resources/images/login_hero2.png");
+        if (hero2Url == null) {
+            hero2Url = getClass().getResource("/cafe/resources/login_hero2.png");
         }
+        if (hero2Url != null) {
+            imgHeroMax = new Image(hero2Url.toExternalForm());
+        }
+
+        heroView.setPreserveRatio(true);
+        heroView.setSmooth(true);
+        heroView.setCache(true);
+
+        Rectangle clip = new Rectangle();
+        clip.widthProperty().bind(leftHeroPane.widthProperty());
+        clip.heightProperty().bind(leftHeroPane.heightProperty());
+        leftHeroPane.setClip(clip);
+
+        leftHeroPane.getChildren().add(heroView);
+
+        // Gắn listener kích thước để cập nhật bố cục ảnh tức thời
+        widthProperty().addListener((obs, oldV, newV) -> updateHeroLayout());
+        heightProperty().addListener((obs, oldV, newV) -> updateHeroLayout());
+
+        // Lắng nghe Stage để tự động chuyển đổi ảnh khi người dùng bấm Maximize / Unmaximize
+        sceneProperty().addListener((obsScene, oldScene, newScene) -> {
+            if (newScene != null) {
+                newScene.windowProperty().addListener((obsWin, oldWin, newWin) -> {
+                    if (newWin instanceof Stage) {
+                        Stage stage = (Stage) newWin;
+                        stage.maximizedProperty().addListener((obsMax, wasMax, isNowMax) -> {
+                            setMaximizedMode(isNowMax);
+                        });
+                        stage.fullScreenProperty().addListener((obsFs, wasFs, isNowFs) -> {
+                            setMaximizedMode(isNowFs);
+                        });
+                        setMaximizedMode(stage.isMaximized() || stage.isFullScreen());
+                    }
+                });
+                if (newScene.getWindow() instanceof Stage) {
+                    Stage stage = (Stage) newScene.getWindow();
+                    stage.maximizedProperty().addListener((obsMax, wasMax, isNowMax) -> {
+                        setMaximizedMode(isNowMax);
+                    });
+                    stage.fullScreenProperty().addListener((obsFs, wasFs, isNowFs) -> {
+                        setMaximizedMode(isNowFs);
+                    });
+                    setMaximizedMode(stage.isMaximized() || stage.isFullScreen());
+                }
+            }
+        });
 
         // =====================================================================
         // 2. CỘT PHẢI: FORM ĐĂNG NHẬP CHUẨN SCREEN 1 (NỀN #FBF9F5)
         // =====================================================================
-        VBox rightFormPane = new VBox(14);
-        rightFormPane.setAlignment(Pos.CENTER_LEFT);
-        rightFormPane.setPadding(new Insets(32, 40, 32, 40));
-        rightFormPane.setPrefWidth(440);
-        rightFormPane.setMinWidth(380);
+        VBox rightFormPane = new VBox();
+        rightFormPane.setAlignment(Pos.CENTER);
         rightFormPane.setStyle("-fx-background-color: #FBF9F5; -fx-border-color: transparent transparent transparent #DED7CD; -fx-border-width: 0 0 0 1;");
         HBox.setHgrow(rightFormPane, Priority.ALWAYS);
+
+        // Card form đăng nhập căn giữa sang trọng
+        VBox formCard = new VBox(14);
+        formCard.setAlignment(Pos.CENTER_LEFT);
+        formCard.setMaxWidth(440);
+        formCard.setMinWidth(360);
+        formCard.setPadding(new Insets(32, 40, 32, 40));
 
         // Icon hạt cafe đôi ở đỉnh
         Label iconBean = new Label("☕");
@@ -112,8 +163,8 @@ public class LoginView extends HBox {
 
         txtAccount.setPromptText("Nhập tên đăng nhập (hoặc số bàn 1..12)");
         txtAccount.getStyleClass().add("text-input-field");
-        txtAccount.setPrefHeight(32);
-        txtAccount.setStyle("-fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-font-size: 11.5px; -fx-padding: 6 10 6 10;");
+        txtAccount.setPrefHeight(34);
+        txtAccount.setStyle("-fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-font-size: 12px; -fx-padding: 6 10 6 10;");
         accountGroup.getChildren().addAll(lblAccBox, txtAccount);
 
         // 2. Ô Mật khẩu kèm Icon Mắt
@@ -127,19 +178,19 @@ public class LoginView extends HBox {
         lblPassBox.getChildren().addAll(iconLock, lblPassTitle);
 
         txtPassword.setPromptText("Nhập mật khẩu");
-        txtPassword.setPrefHeight(32);
-        txtPassword.setStyle("-fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-font-size: 11.5px; -fx-padding: 6 32 6 10;");
+        txtPassword.setPrefHeight(34);
+        txtPassword.setStyle("-fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-font-size: 12px; -fx-padding: 6 34 6 10;");
 
         txtPasswordVisible.setPromptText("Nhập mật khẩu");
-        txtPasswordVisible.setPrefHeight(32);
-        txtPasswordVisible.setStyle("-fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-font-size: 11.5px; -fx-padding: 6 32 6 10;");
+        txtPasswordVisible.setPrefHeight(34);
+        txtPasswordVisible.setStyle("-fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-font-size: 12px; -fx-padding: 6 34 6 10;");
         txtPasswordVisible.setVisible(false);
         txtPasswordVisible.setManaged(false);
 
         // Sync text between password fields
         txtPassword.textProperty().bindBidirectional(txtPasswordVisible.textProperty());
 
-        btnToggleEye.setStyle("-fx-background-color: transparent; -fx-cursor: hand; -fx-font-size: 11px; -fx-padding: 2 6 2 6; -fx-text-fill: #817A70;");
+        btnToggleEye.setStyle("-fx-background-color: transparent; -fx-cursor: hand; -fx-font-size: 12px; -fx-padding: 2 6 2 6; -fx-text-fill: #817A70;");
         btnToggleEye.setOnAction(e -> togglePasswordVisibility());
 
         StackPane passWrapper = new StackPane();
@@ -153,10 +204,10 @@ public class LoginView extends HBox {
         lblError.setVisible(false);
         lblError.setManaged(false);
 
-        // Nút Đăng nhập chính (#112823, cao 32px, radius 5px)
+        // Nút Đăng nhập chính (#112823, cao 34px, radius 5px)
         btnLogin.setMaxWidth(Double.MAX_VALUE);
-        btnLogin.setPrefHeight(32);
-        btnLogin.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 11.5px; -fx-font-weight: 600; -fx-background-radius: 5px; -fx-cursor: hand;");
+        btnLogin.setPrefHeight(34);
+        btnLogin.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12px; -fx-font-weight: 600; -fx-background-radius: 5px; -fx-cursor: hand;");
         AnimationHelper.applyButtonPress(btnLogin);
 
         // Phân cách: "Hoặc đăng nhập bằng"
@@ -179,7 +230,7 @@ public class LoginView extends HBox {
         roleButtons.setAlignment(Pos.CENTER);
 
         btnStaff.setMaxWidth(Double.MAX_VALUE);
-        btnStaff.setPrefHeight(30);
+        btnStaff.setPrefHeight(32);
         btnStaff.setStyle("-fx-background-color: #FBF9F5; -fx-text-fill: #292722; -fx-font-size: 11px; -fx-font-weight: 500; -fx-background-radius: 5px; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-cursor: hand;");
         HBox.setHgrow(btnStaff, Priority.ALWAYS);
         AnimationHelper.applyButtonPress(btnStaff);
@@ -190,7 +241,7 @@ public class LoginView extends HBox {
         });
 
         btnManager.setMaxWidth(Double.MAX_VALUE);
-        btnManager.setPrefHeight(30);
+        btnManager.setPrefHeight(32);
         btnManager.setStyle("-fx-background-color: #FBF9F5; -fx-text-fill: #292722; -fx-font-size: 11px; -fx-font-weight: 500; -fx-background-radius: 5px; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-cursor: hand;");
         HBox.setHgrow(btnManager, Priority.ALWAYS);
         AnimationHelper.applyButtonPress(btnManager);
@@ -207,7 +258,7 @@ public class LoginView extends HBox {
         lblFooter.setStyle("-fx-font-size: 9.5px; -fx-text-fill: #817A70; -fx-padding: 8 0 0 0;");
         lblFooter.setAlignment(Pos.CENTER);
 
-        rightFormPane.getChildren().addAll(
+        formCard.getChildren().addAll(
             iconBean,
             titleBox,
             accountGroup,
@@ -219,7 +270,61 @@ public class LoginView extends HBox {
             lblFooter
         );
 
+        rightFormPane.getChildren().add(formCard);
+
         getChildren().addAll(leftHeroPane, rightFormPane);
+
+        // Khởi tạo kích thước ban đầu
+        Platform.runLater(this::updateHeroLayout);
+    }
+
+    public void setMaximizedMode(boolean isMaximized) {
+        if (this.isMaximizedMode != isMaximized) {
+            this.isMaximizedMode = isMaximized;
+            updateHeroLayout();
+        }
+    }
+
+    private void updateHeroLayout() {
+        // Tự động nhận diện nếu màn hình được kéo quá rộng mà không bấm nút maximize
+        boolean isWideScreen = isMaximizedMode || (getWidth() >= 1150);
+
+        Image currentImg = isWideScreen ? (imgHeroMax != null ? imgHeroMax : imgHeroDefault) : imgHeroDefault;
+        if (currentImg == null) return;
+
+        if (heroView.getImage() != currentImg) {
+            heroView.setImage(currentImg);
+        }
+
+        double paneH = getHeight();
+        if (paneH <= 0) {
+            paneH = isWideScreen ? 900 : 700;
+        }
+
+        double imgW = currentImg.getWidth();
+        double imgH = currentImg.getHeight();
+        if (imgW <= 0 || imgH <= 0) return;
+
+        // Tỉ lệ gốc của ảnh
+        double ratio = imgW / imgH; // ~0.4285 (hero1) hoặc ~0.7115 (hero2)
+        double targetW = Math.round(paneH * ratio);
+
+        // Giữ không gian tối thiểu 380px cho form bên phải nếu cửa sổ bị thu hẹp
+        if (getWidth() > 0) {
+            double maxAllowedW = Math.max(260, getWidth() - 380);
+            if (targetW > maxAllowedW) {
+                targetW = maxAllowedW;
+            }
+        }
+
+        leftHeroPane.setPrefWidth(targetW);
+        leftHeroPane.setMinWidth(targetW);
+        leftHeroPane.setMaxWidth(targetW);
+
+        // Contain fit tuyệt đối: Math.min đảm bảo không bao giờ bị crop mất bất kỳ nội dung nào
+        double scale = Math.min(targetW / imgW, paneH / imgH);
+        heroView.setFitWidth(imgW * scale);
+        heroView.setFitHeight(imgH * scale);
     }
 
     private void togglePasswordVisibility() {
@@ -268,16 +373,5 @@ public class LoginView extends HBox {
         lblError.setText("");
         lblError.setVisible(false);
         lblError.setManaged(false);
-    }
-
-    private void updateCoverFit(ImageView iv, Image img, double paneW, double paneH) {
-        if (img == null || paneW <= 0 || paneH <= 0) return;
-        double imgW = img.getWidth();
-        double imgH = img.getHeight();
-        if (imgW <= 0 || imgH <= 0) return;
-
-        double scale = Math.max(paneW / imgW, paneH / imgH);
-        iv.setFitWidth(imgW * scale);
-        iv.setFitHeight(imgH * scale);
     }
 }

@@ -52,13 +52,19 @@ public class LoginView extends HBox {
         HBox.setHgrow(leftHeroPane, Priority.ALWAYS);
 
         URL heroUrl = getClass().getResource("/cafe/resources/images/login_hero.png");
+        if (heroUrl == null) {
+            heroUrl = getClass().getResource("/cafe/resources/login_hero.png");
+        }
+
         if (heroUrl != null) {
             Image heroImg = new Image(heroUrl.toExternalForm());
             ImageView heroView = new ImageView(heroImg);
             heroView.setPreserveRatio(true);
             heroView.setSmooth(true);
-            heroView.fitWidthProperty().bind(leftHeroPane.widthProperty());
-            heroView.fitHeightProperty().bind(leftHeroPane.heightProperty());
+
+            // Căn chỉnh cover fit theo kích thước panel trái để ảnh sắc nét và bao trọn
+            leftHeroPane.widthProperty().addListener((obs, oldV, newV) -> updateCoverFit(heroView, heroImg, newV.doubleValue(), leftHeroPane.getHeight()));
+            leftHeroPane.heightProperty().addListener((obs, oldV, newV) -> updateCoverFit(heroView, heroImg, leftHeroPane.getWidth(), newV.doubleValue()));
 
             Rectangle clip = new Rectangle();
             clip.widthProperty().bind(leftHeroPane.widthProperty());
@@ -69,50 +75,6 @@ public class LoginView extends HBox {
         } else {
             leftHeroPane.setStyle("-fx-background-color: #112823;");
         }
-
-        // Overlay thông điệp nghệ thuật chuẩn Screen 1
-        VBox overlayBox = new VBox();
-        overlayBox.setAlignment(Pos.TOP_LEFT);
-        overlayBox.setPadding(new Insets(32, 28, 32, 28));
-        overlayBox.setStyle("-fx-background-color: linear-gradient(to bottom, rgba(20, 15, 10, 0.45) 0%, rgba(20, 15, 10, 0.25) 50%, rgba(15, 10, 8, 0.75) 100%);");
-
-        // Top Logo
-        VBox brandBox = new VBox(1);
-        Label lblTopBrand = new Label("Brew & Bean");
-        lblTopBrand.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 16px; -fx-font-weight: 700; -fx-text-fill: #FFFFFF;");
-        Label lblTopSub = new Label("C A F E");
-        lblTopSub.setStyle("-fx-font-size: 8.5px; -fx-font-weight: 700; -fx-text-fill: #D2A679; -fx-letter-spacing: 2px;");
-        brandBox.getChildren().addAll(lblTopBrand, lblTopSub);
-
-        Region spTop = new Region();
-        VBox.setVgrow(spTop, Priority.ALWAYS);
-
-        // Headline chính giữa: "Good Coffee Better Moments"
-        VBox headlineBox = new VBox(2);
-        headlineBox.setPadding(new Insets(0, 0, 40, 0));
-
-        Label line1 = new Label("Good");
-        Label line2 = new Label("Coffee");
-        Label line3 = new Label("Better");
-        Label line4 = new Label("Moments");
-
-        String headlineStyle = "-fx-font-family: 'Playfair Display', 'Georgia', serif; -fx-font-size: 32px; -fx-font-weight: 500; -fx-text-fill: #D2A679; -fx-line-spacing: -2px;";
-        line1.setStyle(headlineStyle);
-        line2.setStyle(headlineStyle);
-        line3.setStyle(headlineStyle);
-        line4.setStyle(headlineStyle);
-
-        headlineBox.getChildren().addAll(line1, line2, line3, line4);
-
-        Region spBottom = new Region();
-        VBox.setVgrow(spBottom, Priority.ALWAYS);
-
-        // Footer slogan
-        Label lblFooterSlogan = new Label("Order tại bàn. Nhanh hơn.\nTiện hơn. Trọn vẹn hơn.");
-        lblFooterSlogan.setStyle("-fx-font-size: 10.5px; -fx-text-fill: #FFFFFF; -fx-opacity: 0.92; -fx-line-spacing: 2px;");
-
-        overlayBox.getChildren().addAll(brandBox, spTop, headlineBox, spBottom, lblFooterSlogan);
-        leftHeroPane.getChildren().add(overlayBox);
 
         // =====================================================================
         // 2. CỘT PHẢI: FORM ĐĂNG NHẬP CHUẨN SCREEN 1 (NỀN #FBF9F5)
@@ -306,5 +268,16 @@ public class LoginView extends HBox {
         lblError.setText("");
         lblError.setVisible(false);
         lblError.setManaged(false);
+    }
+
+    private void updateCoverFit(ImageView iv, Image img, double paneW, double paneH) {
+        if (img == null || paneW <= 0 || paneH <= 0) return;
+        double imgW = img.getWidth();
+        double imgH = img.getHeight();
+        if (imgW <= 0 || imgH <= 0) return;
+
+        double scale = Math.max(paneW / imgW, paneH / imgH);
+        iv.setFitWidth(imgW * scale);
+        iv.setFitHeight(imgH * scale);
     }
 }

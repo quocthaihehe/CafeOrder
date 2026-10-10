@@ -84,11 +84,18 @@ public class LoginController {
             }
         );
 
-        Scene scene = new Scene(floorPlanView, 1100, 720);
-        try {
-            scene.getStylesheets().add(getClass().getResource("/cafe/resources/css/cafe-theme.css").toExternalForm());
-            scene.getStylesheets().add(getClass().getResource("/cafe/views/client.css").toExternalForm());
-        } catch (Exception ignored) {}
+        Scene scene = cafe.utils.WindowChromeHelper.createWindowScene(
+            stage,
+            floorPlanView,
+            "Sơ Đồ Bàn • Brew & Bean CAFE",
+            1100,
+            720,
+            true,
+            () -> {
+                socketService.disconnect();
+                System.exit(0);
+            }
+        );
 
         stage.setScene(scene);
         stage.setTitle("Sơ Đồ Bàn • Brew & Bean CAFE");
@@ -107,23 +114,38 @@ public class LoginController {
             () -> openFloorPlan(activeTableNumber) // Quay lại sơ đồ bàn
         );
 
-        Scene scene = new Scene(clientView, 1100, 720);
-        try {
-            scene.getStylesheets().add(getClass().getResource("/cafe/resources/css/cafe-theme.css").toExternalForm());
-            scene.getStylesheets().add(getClass().getResource("/cafe/views/client.css").toExternalForm());
-        } catch (Exception ignored) {}
+        String menuTitle = "Brew & Bean CAFE • Bàn " + (tableNumber < 10 ? "0" + tableNumber : tableNumber);
+        Scene scene = cafe.utils.WindowChromeHelper.createWindowScene(
+            stage,
+            clientView,
+            menuTitle,
+            1100,
+            720,
+            true,
+            () -> {
+                socketService.disconnect();
+                System.exit(0);
+            }
+        );
 
         stage.setScene(scene);
-        stage.setTitle("Brew & Bean CAFE • Bàn " + (tableNumber < 10 ? "0" + tableNumber : tableNumber));
+        stage.setTitle(menuTitle);
         stage.centerOnScreen();
     }
 
     private void returnToLoginView() {
-        Scene scene = new Scene(view, 740, 700);
-        try {
-            scene.getStylesheets().add(getClass().getResource("/cafe/resources/css/cafe-theme.css").toExternalForm());
-            scene.getStylesheets().add(getClass().getResource("/cafe/views/client.css").toExternalForm());
-        } catch (Exception ignored) {}
+        Scene scene = cafe.utils.WindowChromeHelper.createWindowScene(
+            stage,
+            view,
+            "Đăng Nhập • Brew & Bean CAFE",
+            740,
+            700,
+            true,
+            () -> {
+                socketService.disconnect();
+                System.exit(0);
+            }
+        );
 
         stage.setScene(scene);
         stage.setTitle("Đăng Nhập • Brew & Bean CAFE");

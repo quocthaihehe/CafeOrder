@@ -63,7 +63,7 @@ public class CartModalDialog extends Stage {
 
         initOwner(parentStage);
         initModality(Modality.APPLICATION_MODAL);
-        initStyle(StageStyle.UTILITY);
+        initStyle(StageStyle.UNDECORATED);
         setTitle("Giỏ Hàng • Brew & Bean CAFE");
         setResizable(false);
 
@@ -72,7 +72,7 @@ public class CartModalDialog extends Stage {
 
     private void initUI() {
         VBox root = new VBox(12);
-        root.setStyle("-fx-background-color: #FBF9F5; -fx-background-radius: 6px; -fx-border-color: #DED7CD; -fx-border-radius: 6px; -fx-border-width: 1px;");
+        root.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 12px; -fx-border-color: #E7E2DA; -fx-border-radius: 12px; -fx-border-width: 1px; -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 24, 0.2, 0, 8);");
         root.setPadding(new Insets(18, 20, 18, 20));
         root.setPrefWidth(380);
         root.setMaxWidth(420);
@@ -84,6 +84,7 @@ public class CartModalDialog extends Stage {
         // 1. Header (Title "Giỏ hàng", Badge "Bàn 05", Close button ✕)
         HBox header = new HBox(8);
         header.setAlignment(Pos.CENTER_LEFT);
+        cafe.utils.WindowChromeHelper.makeDraggable(this, header);
 
         Label lblTitle = new Label("Giỏ hàng");
         lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 18px; -fx-font-weight: 700; -fx-text-fill: #292722;");
@@ -171,9 +172,7 @@ public class CartModalDialog extends Stage {
         root.getChildren().addAll(header, scrollItems, rowSummary, noteBox, bottomActions);
 
         Scene scene = new Scene(root);
-        try {
-            scene.getStylesheets().add(getClass().getResource("/cafe/resources/css/cafe-theme.css").toExternalForm());
-        } catch (Exception ignored) {}
+        cafe.utils.WindowChromeHelper.applyTheme(scene);
 
         setScene(scene);
         refreshView();

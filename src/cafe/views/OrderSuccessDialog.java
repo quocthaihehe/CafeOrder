@@ -38,7 +38,7 @@ public class OrderSuccessDialog extends Stage {
 
         initOwner(parentStage);
         initModality(Modality.APPLICATION_MODAL);
-        initStyle(StageStyle.UTILITY);
+        initStyle(StageStyle.UNDECORATED);
         setTitle("Xác Nhận Đơn Hàng • Brew & Bean CAFE");
         setResizable(false);
 
@@ -47,10 +47,11 @@ public class OrderSuccessDialog extends Stage {
 
     private void initUI() {
         VBox root = new VBox(16);
-        root.getStyleClass().add("modal-canvas");
+        root.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 16px; -fx-border-color: #E7E2DA; -fx-border-radius: 16px; -fx-border-width: 1px; -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 24, 0.2, 0, 8);");
         root.setAlignment(Pos.CENTER);
         root.setPadding(new Insets(28, 32, 28, 32));
         root.setPrefWidth(420);
+        cafe.utils.WindowChromeHelper.makeDraggable(this, root);
 
         // Entrance animation
         AnimationHelper.playDialogEntrance(root);
@@ -115,9 +116,7 @@ public class OrderSuccessDialog extends Stage {
         root.getChildren().addAll(iconCircle, lblTitle, lblSub, slip, btnBack);
 
         Scene scene = new Scene(root);
-        try {
-            scene.getStylesheets().add(getClass().getResource("/cafe/resources/css/cafe-theme.css").toExternalForm());
-        } catch (Exception ignored) {}
+        cafe.utils.WindowChromeHelper.applyTheme(scene);
 
         setScene(scene);
     }

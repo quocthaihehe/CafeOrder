@@ -58,7 +58,7 @@ public class ItemDetailDialog extends Stage {
 
         initOwner(parentStage);
         initModality(Modality.APPLICATION_MODAL);
-        initStyle(StageStyle.UTILITY);
+        initStyle(StageStyle.UNDECORATED);
         setTitle("Chi Tiết Món • " + item.getName());
         setResizable(false);
 
@@ -67,10 +67,11 @@ public class ItemDetailDialog extends Stage {
 
     private void initUI() {
         HBox root = new HBox(16);
-        root.setStyle("-fx-background-color: #FBF9F5; -fx-background-radius: 6px; -fx-border-color: #DED7CD; -fx-border-radius: 6px; -fx-border-width: 1px;");
+        root.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 12px; -fx-border-color: #E7E2DA; -fx-border-radius: 12px; -fx-border-width: 1px; -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 24, 0.2, 0, 8);");
         root.setPadding(new Insets(16));
         root.setPrefWidth(580);
         root.setPrefHeight(390);
+        cafe.utils.WindowChromeHelper.makeDraggable(this, root);
 
         // Entrance animation
         AnimationHelper.playDialogEntrance(root);
@@ -263,9 +264,7 @@ public class ItemDetailDialog extends Stage {
         root.getChildren().addAll(leftCol, rightCol);
 
         Scene scene = new Scene(root);
-        try {
-            scene.getStylesheets().add(getClass().getResource("/cafe/resources/css/cafe-theme.css").toExternalForm());
-        } catch (Exception ignored) {}
+        cafe.utils.WindowChromeHelper.applyTheme(scene);
 
         setScene(scene);
         updateTotalPrice();

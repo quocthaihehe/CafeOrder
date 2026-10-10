@@ -47,7 +47,7 @@ public class OrdersDialog extends Stage {
             initOwner(parentStage);
         }
         initModality(Modality.APPLICATION_MODAL);
-        initStyle(StageStyle.UTILITY);
+        initStyle(StageStyle.UNDECORATED);
         setTitle("Quản Lý Đơn Hàng • Brew & Bean CAFE");
         setResizable(false);
 
@@ -56,7 +56,7 @@ public class OrdersDialog extends Stage {
 
     private void initUI() {
         VBox root = new VBox(12);
-        root.setStyle("-fx-background-color: #FBF9F5; -fx-background-radius: 6px; -fx-border-color: #DED7CD; -fx-border-radius: 6px; -fx-border-width: 1px;");
+        root.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 12px; -fx-border-color: #E7E2DA; -fx-border-radius: 12px; -fx-border-width: 1px; -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 24, 0.2, 0, 8);");
         root.setPadding(new Insets(18, 20, 18, 20));
         root.setPrefWidth(380);
         root.setPrefHeight(530);
@@ -66,6 +66,7 @@ public class OrdersDialog extends Stage {
         // 1. Header: Back ←, "Đơn hàng", Trash Icon 🗑️
         HBox headerRow = new HBox(8);
         headerRow.setAlignment(Pos.CENTER_LEFT);
+        cafe.utils.WindowChromeHelper.makeDraggable(this, headerRow);
 
         Button btnBack = new Button("←");
         btnBack.setStyle("-fx-background-color: transparent; -fx-text-fill: #292722; -fx-font-size: 15px; -fx-cursor: hand; -fx-padding: 0 4 0 0;");
@@ -117,9 +118,7 @@ public class OrdersDialog extends Stage {
         root.getChildren().addAll(headerRow, tabsRow, scroll);
 
         Scene scene = new Scene(root);
-        try {
-            scene.getStylesheets().add(getClass().getResource("/cafe/resources/css/cafe-theme.css").toExternalForm());
-        } catch (Exception ignored) {}
+        cafe.utils.WindowChromeHelper.applyTheme(scene);
 
         setScene(scene);
         renderOrders();

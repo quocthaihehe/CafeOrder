@@ -2,10 +2,13 @@ package cafe;
 
 import cafe.controllers.LoginController;
 import cafe.services.ClientSocketService;
+import cafe.utils.FontLoader;
+import cafe.utils.WindowChromeHelper;
 import cafe.views.LoginView;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 
 public class ClientMain {
 
@@ -19,15 +22,28 @@ public class ClientMain {
 
         @Override
         public void start(Stage primaryStage) {
+            // Giai đoạn 1: Nạp font chữ nhận diện thương hiệu (Playfair Display & Inter)
+            FontLoader.loadFonts();
+
+            // Giai đoạn 2: Loại bỏ thanh Title Bar mặc định của OS (StageStyle.UNDECORATED)
+            primaryStage.initStyle(StageStyle.UNDECORATED);
+
             LoginView loginView = new LoginView();
             new LoginController(primaryStage, loginView, socketService);
 
-            // Form login mặc định tinh chỉnh theo ảnh login_hero (821x1916 -> cột trái 300px + cột phải 440px)
-            Scene scene = new Scene(loginView, 740, 700);
-            try {
-                scene.getStylesheets().add(getClass().getResource("/cafe/resources/css/cafe-theme.css").toExternalForm());
-                scene.getStylesheets().add(getClass().getResource("/cafe/views/client.css").toExternalForm());
-            } catch (Exception ignored) {}
+            // Tạo Scene hoàn chỉnh kèm CustomHeader kéo thả và cụm nút điều khiển cửa sổ
+            Scene scene = WindowChromeHelper.createWindowScene(
+                primaryStage,
+                loginView,
+                "Đăng Nhập • Brew & Bean CAFE",
+                740,
+                700,
+                true,
+                () -> {
+                    socketService.disconnect();
+                    System.exit(0);
+                }
+            );
 
             primaryStage.setTitle("Đăng Nhập • Brew & Bean CAFE");
             primaryStage.setScene(scene);

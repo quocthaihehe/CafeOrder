@@ -49,4 +49,20 @@ public class StaffModel {
     public boolean isManagerOrOwner() {
         return "OWNER".equalsIgnoreCase(role) || "MANAGER".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role);
     }
+
+    public boolean isManager() {
+        return isManagerOrOwner();
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public void setRole(String role) {
+        if (role != null) this.role = role.toUpperCase();
+    }
+
+    public void setStatus(String status) {
+        if (status != null) this.status = status;
+    }
 }

@@ -96,9 +96,9 @@ public class ClientSocketService {
             try {
                 synchronized (ClientSocketService.class) {
                     if (embeddedFallbackServer == null) {
-                        embeddedFallbackServer = new CafeServerService();
+                        embeddedFallbackServer = CafeServerService.getInstance();
                         embeddedFallbackServer.start(port);
-                        Thread.sleep(60);
+                        Thread.sleep(40);
                     }
                 }
                 socket = new Socket();
@@ -115,6 +115,16 @@ public class ClientSocketService {
                 return false;
             }
         }
+    }
+
+    public static synchronized CafeServerService getOrStartEmbeddedServer() {
+        if (embeddedFallbackServer == null) {
+            embeddedFallbackServer = CafeServerService.getInstance();
+            if (!embeddedFallbackServer.isServerRunning()) {
+                embeddedFallbackServer.start(DEFAULT_PORT);
+            }
+        }
+        return embeddedFallbackServer;
     }
 
     public synchronized boolean connect(String host, int port, int tableNumber, String devType) {

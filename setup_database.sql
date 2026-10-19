@@ -470,35 +470,67 @@ JOIN Products p ON p.name = v.prod
 JOIN Toppings t ON t.name = v.topping;
 GO
 
--- Tables
-INSERT INTO Tables (table_number, area_zone, capacity) VALUES 
-(1, N'Tầng 1', 2), (2, N'Tầng 1', 2), (3, N'Tầng 1', 4), (4, N'Tầng 1', 4),
-(5, N'Sân Vườn', 4), (6, N'Sân Vườn', 4), (7, N'Phòng Lạnh', 6), (8, N'Phòng Lạnh', 6);
+-- Tables (3 Tầng: Tầng 1 Bàn 01-12, Tầng 2 Bàn 201-208, Tầng 3 Bàn 301-306)
+INSERT INTO Tables (table_number, area_zone, capacity, status) VALUES 
+(1, N'Tầng 1 - Sảnh Chính', 4, 'OCCUPIED'), (2, N'Tầng 1 - Sảnh Chính', 4, 'EMPTY'),
+(3, N'Tầng 1 - Sảnh Chính', 4, 'OCCUPIED'), (4, N'Tầng 1 - Sảnh Chính', 4, 'EMPTY'),
+(5, N'Tầng 1 - Cửa Sổ', 4, 'RESERVED'), (6, N'Tầng 1 - Cửa Sổ', 4, 'OCCUPIED'),
+(7, N'Tầng 1 - Cửa Sổ', 4, 'EMPTY'), (8, N'Tầng 1 - Cửa Sổ', 4, 'EMPTY'),
+(9, N'Tầng 1 - Khu Sofa', 4, 'OCCUPIED'), (10, N'Tầng 1 - Khu Sofa', 4, 'RESERVED'),
+(11, N'Tầng 1 - Sofa Dài', 6, 'EMPTY'), (12, N'Tầng 1 - Sảnh Kính', 8, 'OCCUPIED'),
+(201, N'Tầng 2 - Phòng Đọc Sách', 4, 'OCCUPIED'), (202, N'Tầng 2 - Phòng Đọc Sách', 4, 'RESERVED'),
+(203, N'Tầng 2 - Phòng Đọc Sách', 4, 'EMPTY'), (204, N'Tầng 2 - Ban Công', 4, 'EMPTY'),
+(205, N'Tầng 2 - Ban Công', 4, 'OCCUPIED'), (206, N'Tầng 2 - Ban Công', 4, 'EMPTY'),
+(207, N'Tầng 2 - Ban Công Dài', 6, 'EMPTY'), (208, N'Tầng 2 - Họp Nhóm', 8, 'EMPTY'),
+(301, N'Tầng 3 - Rooftop', 4, 'EMPTY'), (302, N'Tầng 3 - Rooftop', 4, 'OCCUPIED'),
+(303, N'Tầng 3 - Rooftop', 4, 'EMPTY'), (304, N'Tầng 3 - Rooftop', 4, 'EMPTY'),
+(305, N'Tầng 3 - Rooftop', 4, 'OCCUPIED'), (306, N'Tầng 3 - Bar Sunset', 8, 'EMPTY');
 GO
 
--- Staff
-INSERT INTO Staff (full_name, role, username, password_hash) VALUES
-(N'Chủ quán', 'OWNER', 'admin', 'cafe123'),
-(N'Quản lý ca', 'MANAGER', 'manager', 'cafe123'),
-(N'Thu ngân 1', 'CASHIER', 'cashier1', 'cafe123'),
-(N'Pha chế 1', 'BARISTA', 'barista1', 'cafe123');
+-- Staff (Đội ngũ nhân sự 5 vai trò RBAC)
+INSERT INTO Staff (full_name, role, username, password_hash, status) VALUES
+(N'Trần Minh Anh', 'OWNER', 'admin', '123456', 'ACTIVE'),
+(N'Nguyễn Hoàng Khang', 'MANAGER', 'manager', '123456', 'ACTIVE'),
+(N'Trần Minh Anh', 'CASHIER', 'cashier1', '123456', 'ACTIVE'),
+(N'Lê Quốc Bảo', 'WAITER', 'waiter', '123456', 'ACTIVE'),
+(N'Phạm Thu Hà', 'BARISTA', 'barista1', '123456', 'ACTIVE'),
+(N'Đặng Gia Huy', 'BARISTA', 'barista2', '123456', 'ACTIVE');
 GO
 
 -- Vouchers
-INSERT INTO Vouchers (code, discount_type, discount_value, min_order_amount, valid_from, valid_to, usage_limit) VALUES
-('WELCOME10', 'PERCENT', 10, 50000, '2026-10-01', '2026-12-31', 500),
-('GIAM15K', 'AMOUNT', 15000, 100000, '2026-10-01', '2026-12-31', 200);
+INSERT INTO Vouchers (code, discount_type, discount_value, min_order_amount, valid_from, valid_to, usage_limit, is_active) VALUES
+('GIAM10', 'PERCENT', 10, 0, '2026-01-01', '2026-12-31', 1000, 1),
+('WELCOME10', 'PERCENT', 10, 50000, '2026-01-01', '2026-12-31', 500, 1),
+('GIAM15K', 'AMOUNT', 15000, 100000, '2026-01-01', '2026-12-31', 300, 1),
+('VIP20', 'PERCENT', 20, 150000, '2026-01-01', '2026-12-31', 200, 1),
+('HAPPYHOUR', 'AMOUNT', 20000, 120000, '2026-01-01', '2026-12-31', 300, 1),
+('SINHNHAT30', 'AMOUNT', 30000, 200000, '2026-01-01', '2026-10-15', 100, 0);
 GO
 
--- Ingredients
+-- Ingredients (25 nguyên vật liệu thực tế trong kho F&B)
 INSERT INTO Ingredients (name, unit, current_stock, min_alert_threshold) VALUES
 (N'Cà phê Robusta rang', N'gram', 5000, 500), (N'Cà phê Arabica rang', N'gram', 3000, 400),
 (N'Sữa tươi', N'ml', 20000, 3000), (N'Sữa đặc', N'gram', 6000, 800), (N'Kem béo (whipping)', N'ml', 4000, 500),
 (N'Bột kem béo', N'gram', 3000, 400), (N'Trà đen', N'gram', 2000, 300), (N'Trà ô long', N'gram', 1500, 200),
-(N'Bột matcha', N'gram', 1000, 150), (N'Bột cacao', N'gram', 1500, 200), (N'Sốt chocolate', N'ml', 3000, 400),
-(N'Sốt caramel', N'ml', 2500, 300), (N'Đường nước', N'ml', 15000, 2000), (N'Đá viên', N'gram', 50000, 5000),
-(N'Trân châu đen', N'gram', 4000, 500), (N'Thạch trái cây', N'gram', 3000, 400), (N'Cam tươi', N'cái', 80, 15),
-(N'Chanh tươi', N'cái', 100, 20), (N'Đào ngâm', N'gram', 3000, 400), (N'Dâu tươi', N'gram', 2000, 300),
+(N'Bột matcha', N'gram', 120, 150), (N'Bột cacao', N'gram', 1500, 200), (N'Sốt chocolate', N'ml', 3000, 400),
+(N'Sốt caramel', N'ml', 250, 300), (N'Đường nước', N'ml', 15000, 2000), (N'Đá viên', N'gram', 50000, 5000),
+(N'Trân châu đen', N'gram', 4000, 500), (N'Thạch trái cây', N'gram', 3000, 400), (N'Cam tươi', N'cái', 12, 15),
+(N'Chanh tươi', N'cái', 100, 20), (N'Đào ngâm', N'gram', 320, 400), (N'Dâu tươi', N'gram', 2000, 300),
 (N'Xoài chín', N'gram', 3000, 400), (N'Ly nhựa size M', N'cái', 800, 100), (N'Ly nhựa size L', N'cái', 600, 100),
 (N'Ống hút', N'cái', 2000, 300), (N'Túi giấy mang đi', N'cái', 500, 80);
 GO
+
+-- Recipes (Định lượng BOM chuẩn cho các dòng sản phẩm chủ lực)
+INSERT INTO Recipes (product_id, ingredient_id, quantity_needed) VALUES
+(1, 1, 25), (1, 13, 15), (1, 14, 150), (1, 22, 1),
+(2, 1, 25), (2, 4, 35), (2, 14, 160), (2, 22, 1),
+(3, 1, 18), (3, 3, 120), (3, 4, 40), (3, 14, 150),
+(4, 1, 25), (4, 4, 30), (4, 5, 35), (4, 14, 150),
+(5, 2, 30), (5, 17, 1), (5, 13, 20), (5, 14, 150),
+(6, 2, 22), (6, 3, 150), (6, 12, 25), (6, 14, 140),
+(7, 7, 12), (7, 17, 1), (7, 19, 60), (7, 13, 25),
+(8, 8, 12), (8, 13, 25), (8, 14, 160), (8, 22, 1),
+(9, 8, 12), (9, 5, 40), (9, 13, 20), (9, 14, 150),
+(11, 9, 15), (11, 3, 140), (11, 5, 40), (11, 14, 180);
+GO
+

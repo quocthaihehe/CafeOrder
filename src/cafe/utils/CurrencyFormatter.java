@@ -16,4 +16,8 @@ public class CurrencyFormatter {
     public static String format(double amount) {
         return formatter.format(amount) + " đ";
     }
+
+    public static String formatVND(double amount) {
+        return format(amount);
+    }
 }

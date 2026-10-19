@@ -99,12 +99,39 @@ public class OrderSuccessDialog extends Stage {
         );
     }
 
+    public static void showReceiptForOrder(Stage parentStage, cafe.models.Order order, String cashierName) {
+        if (order == null) return;
+        java.time.LocalDateTime dt = java.time.Instant.ofEpochMilli(order.getTimestamp())
+            .atZone(java.time.ZoneId.systemDefault())
+            .toLocalDateTime();
+        String statusLabel = "PAID".equalsIgnoreCase(order.getStatus()) || "DONE".equalsIgnoreCase(order.getStatus())
+            ? "ĐÃ THANH TOÁN" : "PHIẾU TẠM TÍNH";
+        ReceiptData data = new ReceiptData(
+            order.getOrderId(),
+            order.getTable(),
+            dt,
+            order.getItems(),
+            order.getTotalQuantity(),
+            order.getSubtotalAmount(),
+            order.getDiscountAmount(),
+            order.getVoucherCode(),
+            order.getTotalAmount(),
+            "TIỀN MẶT / QR",
+            statusLabel,
+            cashierName != null ? cashierName : "Thu ngân POS"
+        );
+        OrderSuccessDialog dlg = new OrderSuccessDialog(parentStage, data, null, null);
+        dlg.show();
+    }
+
     public OrderSuccessDialog(Stage parentStage, ReceiptData receipt, Runnable onDismiss, Runnable onTrackOrder) {
         this.receipt = receipt;
         this.onDismiss = onDismiss;
         this.onTrackOrder = onTrackOrder != null ? onTrackOrder : onDismiss;
 
-        initOwner(parentStage);
+        if (parentStage != null) {
+            initOwner(parentStage);
+        }
         initModality(Modality.APPLICATION_MODAL);
         initStyle(StageStyle.TRANSPARENT);
         setTitle("Phiếu Thanh Toán #" + receipt.orderId);

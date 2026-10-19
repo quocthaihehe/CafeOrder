@@ -67,7 +67,11 @@ public class LoginController {
             boolean connected = socketService.connectStaff(table);
             if (connected) {
                 this.activeTableNumber = table;
-                openFloorPlan(table, staff);
+                if (staff.isManager() || "admin".equalsIgnoreCase(staff.getUsername())) {
+                    openAdminDashboard(staff);
+                } else {
+                    openFloorPlan(table, staff);
+                }
             } else {
                 view.showError("Không thể kết nối đến quầy pha chế! Vui lòng kiểm tra lại Server.");
             }
@@ -98,6 +102,39 @@ public class LoginController {
     }
 
     /**
+     * MỞ MÀN HÌNH QUẢN TRỊ TRUNG TÂM (ADMIN / MANAGER POS - 10 PHÂN HỆ):
+     */
+    private void openAdminDashboard(StaffModel staff) {
+        cafe.services.CafeServerService serverService = ClientSocketService.getOrStartEmbeddedServer();
+        cafe.views.ServerKDSView kdsView = new cafe.views.ServerKDSView();
+        new ServerController(kdsView, serverService);
+
+        cafe.views.AdminShellView adminShell = new cafe.views.AdminShellView(serverService, kdsView);
+        adminShell.attachClientContext(stage, socketService);
+        adminShell.setOnLogout(() -> {
+            socketService.disconnect();
+            socketService.warmupConnectAsync();
+            returnToLoginView();
+        });
+
+        serverService.setOnOrderReceived(order -> {
+            adminShell.notifyNewOrderArrived(order);
+        });
+
+        String title = "CoffeePOS • Trung Tâm Quản Trị & Điều Phối (" + (staff != null ? staff.getFullName() : "Quản lý") + ")";
+        cafe.utils.WindowChromeHelper.setWindowContent(
+            stage,
+            adminShell,
+            title,
+            true,
+            () -> {
+                socketService.disconnect();
+                System.exit(0);
+            }
+        );
+    }
+
+    /**
      * MỞ MÀN HÌNH KHÁCH HÀNG (CUSTOMER KIOSK TẠI BÀN):
      * - Khóa cứng số bàn của khách.
      * - ẨN NÚT "SƠ ĐỒ BÀN" (Khách không được xem sơ đồ quán và không thể đổi sang bàn khác).
@@ -107,7 +144,6 @@ public class LoginController {
         this.activeTableNumber = tableNumber;
 
         ClientView clientView = new ClientView();
-        // Không truyền callback quay lại Sơ đồ bàn -> Khách ở chế độ Kiosk cố định
         new ClientController(
             stage,
             clientView,
@@ -116,7 +152,6 @@ public class LoginController {
             null
         );
 
-        // Ẩn hoàn toàn nút Sơ đồ bàn
         if (clientView.getFloorPlanButton() != null) {
             clientView.getFloorPlanButton().setVisible(false);
             clientView.getFloorPlanButton().setManaged(false);
@@ -136,10 +171,9 @@ public class LoginController {
     }
 
     /**
-     * MỞ MÀN HÌNH NHÂN VIÊN (STAFF POS / SƠ ĐỒ BÀN 3 TẦNG):
-     * - Hiển thị hồ sơ nhân viên đang trực ca (VD: Trần Minh Anh · Nhân viên).
-     * - Lắng nghe thay đổi trạng thái bàn từ Server để đổi màu bàn thời gian thực (Trống -> Đang phục vụ).
-     * - Có thể bấm vào bàn bất kỳ để đặt món hộ khách.
+     * MỞ MÀN HÌNH NHÂN VIÊN (UNIFIED STAFF POS SHELL / SƠ ĐỒ BÀN 3 TẦNG):
+     * - Giữ cố định thanh điều hướng 235px bên trái xuyên suốt cả 5 phân hệ (Bàn, Thực đơn, Đơn hàng, Thanh toán, Cài đặt).
+     * - Lắng nghe thay đổi trạng thái bàn từ Server để đổi màu bàn thời gian thực.
      */
     private void openFloorPlan(int initialTable, StaffModel staff) {
         this.activeTableNumber = initialTable;
@@ -148,31 +182,33 @@ public class LoginController {
             activeTableNumber,
             selectedTable -> {
                 this.activeTableNumber = selectedTable;
-                // Báo với Server để Server chuyển tiếp cập nhật đơn của bàn này
                 socketService.switchTable(selectedTable);
             },
             () -> {
-                // Nhân viên chuyển sang Màn hình Thực đơn để đặt món hộ khách
                 openStaffMenu(activeTableNumber, staff);
             },
             () -> {
-                // Đăng xuất ca trực: ngắt kết nối và quay lại LoginView, đồng thời kết nối ngầm sẵn cho lần đăng nhập kế tiếp
                 socketService.disconnect();
                 socketService.warmupConnectAsync();
                 returnToLoginView();
             }
         );
 
+        floorPlanView.attachEmbeddedOrdering(
+            stage,
+            socketService,
+            (staff != null && staff.isManager()) ? () -> openAdminDashboard(staff) : null
+        );
+
         if (staff != null) {
             floorPlanView.setStaffProfile(staff);
         }
 
-        // Lắng nghe broadcast trạng thái bàn từ Server
         socketService.setOnTableStatusReceived((tableNum, status) -> {
             floorPlanView.setTableStatus(tableNum, status);
         });
 
-        String title = "Sơ Đồ Bàn • Brew & Bean CAFE (" + (staff != null ? staff.getFullName() : "Nhân viên") + ")";
+        String title = "Sơ Đồ Bàn & Phục Vụ • Brew & Bean CAFE (" + (staff != null ? staff.getFullName() : "Nhân viên") + ")";
         cafe.utils.WindowChromeHelper.setWindowContent(
             stage,
             floorPlanView,
@@ -186,8 +222,7 @@ public class LoginController {
     }
 
     /**
-     * MÀN HÌNH THỰC ĐƠN DÀNH CHO NHÂN VIÊN ĐẶT MÓN HỘ:
-     * - HIỂN THỊ NÚT "← Sơ đồ bàn" để nhân viên sau khi order có thể quay lại quản lý bàn!
+     * MÀN HÌNH THỰC ĐƠN ĐỘC LẬP (FALLBACK):
      */
     private void openStaffMenu(int tableNumber, StaffModel staff) {
         this.activeTableNumber = tableNumber;
@@ -198,10 +233,9 @@ public class LoginController {
             clientView,
             socketService,
             tableNumber,
-            () -> openFloorPlan(activeTableNumber, staff) // Quay lại sơ đồ bàn
+            () -> openFloorPlan(activeTableNumber, staff)
         );
 
-        // Đảm bảo nút Sơ đồ bàn hiển thị rõ ràng cho nhân viên
         if (clientView.getFloorPlanButton() != null) {
             clientView.getFloorPlanButton().setVisible(true);
             clientView.getFloorPlanButton().setManaged(true);

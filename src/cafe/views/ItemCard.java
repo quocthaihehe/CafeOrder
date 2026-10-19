@@ -58,24 +58,35 @@ public class ItemCard extends VBox {
         ProductImagePane imagePane = new ProductImagePane(item, 175, 8);
         imageWrapper.getChildren().add(imagePane);
 
-        // Circular (+) Quick-Add Button (đường kính 20px, màu #112823)
-        Button btnAddCircle = new Button("+");
-        btnAddCircle.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 10px; -fx-min-width: 20px; -fx-min-height: 20px; -fx-max-width: 20px; -fx-max-height: 20px; -fx-padding: 0; -fx-cursor: hand;");
-        AnimationHelper.applyButtonPress(btnAddCircle);
+        boolean available = item.isInStock();
 
-        btnAddCircle.setOnAction(e -> {
-            e.consume();
-            AnimationHelper.rotateQuickAdd(btnAddCircle);
-            if (onQuickAdd != null) {
-                onQuickAdd.accept(item);
-            } else if (onSelect != null) {
-                onSelect.accept(item);
-            }
-        });
+        if (!available) {
+            Label badgeSoldOut = new Label("TẠM HẾT");
+            badgeSoldOut.setStyle("-fx-background-color: rgba(185, 28, 28, 0.90); -fx-text-fill: #FFFFFF; -fx-font-size: 10px; -fx-font-weight: 800; -fx-padding: 3 8 3 8; -fx-background-radius: 6px;");
+            StackPane.setAlignment(badgeSoldOut, Pos.TOP_RIGHT);
+            StackPane.setMargin(badgeSoldOut, new Insets(6, 6, 0, 0));
+            imageWrapper.getChildren().add(badgeSoldOut);
+            setOpacity(0.62);
+        } else {
+            // Circular (+) Quick-Add Button (đường kính 20px, màu #112823)
+            Button btnAddCircle = new Button("+");
+            btnAddCircle.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 10px; -fx-min-width: 20px; -fx-min-height: 20px; -fx-max-width: 20px; -fx-max-height: 20px; -fx-padding: 0; -fx-cursor: hand;");
+            AnimationHelper.applyButtonPress(btnAddCircle);
 
-        StackPane.setAlignment(btnAddCircle, Pos.BOTTOM_RIGHT);
-        StackPane.setMargin(btnAddCircle, new Insets(0, 4, 4, 0));
-        imageWrapper.getChildren().add(btnAddCircle);
+            btnAddCircle.setOnAction(e -> {
+                e.consume();
+                AnimationHelper.rotateQuickAdd(btnAddCircle);
+                if (onQuickAdd != null) {
+                    onQuickAdd.accept(item);
+                } else if (onSelect != null) {
+                    onSelect.accept(item);
+                }
+            });
+
+            StackPane.setAlignment(btnAddCircle, Pos.BOTTOM_RIGHT);
+            StackPane.setMargin(btnAddCircle, new Insets(0, 4, 4, 0));
+            imageWrapper.getChildren().add(btnAddCircle);
+        }
 
         // 2. Product Name
         Label lblName = new Label(item.getName());
@@ -85,14 +96,14 @@ public class ItemCard extends VBox {
         lblName.setPrefHeight(26);
 
         // 3. Price
-        Label lblPrice = new Label(CurrencyFormatter.format(item.getPrice()));
-        lblPrice.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 700; -fx-text-fill: #563521;");
+        Label lblPrice = new Label(available ? CurrencyFormatter.format(item.getPrice()) : "Tạm ngưng phục vụ");
+        lblPrice.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 700; -fx-text-fill: " + (available ? "#563521" : "#B91C1C") + ";");
 
         getChildren().addAll(imageWrapper, lblName, lblPrice);
 
-        // Clicking card body opens detailed customization dialog
+        // Clicking card body opens detailed customization dialog if in stock
         setOnMouseClicked(e -> {
-            if (onSelect != null) onSelect.accept(item);
+            if (available && onSelect != null) onSelect.accept(item);
         });
     }
 

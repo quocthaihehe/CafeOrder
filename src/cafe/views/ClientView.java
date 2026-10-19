@@ -89,8 +89,25 @@ public class ClientView extends BorderPane {
         setBottom(bottomWrapper);
     }
 
+    private VBox leftCategorySidebar;
+    private VBox sidebarBrandBox;
+
+    public void configureForEmbeddedShell(boolean embedded) {
+        if (sidebarBrandBox != null) {
+            sidebarBrandBox.setVisible(!embedded);
+            sidebarBrandBox.setManaged(!embedded);
+        }
+        if (leftCategorySidebar != null && embedded) {
+            leftCategorySidebar.setPrefWidth(190);
+            leftCategorySidebar.setMinWidth(180);
+            leftCategorySidebar.setMaxWidth(205);
+            leftCategorySidebar.setPadding(new Insets(14, 10, 14, 10));
+        }
+    }
+
     private VBox buildLeftCategorySidebar() {
         VBox sidebar = new VBox(10);
+        this.leftCategorySidebar = sidebar;
         sidebar.setPrefWidth(235);
         sidebar.setMinWidth(220);
         sidebar.setMaxWidth(255);
@@ -99,6 +116,7 @@ public class ClientView extends BorderPane {
 
         // Brand Logo (Playfair Display)
         VBox brandBox = new VBox(3);
+        this.sidebarBrandBox = brandBox;
         brandBox.setAlignment(Pos.CENTER_LEFT);
         brandBox.setPadding(new Insets(4, 8, 16, 8));
 

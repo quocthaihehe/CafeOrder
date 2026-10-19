@@ -103,4 +103,19 @@ public class Order {
         }
         return "BÀN " + (table < 10 ? "0" + table : table);
     }
+
+    public long getCreatedAtEpochMs() {
+        return timestamp;
+    }
+
+    public String getItemsSummaryText() {
+        if (items == null || items.isEmpty()) return "Chưa có món";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < items.size(); i++) {
+            OrderItem it = items.get(i);
+            if (i > 0) sb.append(", ");
+            sb.append(it.getQty()).append("x ").append(it.getName());
+        }
+        return sb.toString();
+    }
 }

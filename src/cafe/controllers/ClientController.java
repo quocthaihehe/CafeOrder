@@ -308,4 +308,22 @@ public class ClientController {
             view.showToast("Đang gửi đơn tới quầy pha chế...");
         }
     }
+
+    public void setTableNumber(int newTable) {
+        this.tableNumber = newTable;
+        view.setTableNumber(newTable);
+        if (newTable <= 0) {
+            cartModel.setOrderType("TAKEAWAY");
+        } else {
+            cartModel.setOrderType("DINE_IN");
+        }
+    }
+
+    public int getTableNumber() {
+        return tableNumber;
+    }
+
+    public void refreshCatalog() {
+        refreshMenuCatalog();
+    }
 }

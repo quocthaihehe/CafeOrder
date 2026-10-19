@@ -45,15 +45,41 @@ public class ServerController {
             refreshTicketBoard();
         });
 
+        // Preload existing active orders from CafeServerService
+        for (Order existing : serverService.getActiveOrders().values()) {
+            String st = existing.getStatus() != null ? existing.getStatus().toUpperCase() : "QUEUED";
+            if (!"PAID".equals(st) && !"CANCELLED".equals(st)) {
+                orderList.add(existing);
+            }
+        }
+        orderList.sort((a, b) -> Long.compare(b.getTimestamp(), a.getTimestamp()));
+
         // Server service callbacks
         serverService.setOnOrderReceived(newOrder -> {
+            orderList.removeIf(o -> o.getOrderId() == newOrder.getOrderId());
             orderList.add(0, newOrder); // newest on top
+            refreshTicketBoard();
+        });
+
+        serverService.setOnOrderStatusChanged((orderId, newStatus) -> {
+            for (Order o : orderList) {
+                if (o.getOrderId() == orderId) {
+                    o.setStatus(newStatus);
+                }
+            }
             refreshTicketBoard();
         });
 
         serverService.setOnServerLog(logMsg -> {
             view.setLatestLog(logMsg);
         });
+
+        // Auto-refresh KDS elapsed wait time SLA badges every 15 seconds
+        javafx.animation.Timeline slaTimer = new javafx.animation.Timeline(
+            new javafx.animation.KeyFrame(javafx.util.Duration.seconds(15), e -> refreshTicketBoard())
+        );
+        slaTimer.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        slaTimer.play();
 
         refreshTicketBoard();
     }

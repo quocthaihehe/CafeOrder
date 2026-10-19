@@ -118,22 +118,219 @@ public class DatabaseManager {
     }
 
     // =========================================================================
-    // 2. STAFF AUTHENTICATION (XÁC THỰC TỨC THÌ 0MS & PHÂN QUYỀN RBAC)
+    // 2. STAFF AUTHENTICATION & RBAC MANAGEMENT (6 TÀI KHOẢN CHUẨN)
     // =========================================================================
+    private static final List<StaffModel> staffList = new ArrayList<>();
+    private static final Map<String, String> staffPasswords = new HashMap<>();
+
+    public static class IngredientItem {
+        public final int id;
+        public String name;
+        public String category; // "Hạt & Trà", "Sữa & Kem", "Trái cây & Mứt", "Topping & Syrup", "Bao bì & Khác"
+        public double currentStock;
+        public double minThreshold;
+        public String unit;
+        public double unitCost;
+        public String supplier;
+
+        public IngredientItem(int id, String name, String category, double currentStock, double minThreshold, String unit, double unitCost, String supplier) {
+            this.id = id;
+            this.name = name;
+            this.category = category;
+            this.currentStock = currentStock;
+            this.minThreshold = minThreshold;
+            this.unit = unit;
+            this.unitCost = unitCost;
+            this.supplier = supplier;
+        }
+
+        public boolean isLowStock() {
+            return currentStock <= minThreshold;
+        }
+    }
+
+    public static class RecipeEntry {
+        public String ingredientName;
+        public double quantityNeeded;
+        public String unit;
+        public double estimatedCost;
+
+        public RecipeEntry(String ingredientName, double quantityNeeded, String unit, double estimatedCost) {
+            this.ingredientName = ingredientName;
+            this.quantityNeeded = quantityNeeded;
+            this.unit = unit;
+            this.estimatedCost = estimatedCost;
+        }
+    }
+
+    private static final List<IngredientItem> ingredientsList = new ArrayList<>();
+    private static final Map<Integer, List<RecipeEntry>> customRecipesMap = new HashMap<>();
+
+    // System Config fields for Tab 10
+    public static String brandName = "Brew & Bean Specialty Coffee";
+    public static String storeAddress = "88 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh";
+    public static String storeHotline = "1900 6886 • 0909.888.999";
+    public static String wifiInfo = "BrewAndBean_5G / Pass: specialty2026";
+    public static String receiptFooter = "Cảm ơn Quý khách • Hẹn gặp lại tại Brew & Bean!";
+    public static double defaultVatPercent = 8.0;
+
+    static {
+        resetStaffAndIngredientsSeed();
+    }
+
+    public static synchronized void resetStaffAndIngredientsSeed() {
+        staffList.clear();
+        staffPasswords.clear();
+
+        addSeedStaff(1, "admin", "Trần Minh Anh", "OWNER", "ACTIVE", "123456");
+        addSeedStaff(2, "manager", "Nguyễn Hoàng Khang", "MANAGER", "ACTIVE", "123456");
+        addSeedStaff(3, "cashier1", "Trần Minh Anh", "CASHIER", "ACTIVE", "123456");
+        addSeedStaff(4, "waiter", "Lê Quốc Bảo", "WAITER", "ACTIVE", "123456");
+        addSeedStaff(5, "barista1", "Phạm Thu Hà", "BARISTA", "ACTIVE", "123456");
+        addSeedStaff(6, "barista2", "Đặng Gia Huy", "BARISTA", "ACTIVE", "123456");
+
+        ingredientsList.clear();
+        // Đúng 25 nguyên vật liệu thực tế từ bảng Ingredients trong setup_database.sql
+        ingredientsList.add(new IngredientItem(1, "Cà phê Robusta rang", "Hạt & Trà", 5000, 500, "gram", 320, "Cầu Đất Farm"));
+        ingredientsList.add(new IngredientItem(2, "Cà phê Arabica rang", "Hạt & Trà", 3000, 400, "gram", 480, "Cầu Đất Farm"));
+        ingredientsList.add(new IngredientItem(3, "Sữa tươi", "Sữa & Kem", 20000, 3000, "ml", 38, "Dalatmilk"));
+        ingredientsList.add(new IngredientItem(4, "Sữa đặc", "Sữa & Kem", 6000, 800, "gram", 55, "Vinamilk Ngôi Sao"));
+        ingredientsList.add(new IngredientItem(5, "Kem béo (whipping)", "Sữa & Kem", 4000, 500, "ml", 125, "Anchor NZ"));
+        ingredientsList.add(new IngredientItem(6, "Bột kem béo", "Sữa & Kem", 3000, 400, "gram", 95, "Kievit Indo"));
+        ingredientsList.add(new IngredientItem(7, "Trà đen", "Hạt & Trà", 2000, 300, "gram", 280, "Phúc Long Tea"));
+        ingredientsList.add(new IngredientItem(8, "Trà ô long", "Hạt & Trà", 1500, 200, "gram", 360, "Bảo Lộc Tea"));
+        ingredientsList.add(new IngredientItem(9, "Bột matcha", "Hạt & Trà", 120, 150, "gram", 1400, "Uji Kyoto JP"));
+        ingredientsList.add(new IngredientItem(10, "Bột cacao", "Hạt & Trà", 1500, 200, "gram", 420, "Cargill Bỉ"));
+        ingredientsList.add(new IngredientItem(11, "Sốt chocolate", "Topping & Syrup", 3000, 400, "ml", 180, "Torani USA"));
+        ingredientsList.add(new IngredientItem(12, "Sốt caramel", "Topping & Syrup", 250, 300, "ml", 190, "Monin Pháp"));
+        ingredientsList.add(new IngredientItem(13, "Đường nước", "Topping & Syrup", 15000, 2000, "ml", 25, "Biên Hòa Sugar"));
+        ingredientsList.add(new IngredientItem(14, "Đá viên", "Bao bì & Khác", 50000, 5000, "gram", 3, "Nhà máy Đá Tinh Khiết"));
+        ingredientsList.add(new IngredientItem(15, "Trân châu đen", "Topping & Syrup", 4000, 500, "gram", 65, "Đài Loan Import"));
+        ingredientsList.add(new IngredientItem(16, "Thạch trái cây", "Topping & Syrup", 3000, 400, "gram", 70, "Golden Farm"));
+        ingredientsList.add(new IngredientItem(17, "Cam tươi", "Trái cây & Mứt", 12, 15, "cái", 6500, "Nông trại Vĩnh Long"));
+        ingredientsList.add(new IngredientItem(18, "Chanh tươi", "Trái cây & Mứt", 100, 20, "cái", 2000, "Nông trại Long An"));
+        ingredientsList.add(new IngredientItem(19, "Đào ngâm", "Trái cây & Mứt", 320, 400, "gram", 110, "Kronos Hy Lạp"));
+        ingredientsList.add(new IngredientItem(20, "Dâu tươi", "Trái cây & Mứt", 2000, 300, "gram", 240, "Đà Lạt Berry"));
+        ingredientsList.add(new IngredientItem(21, "Xoài chín", "Trái cây & Mứt", 3000, 400, "gram", 85, "Xoài Cát Hòa Lộc"));
+        ingredientsList.add(new IngredientItem(22, "Ly nhựa size M", "Bao bì & Khác", 800, 100, "cái", 950, "Bao Bì Xanh"));
+        ingredientsList.add(new IngredientItem(23, "Ly nhựa size L", "Bao bì & Khác", 600, 100, "cái", 1150, "Bao Bì Xanh"));
+        ingredientsList.add(new IngredientItem(24, "Ống hút", "Bao bì & Khác", 2000, 300, "cái", 180, "Bao Bì Xanh"));
+        ingredientsList.add(new IngredientItem(25, "Túi giấy mang đi", "Bao bì & Khác", 500, 80, "cái", 1200, "Bao Bì Xanh"));
+
+        customRecipesMap.clear();
+    }
+
+    private static void addSeedStaff(int id, String username, String fullName, String role, String status, String pwd) {
+        staffList.add(new StaffModel(id, username, fullName, role, status));
+        staffPasswords.put(username.toLowerCase(), pwd);
+    }
+
+    public static List<StaffModel> getAllStaff() {
+        return new ArrayList<>(staffList);
+    }
+
+    public static synchronized StaffModel addStaff(String fullName, String username, String password, String role) {
+        int nextId = staffList.size() + 1;
+        StaffModel s = new StaffModel(nextId, username.trim(), fullName.trim(), role, "ACTIVE");
+        staffList.add(s);
+        staffPasswords.put(username.trim().toLowerCase(), password != null && !password.isEmpty() ? password : "123456");
+        return s;
+    }
+
+    public static synchronized void toggleStaffStatus(int staffId) {
+        for (StaffModel s : staffList) {
+            if (s.getStaffId() == staffId) {
+                s.setStatus("ACTIVE".equalsIgnoreCase(s.getStatus()) ? "LOCKED" : "ACTIVE");
+                break;
+            }
+        }
+    }
+
+    public static synchronized void updateStaffRole(int staffId, String newRole) {
+        for (StaffModel s : staffList) {
+            if (s.getStaffId() == staffId) {
+                s.setRole(newRole);
+                break;
+            }
+        }
+    }
+
+    public static List<IngredientItem> getAllIngredients() {
+        return ingredientsList;
+    }
+
+    public static synchronized boolean restockIngredient(int ingredientId, double addedQty, String supplierName) {
+        for (IngredientItem item : ingredientsList) {
+            if (item.id == ingredientId) {
+                item.currentStock += addedQty;
+                if (supplierName != null && !supplierName.trim().isEmpty()) {
+                    item.supplier = supplierName.trim();
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static List<RecipeEntry> getRecipesForProduct(MenuItem item) {
+        if (item == null) return Collections.emptyList();
+        if (customRecipesMap.containsKey(item.getId())) {
+            return customRecipesMap.get(item.getId());
+        }
+        List<RecipeEntry> list = new ArrayList<>();
+        String cat = item.getCategory() != null ? item.getCategory() : "";
+        if (cat.contains("Cà phê")) {
+            list.add(new RecipeEntry("Cà phê Robusta rang", 25, "gram", 4200));
+            list.add(new RecipeEntry("Sữa tươi / Sữa đặc", 60, "ml", 3100));
+            list.add(new RecipeEntry("Đá viên", 150, "gram", 450));
+            list.add(new RecipeEntry("Ly nhựa size M + Ống hút", 1, "bộ", 1130));
+        } else if (cat.contains("Trà sữa")) {
+            list.add(new RecipeEntry("Trà đen / Trà ô long", 15, "gram", 3500));
+            list.add(new RecipeEntry("Bột kem béo & Sữa tươi", 80, "ml", 4200));
+            list.add(new RecipeEntry("Trân châu đen", 50, "gram", 2200));
+            list.add(new RecipeEntry("Đường nước", 25, "ml", 625));
+            list.add(new RecipeEntry("Ly nhựa size M + Ống hút", 1, "bộ", 1130));
+        } else if (cat.contains("Trà")) {
+            list.add(new RecipeEntry("Trà ô long", 12, "gram", 3200));
+            list.add(new RecipeEntry("Đào ngâm / Cam tươi", 65, "gram", 4800));
+            list.add(new RecipeEntry("Đường nước", 25, "ml", 625));
+            list.add(new RecipeEntry("Ly nhựa size L + Ống hút", 1, "bộ", 1330));
+        } else if (cat.contains("Matcha") || cat.contains("Chocolate")) {
+            list.add(new RecipeEntry("Bột matcha / Bột cacao", 15, "gram", 5800));
+            list.add(new RecipeEntry("Sữa tươi", 140, "ml", 4200));
+            list.add(new RecipeEntry("Kem béo (whipping)", 30, "ml", 2400));
+            list.add(new RecipeEntry("Ly nhựa size M + Ống hút", 1, "bộ", 1130));
+        } else if (cat.contains("Đá xay") || cat.contains("Soda")) {
+            list.add(new RecipeEntry("Dâu tươi / Xoài chín", 90, "gram", 5600));
+            list.add(new RecipeEntry("Kem béo (whipping)", 40, "ml", 3100));
+            list.add(new RecipeEntry("Đường nước & Đá viên", 180, "gram", 900));
+            list.add(new RecipeEntry("Ly nhựa size L + Ống hút", 1, "bộ", 1330));
+        } else {
+            list.add(new RecipeEntry(" cốt bánh / Nguyên liệu chế biến", 1, "phần", Math.round(item.getPrice() * 0.30)));
+            list.add(new RecipeEntry("Túi giấy mang đi / Đĩa phục vụ", 1, "cái", 1200));
+        }
+        customRecipesMap.put(item.getId(), list);
+        return list;
+    }
+
     public static StaffModel authenticateStaff(String username, String password) {
         if (username == null || username.trim().isEmpty()) return null;
         String userTrim = username.trim();
         String userLower = userTrim.toLowerCase();
 
-        // 1. Fast-path 0ms cho các tài khoản mặc định của hệ thống (tránh chờ kết nối SQL trên luồng UI)
-        if (userLower.equals("admin") || userLower.equals("quanly") || userLower.equals("1")) {
-            return new StaffModel(1, "admin", "Trần Minh Anh", "MANAGER", "ACTIVE");
-        } else if (userLower.equals("cashier1") || userLower.equals("nhanvien") || userLower.equals("5")) {
-            return new StaffModel(2, "cashier1", "Trần Minh Anh", "CASHIER", "ACTIVE");
-        } else if (userLower.equals("waiter") || userLower.equals("phucvu")) {
-            return new StaffModel(3, "waiter", "Lê Quốc Bảo", "WAITER", "ACTIVE");
-        } else if (userLower.equals("barista1") || userLower.equals("phache")) {
-            return new StaffModel(4, "barista1", "Phạm Thu Hà", "BARISTA", "ACTIVE");
+        // 1. Đối chiếu trực tiếp với danh sách Nhân sự RBAC trong bộ nhớ (0ms)
+        if (userLower.equals("1") || userLower.equals("quanly")) userLower = "admin";
+        else if (userLower.equals("5") || userLower.equals("nhanvien") || userLower.equals("staff")) userLower = "cashier1";
+        else if (userLower.equals("phucvu")) userLower = "waiter";
+        else if (userLower.equals("phache")) userLower = "barista1";
+
+        for (StaffModel s : staffList) {
+            if (s.getUsername().equalsIgnoreCase(userLower)) {
+                if (!"ACTIVE".equalsIgnoreCase(s.getStatus())) {
+                    return null; // Tài khoản đã bị khóa
+                }
+                return s;
+            }
         }
 
         // 2. Xác thực tài khoản mở rộng trong SQL Server nếu DB đang online
@@ -248,7 +445,6 @@ public class DatabaseManager {
                 }
             }
 
-            // Đồng bộ trạng thái bàn sang OCCUPIED trong DB
             if (order.getTable() > 0) {
                 try (PreparedStatement psTable = conn.prepareStatement(sqlTable)) {
                     psTable.setInt(1, order.getTable());
@@ -267,18 +463,36 @@ public class DatabaseManager {
     // =========================================================================
     // 4. BOM INVENTORY DEDUCTION (TRỪ TỒN KHO NGUYÊN VẬT LIỆU THEO CÔNG THỨC RECIPES)
     // =========================================================================
-    public static boolean deductStockForOrder(Order order) {
-        if (!isAvailable() || order == null || order.getItems() == null || order.getItems().isEmpty()) {
+    public static synchronized boolean deductStockForOrder(Order order) {
+        if (order == null || order.getItems() == null || order.getItems().isEmpty()) {
             return false;
         }
 
-        String sqlFindRecipe = "SELECT r.ingredient_id, r.amount_needed, i.name, i.unit, i.current_stock, i.min_alert_threshold " +
+        // 1. Trừ tồn kho trực tiếp trên danh sách 25 nguyên vật liệu In-Memory để UI Tab 6 cập nhật tức thì
+        for (OrderItem item : order.getItems()) {
+            int qty = Math.max(1, item.getQty());
+            for (IngredientItem ing : ingredientsList) {
+                if (ing.name.contains("Cà phê Robusta") && item.getName().toLowerCase().contains("cà phê")) {
+                    ing.currentStock = Math.max(0, ing.currentStock - 25 * qty);
+                } else if (ing.name.contains("Sữa tươi")) {
+                    ing.currentStock = Math.max(0, ing.currentStock - 50 * qty);
+                } else if (ing.name.contains("Đá viên")) {
+                    ing.currentStock = Math.max(0, ing.currentStock - 120 * qty);
+                } else if (ing.name.contains("Ly nhựa size M")) {
+                    ing.currentStock = Math.max(0, ing.currentStock - qty);
+                }
+            }
+        }
+
+        if (!isAvailable()) {
+            return true;
+        }
+
+        String sqlFindRecipe = "SELECT r.ingredient_id, r.quantity_needed, i.name, i.unit, i.current_stock, i.min_alert_threshold " +
                                "FROM Recipes r " +
                                "JOIN Ingredients i ON r.ingredient_id = i.ingredient_id " +
                                "WHERE r.product_id = ?;";
         String sqlDeduct = "UPDATE Ingredients SET current_stock = current_stock - ? WHERE ingredient_id = ?;";
-        String sqlMovement = "INSERT INTO StockMovements (ingredient_id, movement_type, quantity, unit, reference_type, reference_id, note) " +
-                             "VALUES (?, 'EXPORT', ?, ?, 'ORDER', ?, ?);";
 
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
@@ -292,33 +506,13 @@ public class DatabaseManager {
                     try (ResultSet rs = psRecipe.executeQuery()) {
                         while (rs.next()) {
                             int ingredientId = rs.getInt("ingredient_id");
-                            double amountPerCup = rs.getDouble("amount_needed");
-                            String unit = rs.getString("unit");
-                            String ingName = rs.getString("name");
-                            double currentStock = rs.getDouble("current_stock");
-                            double minAlert = rs.getDouble("min_alert_threshold");
-
+                            double amountPerCup = rs.getDouble("quantity_needed");
                             double totalConsumed = amountPerCup * qty;
 
-                            // 1. Cập nhật tồn kho trừ lùi
                             try (PreparedStatement psDeduct = conn.prepareStatement(sqlDeduct)) {
                                 psDeduct.setDouble(1, totalConsumed);
                                 psDeduct.setInt(2, ingredientId);
                                 psDeduct.executeUpdate();
-                            }
-
-                            // 2. Ghi nhật ký xuất kho
-                            try (PreparedStatement psMov = conn.prepareStatement(sqlMovement)) {
-                                psMov.setInt(1, ingredientId);
-                                psMov.setDouble(2, totalConsumed);
-                                psMov.setString(3, unit);
-                                psMov.setInt(4, order.getOrderId());
-                                psMov.setString(5, "Pha chế " + qty + " ly " + item.getName());
-                                psMov.executeUpdate();
-                            }
-
-                            if (currentStock - totalConsumed <= minAlert) {
-                                System.out.println("[KHO CẢNH BÁO] Nguyên liệu '" + ingName + "' còn " + (currentStock - totalConsumed) + " " + unit + " (dưới ngưỡng tối thiểu " + minAlert + ")");
                             }
                         }
                     }
@@ -326,10 +520,8 @@ public class DatabaseManager {
             }
 
             conn.commit();
-            System.out.println("[BOM] Đã trừ kho định lượng thành công cho Đơn #" + order.getOrderId());
             return true;
         } catch (SQLException e) {
-            System.err.println("[BOM] Lỗi trừ kho nguyên liệu: " + e.getMessage());
             return false;
         }
     }
@@ -352,7 +544,7 @@ public class DatabaseManager {
 
     public static boolean updateTableStatusInDb(int tableId, String status) {
         if (!isAvailable()) return false;
-        String sql = "UPDATE Tables SET status = ? WHERE table_id = ?;";
+        String sql = "UPDATE Tables SET status = ? WHERE table_number = ?;";
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, status);
@@ -368,51 +560,29 @@ public class DatabaseManager {
     // =========================================================================
     public static Map<String, Object> getDashboardStats(Map<Integer, Order> inMemoryOrders) {
         Map<String, Object> stats = new HashMap<>();
-        double totalRev = 0;
-        int orderCount = 0;
-        int memberCount = 0;
+        double liveRev = 0;
+        int liveCount = 0;
 
-        // Tính toán từ in-memory trước để đảm bảo tính thời gian thực 0ms
         if (inMemoryOrders != null) {
             for (Order o : inMemoryOrders.values()) {
-                totalRev += o.getTotalAmount();
-                orderCount++;
+                if (!"CANCELLED".equalsIgnoreCase(o.getStatus())) {
+                    liveRev += o.getTotalAmount();
+                    liveCount++;
+                }
             }
         }
 
-        // Nếu DB đã khởi tạo sẵn trong pool, đọc dữ liệu thực trong ngày; nếu chưa thì kích hoạt warmup ngầm để không chặn UI
-        if (!poolInitialized) {
-            warmupAsync();
-        } else if (lastCheckResult) {
-            String sql = "SELECT COUNT(order_id) AS total_orders, ISNULL(SUM(total_amount), 0) AS total_revenue " +
-                         "FROM Orders WHERE CAST(created_at AS DATE) = CAST(GETDATE() AS DATE);";
-            try (Connection conn = getConnection();
-                 Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery(sql)) {
-                if (rs.next()) {
-                    int dbOrders = rs.getInt("total_orders");
-                    double dbRev = rs.getDouble("total_revenue");
-                    if (dbOrders > orderCount) orderCount = dbOrders;
-                    if (dbRev > totalRev) totalRev = dbRev;
-                }
-            } catch (Exception ignored) {}
-        }
+        double baseRev = 8420000.0;
+        int baseOrders = 126;
 
-        // Mặc định ban đầu nếu quán mới mở ca chưa có đơn
-        if (orderCount == 0 && totalRev == 0) {
-            totalRev = 8420000.0;
-            orderCount = 126;
-            memberCount = 52;
-        } else {
-            memberCount = (int) (orderCount * 0.41);
-        }
-
+        double totalRev = baseRev + liveRev;
+        int orderCount = baseOrders + liveCount;
         double aov = orderCount > 0 ? (totalRev / orderCount) : 0;
 
         stats.put("totalRevenue", totalRev);
         stats.put("orderCount", orderCount);
         stats.put("aov", aov);
-        stats.put("memberRate", 41.0);
+        stats.put("memberRate", 42.5);
         return stats;
     }
 }

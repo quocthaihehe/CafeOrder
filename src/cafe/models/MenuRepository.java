@@ -228,13 +228,28 @@ public class MenuRepository {
     }
 
     private static void initVouchers() {
-        vouchersMap.put("GIAM10", new Voucher("GIAM10", "PERCENT", 10, 0));
-        vouchersMap.put("WELCOME10", new Voucher("WELCOME10", "PERCENT", 10, 50000));
-        vouchersMap.put("GIAM15K", new Voucher("GIAM15K", "AMOUNT", 15000, 100000));
+        vouchersMap.put("GIAM10", new Voucher("GIAM10", "PERCENT", 10, 0, true, "31/12/2026", 142));
+        vouchersMap.put("WELCOME10", new Voucher("WELCOME10", "PERCENT", 10, 50000, true, "31/12/2026", 89));
+        vouchersMap.put("GIAM15K", new Voucher("GIAM15K", "AMOUNT", 15000, 100000, true, "31/12/2026", 64));
+        vouchersMap.put("VIP20", new Voucher("VIP20", "PERCENT", 20, 150000, true, "31/12/2026", 37));
+        vouchersMap.put("HAPPYHOUR", new Voucher("HAPPYHOUR", "AMOUNT", 20000, 120000, true, "30/11/2026", 51));
+        vouchersMap.put("SINHNHAT30", new Voucher("SINHNHAT30", "AMOUNT", 30000, 200000, false, "15/10/2026", 19));
     }
 
     public static List<MenuItem> getAllItems() {
         return Collections.unmodifiableList(menuItems);
+    }
+
+    public static synchronized void addMenuItem(MenuItem item) {
+        if (item == null) return;
+        if (item.getId() <= 0) {
+            int maxId = 69;
+            for (MenuItem m : menuItems) {
+                if (m.getId() > maxId) maxId = m.getId();
+            }
+            item.setId(maxId + 1);
+        }
+        menuItems.add(0, item);
     }
 
     public static List<String> getCategories() {
@@ -280,7 +295,25 @@ public class MenuRepository {
 
     public static Voucher getVoucher(String code) {
         if (code == null) return null;
-        return vouchersMap.get(code.trim().toUpperCase());
+        Voucher v = vouchersMap.get(code.trim().toUpperCase());
+        if (v != null && !v.isActive()) return null;
+        return v;
+    }
+
+    public static List<Voucher> getAllVouchers() {
+        return new ArrayList<>(vouchersMap.values());
+    }
+
+    public static void addOrUpdateVoucher(Voucher v) {
+        if (v != null && v.getCode() != null && !v.getCode().trim().isEmpty()) {
+            vouchersMap.put(v.getCode().trim().toUpperCase(), v);
+        }
+    }
+
+    public static void removeVoucher(String code) {
+        if (code != null) {
+            vouchersMap.remove(code.trim().toUpperCase());
+        }
     }
 
     public static MenuItem findByName(String name) {

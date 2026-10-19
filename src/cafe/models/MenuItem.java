@@ -13,6 +13,7 @@ public class MenuItem {
     private boolean isBestseller;
     private boolean isNew;
     private int prepMinutes;
+    private boolean inStock = true;
 
     public MenuItem(String name, double price) {
         this(0, name, price, "Món khác", "", "☕", true, false, false, false, 5);
@@ -73,6 +74,9 @@ public class MenuItem {
 
     public int getPrepMinutes() { return prepMinutes; }
     public void setPrepMinutes(int prepMinutes) { this.prepMinutes = prepMinutes; }
+
+    public boolean isInStock() { return inStock; }
+    public void setInStock(boolean inStock) { this.inStock = inStock; }
 
     public String getFormattedPrice() {
         return String.format("%,.0f đ", price);

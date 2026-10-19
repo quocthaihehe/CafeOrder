@@ -23,16 +23,128 @@ import java.util.function.Consumer;
 
 public class CafeServerService {
     private static final int DEFAULT_PORT = 5000;
+    private static volatile CafeServerService activeInstance;
+
+    public static class ReservationInfo {
+        public final int tableNumber;
+        public final String customerName;
+        public final String phone;
+        public final String reservationTime;
+        public final int guestCount;
+        public final String note;
+
+        public ReservationInfo(int tableNumber, String customerName, String phone, String reservationTime, int guestCount, String note) {
+            this.tableNumber = tableNumber;
+            this.customerName = customerName;
+            this.phone = phone;
+            this.reservationTime = reservationTime;
+            this.guestCount = guestCount;
+            this.note = note;
+        }
+    }
 
     private ServerSocket serverSocket;
-    private final AtomicInteger orderIdCounter = new AtomicInteger(1000);
+    private final AtomicInteger orderIdCounter = new AtomicInteger(1020);
     
     // Dynamic Session & Table Subscriptions (Decoupled Routing)
     private final Map<String, ClientSession> activeSessions = new ConcurrentHashMap<>();
     private final Map<Integer, Set<String>> tableSubscribers = new ConcurrentHashMap<>();
     
     private final Map<Integer, Order> activeOrders = new ConcurrentHashMap<>();
+    private final Map<Integer, String> tableStatuses = new ConcurrentHashMap<>();
+    private final Map<Integer, ReservationInfo> tableReservations = new ConcurrentHashMap<>();
     private volatile boolean isRunning = false;
+
+    public CafeServerService() {
+        activeInstance = this;
+        seedInitialActiveOrders();
+    }
+
+    public static synchronized CafeServerService getInstance() {
+        if (activeInstance == null) {
+            activeInstance = new CafeServerService();
+        }
+        return activeInstance;
+    }
+
+    private void seedInitialActiveOrders() {
+        long now = System.currentTimeMillis();
+        // Bàn 01 (Đang phục vụ - 14 phút trước)
+        addSeedOrder(1001, 1, "DINE_IN", "PREPARING", 0, null, "Ít đá 1 ly", now - 14 * 60_000L,
+            new cafe.models.OrderItem("Cà phê Sữa Đá", 2, "Size M • Đá 70%", 35000),
+            new cafe.models.OrderItem("Bánh Sừng Bò Hạnh Nhân", 1, "Hâm nóng", 42000)
+        );
+        // Bàn 03 (Đang phục vụ - 25 phút trước)
+        addSeedOrder(1002, 3, "DINE_IN", "DONE", 15000, "GIAM15K", "Khách VIP", now - 25 * 60_000L,
+            new cafe.models.OrderItem("Cold Brew Cam Sả", 2, "Size L • 70% đường", 55000),
+            new cafe.models.OrderItem("Matcha Latte Kem Phô Mai", 1, "Size M • Đá 50%", 59000),
+            new cafe.models.OrderItem("Tiramisu Cổ Điển", 1, "", 55000)
+        );
+        // Bàn 06 (Đang phục vụ - 8 phút trước)
+        addSeedOrder(1003, 6, "DINE_IN", "QUEUED", 0, null, "", now - 8 * 60_000L,
+            new cafe.models.OrderItem("Trà Đào Cam Sả", 2, "Size L • +Đào miếng", 49000),
+            new cafe.models.OrderItem("Bạc Xỉu Đá Sài Gòn", 1, "Size M", 35000)
+        );
+        // Bàn 09 (Đang phục vụ - 19 phút trước)
+        addSeedOrder(1004, 9, "DINE_IN", "PREPARING", 0, null, "Mang nước lọc kèm", now - 19 * 60_000L,
+            new cafe.models.OrderItem("Caramel Macchiato", 2, "Size M • Nóng", 55000),
+            new cafe.models.OrderItem("Trà Ô Long Kem Cheese", 2, "Size L • 50% đường", 52000),
+            new cafe.models.OrderItem("Croissant Bơ Pháp", 2, "Nướng giòn", 38000)
+        );
+        // Bàn 12 (Đang phục vụ - 32 phút trước)
+        addSeedOrder(1005, 12, "DINE_IN", "DONE", 0, null, "", now - 32 * 60_000L,
+            new cafe.models.OrderItem("Espresso Đá", 1, "Size M", 32000),
+            new cafe.models.OrderItem("Trà Sen Vàng Kem Macchiato", 2, "Size L • +Hạt sen", 55000)
+        );
+        // Tầng 2 & Tầng 3
+        addSeedOrder(1006, 201, "DINE_IN", "DONE", 0, null, "", now - 28 * 60_000L,
+            new cafe.models.OrderItem("Americano Đá", 2, "Size M • Không đường", 39000),
+            new cafe.models.OrderItem("Bánh Mousse Chanh Dây", 1, "", 45000)
+        );
+        addSeedOrder(1007, 205, "DINE_IN", "PREPARING", 0, null, "Họp nhóm", now - 12 * 60_000L,
+            new cafe.models.OrderItem("Cà phê Muối Huế", 3, "Size M", 42000),
+            new cafe.models.OrderItem("Trà Vải Hoa Hồng", 2, "Size L", 49000)
+        );
+        addSeedOrder(1008, 209, "DINE_IN", "DONE", 0, null, "", now - 40 * 60_000L,
+            new cafe.models.OrderItem("Latte Hạnh Nhân", 2, "Size M • Nóng", 55000)
+        );
+        addSeedOrder(1009, 214, "DINE_IN", "QUEUED", 0, null, "", now - 5 * 60_000L,
+            new cafe.models.OrderItem("Sinh Tố Bơ Sầu Riêng", 2, "Size L", 62000)
+        );
+        addSeedOrder(1010, 302, "DINE_IN", "PREPARING", 0, null, "Ban công", now - 16 * 60_000L,
+            new cafe.models.OrderItem("Cold Brew Quất Mật Ong", 2, "Size L", 55000),
+            new cafe.models.OrderItem("Bánh Phô Mai Nướng Basque", 2, "", 58000)
+        );
+        addSeedOrder(1011, 305, "DINE_IN", "DONE", 0, null, "", now - 35 * 60_000L,
+            new cafe.models.OrderItem("Trà Hoa Đậu Biếc Macchiato", 2, "Size M", 49000)
+        );
+        addSeedOrder(1012, 309, "DINE_IN", "PREPARING", 0, null, "", now - 11 * 60_000L,
+            new cafe.models.OrderItem("Cappuccino Ý", 2, "Size M • Nóng", 49000)
+        );
+        addSeedOrder(1013, 311, "DINE_IN", "DONE", 0, null, "", now - 21 * 60_000L,
+            new cafe.models.OrderItem("Matcha Đá Xay", 3, "Size L • +Kem tươi", 59000)
+        );
+
+        // Đơn mang về mẫu
+        addSeedOrder(1014, 0, "TAKEAWAY", "DONE", 0, null, "Lấy ngay tại quầy", now - 18 * 60_000L,
+            new cafe.models.OrderItem("Cà phê Sữa Đá", 2, "Size L", 39000)
+        );
+
+        // Đặt trước mặc định cho Bàn 05 & Bàn 10
+        tableStatuses.put(5, "RESERVED");
+        tableReservations.put(5, new ReservationInfo(5, "Nguyễn Hoàng Nam", "0908.345.678", "19:30", 2, "Ngồi gần cửa sổ"));
+        tableStatuses.put(10, "RESERVED");
+        tableReservations.put(10, new ReservationInfo(10, "Lê Bảo Ngọc", "0912.888.999", "20:00", 6, "Sinh nhật gia đình"));
+    }
+
+    private void addSeedOrder(int orderId, int table, String type, String status, double discount, String voucher, String note, long ts, cafe.models.OrderItem... items) {
+        java.util.List<cafe.models.OrderItem> list = new java.util.ArrayList<>(java.util.Arrays.asList(items));
+        Order o = new Order(orderId, table, type, list, status, discount, 0.0, voucher, note, ts);
+        activeOrders.put(orderId, o);
+        if (table > 0 && !"PAID".equalsIgnoreCase(status) && !"CANCELLED".equalsIgnoreCase(status)) {
+            tableStatuses.put(table, "OCCUPIED");
+        }
+    }
 
     private final AtomicInteger clientWorkerCounter = new AtomicInteger(1);
 
@@ -106,6 +218,7 @@ public class CafeServerService {
     public void start(int port) {
         if (isRunning) return;
         isRunning = true;
+        activeInstance = this;
 
         Thread serverThread = new Thread(() -> {
             try {
@@ -310,6 +423,12 @@ public class CafeServerService {
     }
 
     public void broadcastTableStatus(int tableNumber, String status) {
+        if (tableNumber > 0 && status != null) {
+            tableStatuses.put(tableNumber, status.toUpperCase());
+            if ("EMPTY".equalsIgnoreCase(status) || "OCCUPIED".equalsIgnoreCase(status) || "SERVING".equalsIgnoreCase(status)) {
+                tableReservations.remove(tableNumber);
+            }
+        }
         MessageProtocol.TableStatusBroadcastMessage msg = new MessageProtocol.TableStatusBroadcastMessage(tableNumber, status);
         String json = MessageProtocol.toJson(msg);
         for (ClientSession session : activeSessions.values()) {
@@ -321,12 +440,207 @@ public class CafeServerService {
         dbExecutor.submit(() -> DatabaseManager.updateTableStatusInDb(tableNumber, status));
     }
 
+    public String getTableStatus(int tableNumber) {
+        return tableStatuses.getOrDefault(tableNumber, "EMPTY");
+    }
+
+    public ReservationInfo getReservation(int tableNumber) {
+        return tableReservations.get(tableNumber);
+    }
+
+    public void reserveTable(int tableNumber, String customerName, String phone, String time, int guests, String note) {
+        ReservationInfo info = new ReservationInfo(tableNumber, customerName, phone, time, guests, note);
+        tableReservations.put(tableNumber, info);
+        broadcastTableStatus(tableNumber, "RESERVED");
+        log("Đã đặt trước Bàn " + tableNumber + " cho khách " + customerName + " (" + time + ").");
+    }
+
+    public void cancelReservation(int tableNumber) {
+        tableReservations.remove(tableNumber);
+        broadcastTableStatus(tableNumber, "EMPTY");
+        log("Đã hủy đặt trước Bàn " + tableNumber + " -> Trống.");
+    }
+
+    public java.util.List<Order> getOrdersForTable(int tableNumber) {
+        java.util.List<Order> result = new java.util.ArrayList<>();
+        for (Order o : activeOrders.values()) {
+            if (o.getTable() == tableNumber) {
+                String st = o.getStatus() != null ? o.getStatus().toUpperCase() : "QUEUED";
+                if (!"PAID".equals(st) && !"CANCELLED".equals(st)) {
+                    result.add(o);
+                }
+            }
+        }
+        result.sort((a, b) -> Long.compare(a.getTimestamp(), b.getTimestamp()));
+        return result;
+    }
+
+    public Order getCombinedOrderForTable(int tableNumber) {
+        java.util.List<Order> orders = getOrdersForTable(tableNumber);
+        if (orders.isEmpty()) return null;
+        if (orders.size() == 1) return orders.get(0);
+
+        java.util.List<cafe.models.OrderItem> combinedItems = new java.util.ArrayList<>();
+        double totalDiscount = 0;
+        double totalVat = 0;
+        String voucher = null;
+        StringBuilder notes = new StringBuilder();
+        long earliestTs = orders.get(0).getTimestamp();
+        String status = orders.get(orders.size() - 1).getStatus();
+
+        for (Order o : orders) {
+            if (o.getItems() != null) {
+                combinedItems.addAll(o.getItems());
+            }
+            totalDiscount += o.getDiscountAmount();
+            totalVat += o.getVatAmount();
+            if (o.getVoucherCode() != null && !o.getVoucherCode().isEmpty()) {
+                voucher = o.getVoucherCode();
+            }
+            if (o.getNote() != null && !o.getNote().trim().isEmpty()) {
+                if (notes.length() > 0) notes.append(" | ");
+                notes.append(o.getNote().trim());
+            }
+            if (o.getTimestamp() < earliestTs) earliestTs = o.getTimestamp();
+        }
+
+        return new Order(
+            orders.get(0).getOrderId(),
+            tableNumber,
+            "DINE_IN",
+            combinedItems,
+            status,
+            totalDiscount,
+            totalVat,
+            voucher,
+            notes.toString(),
+            earliestTs
+        );
+    }
+
+    public synchronized boolean transferTable(int fromTable, int toTable) {
+        if (fromTable <= 0 || toTable <= 0 || fromTable == toTable) return false;
+        java.util.List<Order> fromOrders = getOrdersForTable(fromTable);
+        for (Order o : fromOrders) {
+            o.setTable(toTable);
+        }
+        ReservationInfo res = tableReservations.remove(fromTable);
+        if (res != null && fromOrders.isEmpty()) {
+            tableReservations.put(toTable, new ReservationInfo(toTable, res.customerName, res.phone, res.reservationTime, res.guestCount, res.note));
+            broadcastTableStatus(fromTable, "EMPTY");
+            broadcastTableStatus(toTable, "RESERVED");
+            log("Đã chuyển lịch đặt bàn từ Bàn " + fromTable + " sang Bàn " + toTable + ".");
+            return true;
+        }
+        broadcastTableStatus(fromTable, "EMPTY");
+        broadcastTableStatus(toTable, "OCCUPIED");
+        log("Đã chuyển toàn bộ đơn từ Bàn " + fromTable + " sang Bàn " + toTable + ".");
+        return true;
+    }
+
+    public synchronized boolean mergeTables(int sourceTable, int targetTable) {
+        if (sourceTable <= 0 || targetTable <= 0 || sourceTable == targetTable) return false;
+        java.util.List<Order> sourceOrders = getOrdersForTable(sourceTable);
+        java.util.List<Order> targetOrders = getOrdersForTable(targetTable);
+
+        if (sourceOrders.isEmpty()) {
+            broadcastTableStatus(sourceTable, "EMPTY");
+            return false;
+        }
+
+        if (!targetOrders.isEmpty()) {
+            Order primaryTarget = targetOrders.get(0);
+            java.util.List<cafe.models.OrderItem> mergedItems = new java.util.ArrayList<>();
+            if (primaryTarget.getItems() != null) {
+                mergedItems.addAll(primaryTarget.getItems());
+            }
+            double extraDiscount = 0;
+            for (Order src : sourceOrders) {
+                if (src.getItems() != null) {
+                    mergedItems.addAll(src.getItems());
+                }
+                extraDiscount += src.getDiscountAmount();
+                activeOrders.remove(src.getOrderId());
+            }
+            primaryTarget.setItems(mergedItems);
+            primaryTarget.setDiscountAmount(primaryTarget.getDiscountAmount() + extraDiscount);
+        } else {
+            for (Order src : sourceOrders) {
+                src.setTable(targetTable);
+            }
+        }
+
+        broadcastTableStatus(sourceTable, "EMPTY");
+        broadcastTableStatus(targetTable, "OCCUPIED");
+        log("Đã gộp hóa đơn Bàn " + sourceTable + " vào Bàn " + targetTable + ".");
+        return true;
+    }
+
+    public synchronized boolean checkoutTable(int tableNumber) {
+        java.util.List<Order> orders = getOrdersForTable(tableNumber);
+        for (Order o : orders) {
+            o.setStatus("PAID");
+            final int oid = o.getOrderId();
+            dispatch(() -> {
+                for (BiConsumer<Integer, String> l : orderStatusChangedListeners) l.accept(oid, "PAID");
+            });
+            dbExecutor.submit(() -> {
+                try {
+                    DatabaseManager.updateOrderStatusInDb(oid, "PAID");
+                    DatabaseManager.deductStockForOrder(o);
+                } catch (Exception ignored) {}
+            });
+        }
+        tableReservations.remove(tableNumber);
+        broadcastTableStatus(tableNumber, "EMPTY");
+        log("Đã thanh toán & giải phóng Bàn " + tableNumber + " -> Trống.");
+        return true;
+    }
+
+    public synchronized boolean cancelOrder(int orderId) {
+        Order o = activeOrders.get(orderId);
+        if (o == null) return false;
+        o.setStatus("CANCELLED");
+        int tbl = o.getTable();
+        dispatch(() -> {
+            for (BiConsumer<Integer, String> l : orderStatusChangedListeners) l.accept(orderId, "CANCELLED");
+        });
+        dbExecutor.submit(() -> DatabaseManager.updateOrderStatusInDb(orderId, "CANCELLED"));
+        if (tbl > 0 && getOrdersForTable(tbl).isEmpty()) {
+            broadcastTableStatus(tbl, "EMPTY");
+        }
+        log("Đã hủy Đơn #" + orderId + (tbl > 0 ? " (Bàn " + tbl + ")" : "") + ".");
+        return true;
+    }
+
+    public synchronized void resetToSeedState() {
+        activeOrders.clear();
+        tableStatuses.clear();
+        tableReservations.clear();
+        orderIdCounter.set(1020);
+        seedInitialActiveOrders();
+        for (Map.Entry<Integer, String> entry : tableStatuses.entrySet()) {
+            broadcastTableStatus(entry.getKey(), entry.getValue());
+        }
+        log("Đã khôi phục dữ liệu mẫu (Seed Data) toàn hệ thống.");
+    }
+
     public Map<Integer, Order> getActiveOrders() {
         return activeOrders;
     }
 
+    public java.util.List<Order> getAllOrdersNewestFirst() {
+        java.util.List<Order> list = new java.util.ArrayList<>(activeOrders.values());
+        list.sort((a, b) -> Integer.compare(b.getOrderId(), a.getOrderId()));
+        return list;
+    }
+
     public Map<String, ClientSession> getActiveSessions() {
         return activeSessions;
+    }
+
+    public boolean isServerRunning() {
+        return isRunning;
     }
 
     public void stop() {

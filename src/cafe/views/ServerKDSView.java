@@ -32,7 +32,7 @@ public class ServerKDSView extends BorderPane {
     // Control bar
     private final TextField txtSearch = new TextField();
     private final HBox filterButtonsBox = new HBox(6);
-    private final Button btnClearDone = new Button("Xóa đơn đã xong");
+    private final Button btnClearDone = new Button("🗑 Xóa đơn đã xong");
 
     // Tickets container
     private final FlowPane ticketsFlowPane = new FlowPane(14, 14);

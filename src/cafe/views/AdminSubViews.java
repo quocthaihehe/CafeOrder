@@ -359,7 +359,7 @@ public class AdminSubViews {
         root.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 16px; -fx-border-color: #DFD7CA; -fx-border-radius: 16px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 24, 0.15, 0, 8);");
 
         Label lblTitle = new Label("☕ Thêm Món Mới Vào Thực Đơn");
-        lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 19px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+        lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 20px; -fx-font-weight: 800; -fx-text-fill: #112823;");
 
         TextField txtName = new TextField();
         txtName.setPromptText("Tên món mới (VD: Cold Brew Mơ Đào)...");
@@ -617,7 +617,7 @@ public class AdminSubViews {
         root.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 16px; -fx-border-color: #DFD7CA; -fx-border-radius: 16px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 24, 0.15, 0, 8);");
 
         Label lblTitle = new Label("📦 Lập Phiếu Nhập Kho Nguyên Vật Liệu");
-        lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 19px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+        lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 20px; -fx-font-weight: 800; -fx-text-fill: #112823;");
 
         ComboBox<DatabaseManager.IngredientItem> cboIng = new ComboBox<>();
         cboIng.getItems().addAll(DatabaseManager.getAllIngredients());
@@ -819,7 +819,7 @@ public class AdminSubViews {
         root.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 16px; -fx-border-color: #DFD7CA; -fx-border-radius: 16px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 24, 0.15, 0, 8);");
 
         Label lblTitle = new Label("🎁 Phát Hành Mã Voucher Mới");
-        lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 19px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+        lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 20px; -fx-font-weight: 800; -fx-text-fill: #112823;");
 
         TextField txtCode = new TextField("BREW25K");
         ComboBox<String> cboType = new ComboBox<>();
@@ -988,7 +988,7 @@ public class AdminSubViews {
         root.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 16px; -fx-border-color: #DFD7CA; -fx-border-radius: 16px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 24, 0.15, 0, 8);");
 
         Label lblTitle = new Label("👤 Thêm Tài Khoản Nhân Sự Mới");
-        lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 19px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+        lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 20px; -fx-font-weight: 800; -fx-text-fill: #112823;");
 
         TextField txtFullName = new TextField();
         txtFullName.setPromptText("Họ và tên nhân viên...");
@@ -1368,9 +1368,41 @@ public class AdminSubViews {
         return modal;
     }
 
+    public static final String INPUT_STYLE =
+        "-fx-background-color: #FAF8F5; -fx-border-color: #E2DDD5; -fx-border-radius: 8px; -fx-background-radius: 8px; " +
+        "-fx-padding: 8 12 8 12; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-text-fill: #112823;";
+
+    /** Áp dụng style phẳng chuẩn cho mọi TextField / PasswordField / ComboBox chưa được style. */
+    public static <T extends javafx.scene.Parent> T styleInputs(T parent) {
+        for (javafx.scene.Node n : parent.getChildrenUnmodifiable()) {
+            if (n instanceof TextInputControl || n instanceof ComboBox) {
+                if (n.getStyle() == null || n.getStyle().isEmpty()) {
+                    n.setStyle(INPUT_STYLE);
+                }
+            } else if (n instanceof Label && ((Label) n).getStyle().isEmpty()) {
+                n.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #4A453E;");
+            }
+            if (n instanceof javafx.scene.Parent && !(n instanceof ComboBox) && !(n instanceof TextInputControl)) {
+                styleInputs((javafx.scene.Parent) n);
+            }
+        }
+        return parent;
+    }
+
     private static void showModal(Stage modal, VBox root) {
+        styleInputs(root);
+
+        Button btnClose = new Button("✕");
+        btnClose.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #4A453E; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 999px; -fx-min-width: 28px; -fx-min-height: 28px; -fx-max-width: 28px; -fx-max-height: 28px; -fx-padding: 0; -fx-cursor: hand;");
+        btnClose.setOnAction(e -> modal.close());
+
         cafe.utils.WindowChromeHelper.makeDraggable(modal, root);
-        StackPane wrap = new StackPane(root);
+        StackPane card = new StackPane(root, btnClose);
+        StackPane.setAlignment(btnClose, Pos.TOP_RIGHT);
+        StackPane.setMargin(btnClose, new Insets(14, 14, 0, 0));
+        card.setStyle("-fx-background-color: transparent;");
+
+        StackPane wrap = new StackPane(card);
         wrap.setPadding(new Insets(16));
         wrap.setStyle("-fx-background-color: transparent;");
         Scene scene = new Scene(wrap);
@@ -1378,5 +1410,6 @@ public class AdminSubViews {
         cafe.utils.WindowChromeHelper.applyTheme(scene);
         modal.setScene(scene);
         modal.show();
+        AnimationHelper.playDialogEntrance(card);
     }
 }

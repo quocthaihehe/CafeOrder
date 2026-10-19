@@ -92,16 +92,42 @@ public class ClientView extends BorderPane {
     private VBox leftCategorySidebar;
     private VBox sidebarBrandBox;
 
+    private final HBox categoryPillBar = new HBox(8);
+    private final ScrollPane categoryPillScroll = new ScrollPane(categoryPillBar);
+    private boolean embeddedMode = false;
+    private List<String> lastCategories;
+    private String lastSelectedCategory;
+    private Consumer<String> lastOnCategorySelect;
+
     public void configureForEmbeddedShell(boolean embedded) {
-        if (sidebarBrandBox != null) {
-            sidebarBrandBox.setVisible(!embedded);
-            sidebarBrandBox.setManaged(!embedded);
+        this.embeddedMode = embedded;
+        if (embedded) {
+            // Ẩn hoàn toàn Sidebar dọc để tránh "2 Sidebar đứng cạnh nhau" -> giải phóng 190-235px chiều ngang
+            setLeft(null);
+            categoryPillScroll.setVisible(true);
+            categoryPillScroll.setManaged(true);
+            if (lastCategories != null && lastOnCategorySelect != null) {
+                renderCategories(lastCategories, lastSelectedCategory, lastOnCategorySelect);
+            }
+        } else {
+            setLeft(leftCategorySidebar);
+            categoryPillScroll.setVisible(false);
+            categoryPillScroll.setManaged(false);
         }
-        if (leftCategorySidebar != null && embedded) {
-            leftCategorySidebar.setPrefWidth(190);
-            leftCategorySidebar.setMinWidth(180);
-            leftCategorySidebar.setMaxWidth(205);
-            leftCategorySidebar.setPadding(new Insets(14, 10, 14, 10));
+    }
+
+    private void renderCategoryPills(List<String> cleanList, String selectedCategory, Consumer<String> onSelect) {
+        categoryPillBar.getChildren().clear();
+        for (String rawCat : cleanList) {
+            boolean isActive = rawCat.equalsIgnoreCase(selectedCategory);
+            Button pill = new Button(getConciseCategoryLabel(rawCat));
+            pill.setFocusTraversable(false);
+            AnimationHelper.applyButtonPress(pill);
+            pill.setStyle(isActive
+                ? "-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 999px; -fx-border-color: #112823; -fx-border-radius: 999px; -fx-padding: 6 16 6 16; -fx-cursor: hand;"
+                : "-fx-background-color: #FFFFFF; -fx-text-fill: #4A453E; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 600; -fx-background-radius: 999px; -fx-border-color: #E2DDD5; -fx-border-radius: 999px; -fx-padding: 6 16 6 16; -fx-cursor: hand;");
+            pill.setOnAction(e -> onSelect.accept(rawCat));
+            categoryPillBar.getChildren().add(pill);
         }
     }
 
@@ -192,7 +218,7 @@ public class ClientView extends BorderPane {
         topBar.setAlignment(Pos.CENTER_LEFT);
 
         VBox titleBox = new VBox(2);
-        lblTableBadge.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 22px; -fx-font-weight: 700; -fx-text-fill: #112823;");
+        lblTableBadge.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #112823;");
         lblTableStatus.setStyle("-fx-background-color: #DCE8D9; -fx-text-fill: #597256; -fx-font-size: 10px; -fx-font-weight: 600; -fx-background-radius: 10px; -fx-padding: 2 8 2 8;");
         titleBox.getChildren().addAll(lblTableBadge, lblTableStatus);
 
@@ -255,7 +281,19 @@ public class ClientView extends BorderPane {
             }
         });
 
-        center.getChildren().addAll(topBar, catalogScrollPane);
+        categoryPillBar.setAlignment(Pos.CENTER_LEFT);
+        categoryPillBar.setPadding(new Insets(2, 2, 6, 2));
+        categoryPillScroll.setFitToHeight(true);
+        categoryPillScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        categoryPillScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        categoryPillScroll.setMinHeight(44);
+        categoryPillScroll.setPrefHeight(44);
+        categoryPillScroll.setMaxHeight(44);
+        categoryPillScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        categoryPillScroll.setVisible(embeddedMode);
+        categoryPillScroll.setManaged(embeddedMode);
+
+        center.getChildren().addAll(topBar, categoryPillScroll, catalogScrollPane);
         return center;
     }
 
@@ -304,6 +342,9 @@ public class ClientView extends BorderPane {
      * Container icon 26x26 cố định đảm bảo toàn bộ chữ thẳng tắp 100% 1 hàng từ trên xuống.
      */
     public void renderCategories(List<String> categories, String selectedCategory, Consumer<String> onSelect) {
+        this.lastCategories = categories;
+        this.lastSelectedCategory = selectedCategory;
+        this.lastOnCategorySelect = onSelect;
         categoryNavBox.getChildren().clear();
 
         List<String> cleanList = new ArrayList<>();
@@ -313,6 +354,11 @@ public class ClientView extends BorderPane {
             if (!cat.equalsIgnoreCase("Tất cả") && !cleanList.contains(cat)) {
                 cleanList.add(cat);
             }
+        }
+
+        if (embeddedMode) {
+            renderCategoryPills(cleanList, selectedCategory, onSelect);
+            return;
         }
 
         for (String rawCat : cleanList) {

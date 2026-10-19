@@ -19,7 +19,6 @@ import java.util.function.Consumer;
 public class ClientSocketService {
     private static final String DEFAULT_HOST = "127.0.0.1";
     private static final int DEFAULT_PORT = 5000;
-    private static CafeServerService embeddedFallbackServer;
 
     private Socket socket;
     private PrintWriter out;
@@ -82,7 +81,7 @@ public class ClientSocketService {
         String resolvedHost = "localhost".equalsIgnoreCase(host) ? "127.0.0.1" : host;
         try {
             socket = new Socket();
-            socket.connect(new java.net.InetSocketAddress(resolvedHost, port), 350);
+            socket.connect(new java.net.InetSocketAddress(resolvedHost, port), 400);
             socket.setTcpNoDelay(true);
             socket.setKeepAlive(true);
             out = new PrintWriter(socket.getOutputStream(), true, StandardCharsets.UTF_8);
@@ -90,41 +89,21 @@ public class ClientSocketService {
             running = true;
             startListening();
             startHeartbeat();
+            dispatch(() -> {
+                if (onConnectionStateChanged != null) onConnectionStateChanged.accept(true);
+            });
             return true;
-        } catch (IOException firstEx) {
-            // Nếu ServerMain chưa được bật riêng, tự động khởi chạy CafeServerService ngầm để không bị treo hay lỗi kết nối
-            try {
-                synchronized (ClientSocketService.class) {
-                    if (embeddedFallbackServer == null) {
-                        embeddedFallbackServer = CafeServerService.getInstance();
-                        embeddedFallbackServer.start(port);
-                        Thread.sleep(40);
-                    }
-                }
-                socket = new Socket();
-                socket.connect(new java.net.InetSocketAddress(resolvedHost, port), 350);
-                socket.setTcpNoDelay(true);
-                socket.setKeepAlive(true);
-                out = new PrintWriter(socket.getOutputStream(), true, StandardCharsets.UTF_8);
-                in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
-                running = true;
-                startListening();
-                startHeartbeat();
-                return true;
-            } catch (Exception secondEx) {
-                return false;
-            }
+        } catch (IOException ex) {
+            disconnect();
+            dispatch(() -> {
+                if (onConnectionStateChanged != null) onConnectionStateChanged.accept(false);
+            });
+            return false;
         }
     }
 
-    public static synchronized CafeServerService getOrStartEmbeddedServer() {
-        if (embeddedFallbackServer == null) {
-            embeddedFallbackServer = CafeServerService.getInstance();
-            if (!embeddedFallbackServer.isServerRunning()) {
-                embeddedFallbackServer.start(DEFAULT_PORT);
-            }
-        }
-        return embeddedFallbackServer;
+    public synchronized boolean tryConnectToServer() {
+        return openSocketInternal(DEFAULT_HOST, DEFAULT_PORT);
     }
 
     public synchronized boolean connect(String host, int port, int tableNumber, String devType) {

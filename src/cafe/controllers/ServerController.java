@@ -98,7 +98,39 @@ public class ServerController {
         }
     }
 
+    // ========================================================================
+    // BỘ LỌC TRẠM PHA CHẾ (KDS STATION): ALL | ESPRESSO | TEA | BAKERY
+    // ========================================================================
+    private static volatile String stationFilter = "ALL";
+    private static ServerController activeInstance;
+
+    public static void setStationFilter(String station) {
+        stationFilter = station != null ? station : "ALL";
+        if (activeInstance != null) {
+            activeInstance.refreshTicketBoard();
+        }
+    }
+
+    private static String stationOfCategory(String category) {
+        String c = category != null ? category.toLowerCase() : "";
+        if (c.contains("bánh") || c.contains("ăn") || c.contains("snack")) return "BAKERY";
+        if (c.contains("cà phê") || c.contains("espresso")) return "ESPRESSO";
+        return "TEA";
+    }
+
+    private boolean orderMatchesStation(Order o) {
+        if ("ALL".equals(stationFilter)) return true;
+        if (o.getItems() == null) return false;
+        for (cafe.models.OrderItem it : o.getItems()) {
+            cafe.models.MenuItem mi = cafe.models.MenuRepository.findByName(it.getName());
+            String station = mi != null ? stationOfCategory(mi.getCategory()) : "ESPRESSO";
+            if (station.equals(stationFilter)) return true;
+        }
+        return false;
+    }
+
     private void refreshTicketBoard() {
+        activeInstance = this;
         List<Order> filtered = new ArrayList<>();
         int countQueued = 0;
         int countPreparing = 0;
@@ -106,6 +138,7 @@ public class ServerController {
 
         for (Order o : orderList) {
             String st = o.getStatus() != null ? o.getStatus().toUpperCase() : "QUEUED";
+            if (!orderMatchesStation(o)) continue;
             if ("QUEUED".equals(st)) countQueued++;
             else if ("PREPARING".equals(st)) countPreparing++;
             else if ("DONE".equals(st)) countDone++;

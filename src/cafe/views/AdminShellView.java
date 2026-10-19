@@ -176,16 +176,16 @@ public class AdminShellView extends BorderPane {
         VBox navList = new VBox(4);
         navButtons.clear();
 
-        navButtons.add(createSidebarBtn(1, "1. Tổng quan BI", "tong-quan.png", SvgIcons.TABLE, "📊"));
-        navButtons.add(createSidebarBtn(2, "2. Gọi món & Bàn", "goi-mon.png", SvgIcons.SHOPPING_BAG, "🛒"));
-        navButtons.add(createSidebarBtn(3, "3. Đơn hàng", "don-hang.png", SvgIcons.ORDERS, "🧾"));
-        navButtons.add(createSidebarBtn(4, "4. Màn pha chế KDS", "man-pha-che.png", SvgIcons.COFFEE, "☕"));
-        navButtons.add(createSidebarBtn(5, "5. Thực đơn & BOM", "mon-va-gia.png", SvgIcons.MENU, "🏷️"));
-        navButtons.add(createSidebarBtn(6, "6. Tồn kho NL", "kho.png", SvgIcons.SETTINGS, "📦"));
-        navButtons.add(createSidebarBtn(7, "7. Khuyến mãi", "mon-va-gia.png", SvgIcons.MENU, "🎁"));
-        navButtons.add(createSidebarBtn(8, "8. Nhân sự RBAC", "nhan-vien.png", SvgIcons.USER, "👥"));
-        navButtons.add(createSidebarBtn(9, "9. Báo cáo Tài chính", "bao-cao.png", SvgIcons.ORDERS, "📈"));
-        navButtons.add(createSidebarBtn(10, "10. Cài đặt", "cai-dat.png", SvgIcons.SETTINGS, "⚙️"));
+        navButtons.add(createSidebarBtn(1, "Tổng quan BI", "tong-quan.png", SvgIcons.TABLE, "📊"));
+        navButtons.add(createSidebarBtn(2, "Gọi món & Bàn", "goi-mon.png", SvgIcons.SHOPPING_BAG, "🛒"));
+        navButtons.add(createSidebarBtn(3, "Đơn hàng", "don-hang.png", SvgIcons.ORDERS, "🧾"));
+        navButtons.add(createSidebarBtn(4, "Bếp & Bar (KDS)", "man-pha-che.png", SvgIcons.COFFEE, "☕"));
+        navButtons.add(createSidebarBtn(5, "Thực đơn & Giá", "mon-va-gia.png", SvgIcons.MENU, "🏷️"));
+        navButtons.add(createSidebarBtn(6, "Kho & Định lượng", "kho.png", SvgIcons.SETTINGS, "📦"));
+        navButtons.add(createSidebarBtn(7, "Khuyến mãi", "mon-va-gia.png", SvgIcons.MENU, "🎁"));
+        navButtons.add(createSidebarBtn(8, "Nhân sự & Phân quyền", "nhan-vien.png", SvgIcons.USER, "👥"));
+        navButtons.add(createSidebarBtn(9, "Báo cáo Tài chính", "bao-cao.png", SvgIcons.ORDERS, "📈"));
+        navButtons.add(createSidebarBtn(10, "Cài đặt hệ thống", "cai-dat.png", SvgIcons.SETTINGS, "⚙️"));
 
         navList.getChildren().addAll(navButtons);
 
@@ -235,16 +235,16 @@ public class AdminShellView extends BorderPane {
         row.setAlignment(Pos.CENTER_LEFT);
 
         StackPane iconContainer = new StackPane();
-        iconContainer.setPrefSize(24, 24);
-        iconContainer.setMinSize(24, 24);
-        iconContainer.setMaxSize(24, 24);
+        iconContainer.setPrefSize(26, 26);
+        iconContainer.setMinSize(26, 26);
+        iconContainer.setMaxSize(26, 26);
         iconContainer.setAlignment(Pos.CENTER);
 
         Node iconNode = getIconNode(iconFileName, svgFallback, fallbackEmoji, tabIndex == currentTab);
         iconContainer.getChildren().add(iconNode);
 
         Label label = new Label(labelText);
-        label.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #3F3931;");
+        label.setStyle("-fx-font-size: 13.5px; -fx-font-weight: 600; -fx-text-fill: #3F3931;");
 
         row.getChildren().addAll(iconContainer, label);
         btn.setGraphic(row);
@@ -289,34 +289,49 @@ public class AdminShellView extends BorderPane {
         return lbl;
     }
 
-    private void updateSidebarBtnStyle(Button btn, boolean isActive) {
-        if (isActive) {
-            btn.setStyle("-fx-background-color: #DED5C8; -fx-background-radius: 8px; -fx-cursor: hand;");
-            if (btn.getGraphic() instanceof HBox) {
-                HBox box = (HBox) btn.getGraphic();
-                if (box.getChildren().size() > 1 && box.getChildren().get(1) instanceof Label) {
-                    ((Label) box.getChildren().get(1)).setStyle("-fx-font-size: 13px; -fx-font-weight: 800; -fx-text-fill: #112823;");
-                }
+    private void applySidebarIconColor(Node n, boolean isActive) {
+        if (n instanceof SVGPath) {
+            ((SVGPath) n).setStroke(isActive ? Color.WHITE : Color.web("#3F3931"));
+        } else if (n instanceof ImageView) {
+            n.setOpacity(isActive ? 1.0 : 0.85);
+            if (isActive) {
+                javafx.scene.effect.ColorAdjust white = new javafx.scene.effect.ColorAdjust();
+                white.setBrightness(1.0);
+                n.setEffect(white);
+            } else {
+                n.setEffect(null);
             }
-        } else {
-            btn.setStyle("-fx-background-color: transparent; -fx-background-radius: 8px; -fx-cursor: hand;");
-            if (btn.getGraphic() instanceof HBox) {
-                HBox box = (HBox) btn.getGraphic();
-                if (box.getChildren().size() > 1 && box.getChildren().get(1) instanceof Label) {
-                    ((Label) box.getChildren().get(1)).setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #3F3931;");
-                }
-            }
-            btn.setOnMouseEntered(e -> {
-                if (navButtons.indexOf(btn) + 1 != currentTab) {
-                    btn.setStyle("-fx-background-color: #EFE8DD; -fx-background-radius: 8px; -fx-cursor: hand;");
-                }
-            });
-            btn.setOnMouseExited(e -> {
-                if (navButtons.indexOf(btn) + 1 != currentTab) {
-                    btn.setStyle("-fx-background-color: transparent; -fx-background-radius: 8px; -fx-cursor: hand;");
-                }
-            });
         }
+    }
+
+    private void updateSidebarBtnStyle(Button btn, boolean isActive) {
+        btn.setStyle(isActive
+            ? "-fx-background-color: #112823; -fx-background-radius: 8px; -fx-cursor: hand;"
+            : "-fx-background-color: transparent; -fx-background-radius: 8px; -fx-cursor: hand;");
+        if (btn.getGraphic() instanceof HBox) {
+            HBox box = (HBox) btn.getGraphic();
+            if (box.getChildren().size() > 0 && box.getChildren().get(0) instanceof StackPane) {
+                StackPane iconBox = (StackPane) box.getChildren().get(0);
+                if (!iconBox.getChildren().isEmpty()) {
+                    applySidebarIconColor(iconBox.getChildren().get(0), isActive);
+                }
+            }
+            if (box.getChildren().size() > 1 && box.getChildren().get(1) instanceof Label) {
+                ((Label) box.getChildren().get(1)).setStyle(isActive
+                    ? "-fx-font-size: 13.5px; -fx-font-weight: 700; -fx-text-fill: #FFFFFF;"
+                    : "-fx-font-size: 13.5px; -fx-font-weight: 600; -fx-text-fill: #3F3931;");
+            }
+        }
+        btn.setOnMouseEntered(e -> {
+            if (navButtons.indexOf(btn) + 1 != currentTab) {
+                btn.setStyle("-fx-background-color: #EFE8DD; -fx-background-radius: 8px; -fx-cursor: hand;");
+            }
+        });
+        btn.setOnMouseExited(e -> {
+            if (navButtons.indexOf(btn) + 1 != currentTab) {
+                btn.setStyle("-fx-background-color: transparent; -fx-background-radius: 8px; -fx-cursor: hand;");
+            }
+        });
     }
 
     public void switchTab(int tabIndex) {
@@ -342,27 +357,27 @@ public class AdminShellView extends BorderPane {
                 renderKdsTab();
                 break;
             case 5:
-                centerContent.getChildren().add(AdminSubViews.buildMenuAndBomView(st, this::showToastNotification, () -> {
+                centerContent.getChildren().add(AdminSubViews.styleInputs(AdminSubViews.buildMenuAndBomView(st, this::showToastNotification, () -> {
                     if (posEmbeddedMenuController != null) posEmbeddedMenuController.refreshCatalog();
-                }));
+                })));
                 break;
             case 6:
-                centerContent.getChildren().add(AdminSubViews.buildInventoryView(st, this::showToastNotification));
+                centerContent.getChildren().add(AdminSubViews.styleInputs(AdminSubViews.buildInventoryView(st, this::showToastNotification)));
                 break;
             case 7:
-                centerContent.getChildren().add(AdminSubViews.buildPromotionsView(st, this::showToastNotification));
+                centerContent.getChildren().add(AdminSubViews.styleInputs(AdminSubViews.buildPromotionsView(st, this::showToastNotification)));
                 break;
             case 8:
-                centerContent.getChildren().add(AdminSubViews.buildStaffRbacView(st, this::showToastNotification));
+                centerContent.getChildren().add(AdminSubViews.styleInputs(AdminSubViews.buildStaffRbacView(st, this::showToastNotification)));
                 break;
             case 9:
-                centerContent.getChildren().add(AdminSubViews.buildFinancialReportsView(this::showToastNotification));
+                centerContent.getChildren().add(AdminSubViews.styleInputs(AdminSubViews.buildFinancialReportsView(this::showToastNotification)));
                 break;
             case 10:
             default:
-                centerContent.getChildren().add(AdminSubViews.buildSystemSettingsView(st, this::showToastNotification, () -> {
+                centerContent.getChildren().add(AdminSubViews.styleInputs(AdminSubViews.buildSystemSettingsView(st, this::showToastNotification, () -> {
                     if (posEmbeddedMenuController != null) posEmbeddedMenuController.refreshCatalog();
-                }, onLogoutCallback));
+                }, onLogoutCallback)));
                 break;
         }
     }
@@ -380,7 +395,7 @@ public class AdminShellView extends BorderPane {
 
         VBox titleBox = new VBox(2);
         Label lblTitle = new Label("Tổng Quan Kinh Doanh & Phân Tích BI Tương Tác");
-        lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 21px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+        lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #112823;");
 
         String todayStr = new SimpleDateFormat("EEEE dd/MM/yyyy", new Locale("vi", "VN")).format(new Date());
         Label lblSub = new Label(DatabaseManager.brandName + " · " + todayStr + " · Nhấn vào từng cột biểu đồ để xem chi tiết KPI & Top món bán chạy của kỳ đó");
@@ -789,7 +804,7 @@ public class AdminShellView extends BorderPane {
         topBar.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 10px; -fx-border-color: #E6E0D6; -fx-border-radius: 10px;");
 
         Label lblTitle = new Label("POS Tạo Đơn Trực Tiếp Tại Quầy");
-        lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 18px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+        lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #112823;");
 
         Region sp = new Region();
         HBox.setHgrow(sp, Priority.ALWAYS);
@@ -809,11 +824,9 @@ public class AdminShellView extends BorderPane {
             if (val != null && val.contains("Mang đi")) {
                 selectedPosTable = 0;
             } else if (val != null) {
-                String digits = val.replaceAll("[^0-9]", "");
-                if (val.startsWith("Tầng 1")) {
-                    selectedPosTable = Integer.parseInt(digits.substring(1));
-                } else if (val.startsWith("Tầng 2") || val.startsWith("Tầng 3")) {
-                    selectedPosTable = Integer.parseInt(digits.substring(1));
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("Bàn\\s+(\\d+)").matcher(val);
+                if (m.find()) {
+                    selectedPosTable = Integer.parseInt(m.group(1));
                 }
             }
             if (posEmbeddedMenuController != null) {
@@ -1017,8 +1030,10 @@ public class AdminShellView extends BorderPane {
 
         String[] stations = {"Tất cả các trạm", "☕ Quầy Máy Pha Espresso", "🍹 Quầy Trà & Đá Xay", "🥐 Tủ Bánh Ngọt & Đồ Ăn Nhẹ"};
         List<Button> stBtns = new ArrayList<>();
+        final String[] stationCodes = {"ALL", "ESPRESSO", "TEA", "BAKERY"};
         for (int i = 0; i < stations.length; i++) {
             final String stName = stations[i];
+            final String stCode = stationCodes[i];
             Button b = new Button(stName);
             b.setStyle(i == 0
                 ? "-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-background-radius: 999px; -fx-padding: 5 14 5 14; -fx-cursor: hand;"
@@ -1030,7 +1045,8 @@ public class AdminShellView extends BorderPane {
                         ? "-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-background-radius: 999px; -fx-padding: 5 14 5 14; -fx-cursor: hand;"
                         : "-fx-background-color: #EAE4DA; -fx-text-fill: #57534E; -fx-font-size: 11.5px; -fx-font-weight: 600; -fx-background-radius: 999px; -fx-padding: 5 14 5 14; -fx-cursor: hand;");
                 }
-                showToastNotification("Đang hiển thị KDS theo trạm: " + stName);
+                cafe.controllers.ServerController.setStationFilter(stCode);
+                showToastNotification("Đang lọc KDS theo trạm: " + stName);
             });
             stBtns.add(b);
         }

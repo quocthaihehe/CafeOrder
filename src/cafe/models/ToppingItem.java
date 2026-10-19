@@ -14,6 +14,10 @@ public class ToppingItem {
         this.price = price;
     }
 
+    public ToppingItem(String name, double price) {
+        this(0, name, price);
+    }
+
     public int getToppingId() { return toppingId; }
     public String getName() { return name; }
     public double getPrice() { return price; }

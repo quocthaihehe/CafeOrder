@@ -43,6 +43,12 @@ public class LoginView extends HBox {
     private final Button btnStaff = new Button("Nhân viên");
     private final Button btnManager = new Button("Quản lý");
 
+    // Server status badge
+    private final HBox serverStatusBadge = new HBox(6);
+    private final Label lblServerDot = new Label("●");
+    private final Label lblServerStatusText = new Label("Máy chủ: Đang kết nối...");
+    private final Button btnRetryConnection = new Button("↻ Thử lại");
+
     private boolean isPasswordVisible = false;
 
     // Quản lý ảnh Hero theo kích thước form
@@ -149,11 +155,26 @@ public class LoginView extends HBox {
         // Tiêu đề & Lời chào
         VBox titleBox = new VBox(3);
         Label lblWelcome = new Label("Chào mừng trở lại!");
-        lblWelcome.setStyle("-fx-font-family: 'Playfair Display', Georgia, serif; -fx-font-size: 22px; -fx-font-weight: 700; -fx-text-fill: #1C1917;");
+        lblWelcome.setStyle("-fx-font-family: 'Playfair Display', Georgia, serif; -fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #112823;");
 
         Label lblDesc = new Label("Đăng nhập để bắt đầu phục vụ khách hàng.");
         lblDesc.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-text-fill: #78716C;");
         titleBox.getChildren().addAll(lblWelcome, lblDesc);
+
+        // Server Status Badge (Kiểm soát trạng thái kết nối máy chủ KDS / Port 5000)
+        serverStatusBadge.setAlignment(Pos.CENTER_LEFT);
+        serverStatusBadge.setPadding(new Insets(5, 10, 5, 10));
+        serverStatusBadge.setStyle("-fx-background-color: #FEF3C7; -fx-border-color: #FDE68A; -fx-border-radius: 6px; -fx-background-radius: 6px;");
+        lblServerDot.setStyle("-fx-text-fill: #D97706; -fx-font-size: 11px;");
+        lblServerStatusText.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #92400E;");
+        btnRetryConnection.setStyle("-fx-background-color: #FFFFFF; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 700; -fx-border-color: #DED7CD; -fx-border-radius: 4px; -fx-background-radius: 4px; -fx-padding: 2 8 2 8; -fx-cursor: hand;");
+        AnimationHelper.applyButtonPress(btnRetryConnection);
+        btnRetryConnection.setVisible(false);
+        btnRetryConnection.setManaged(false);
+
+        Region statusSpacer = new Region();
+        HBox.setHgrow(statusSpacer, Priority.ALWAYS);
+        serverStatusBadge.getChildren().addAll(lblServerDot, lblServerStatusText, statusSpacer, btnRetryConnection);
 
         // 1. Ô Tài khoản
         VBox accountGroup = new VBox(6);
@@ -161,14 +182,14 @@ public class LoginView extends HBox {
         lblAccBox.setAlignment(Pos.CENTER_LEFT);
         SVGPath iconUser = SvgIcons.createOutlineIcon(SvgIcons.USER, 0.65, Color.web("#817A70"));
         Label lblAccountTitle = new Label("Tài khoản");
-        lblAccountTitle.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 600; -fx-text-fill: #1C1917;");
+        lblAccountTitle.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #112823;");
         lblAccBox.getChildren().addAll(iconUser, lblAccountTitle);
 
         txtAccount.setPromptText("Nhập tên đăng nhập (hoặc số bàn 1..12)");
         txtAccount.getStyleClass().addAll("text-input-field", "pos-text-input");
         txtAccount.setPrefHeight(42);
         txtAccount.setMinHeight(42);
-        txtAccount.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-size: 13px; -fx-padding: 10 14 10 14; -fx-text-fill: #1C1917;");
+        txtAccount.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-background-color: #FAF8F5; -fx-border-color: #E2DDD5; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-size: 13px; -fx-padding: 10 14 10 14; -fx-text-fill: #112823;");
         accountGroup.getChildren().addAll(lblAccBox, txtAccount);
 
         // 2. Ô Mật khẩu kèm Icon Mắt
@@ -177,18 +198,18 @@ public class LoginView extends HBox {
         lblPassBox.setAlignment(Pos.CENTER_LEFT);
         SVGPath iconLock = SvgIcons.createOutlineIcon(SvgIcons.LOCK, 0.65, Color.web("#817A70"));
         Label lblPassTitle = new Label("Mật khẩu");
-        lblPassTitle.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 600; -fx-text-fill: #1C1917;");
+        lblPassTitle.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #112823;");
         lblPassBox.getChildren().addAll(iconLock, lblPassTitle);
 
         txtPassword.setPromptText("Nhập mật khẩu");
         txtPassword.setPrefHeight(42);
         txtPassword.setMinHeight(42);
-        txtPassword.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-size: 13px; -fx-padding: 10 40 10 14; -fx-text-fill: #1C1917;");
+        txtPassword.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-background-color: #FAF8F5; -fx-border-color: #E2DDD5; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-size: 13px; -fx-padding: 10 40 10 14; -fx-text-fill: #112823;");
 
         txtPasswordVisible.setPromptText("Nhập mật khẩu");
         txtPasswordVisible.setPrefHeight(42);
         txtPasswordVisible.setMinHeight(42);
-        txtPasswordVisible.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-size: 13px; -fx-padding: 10 40 10 14; -fx-text-fill: #1C1917;");
+        txtPasswordVisible.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-background-color: #FAF8F5; -fx-border-color: #E2DDD5; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-size: 13px; -fx-padding: 10 40 10 14; -fx-text-fill: #112823;");
         txtPasswordVisible.setVisible(false);
         txtPasswordVisible.setManaged(false);
 
@@ -206,7 +227,7 @@ public class LoginView extends HBox {
         passGroup.getChildren().addAll(lblPassBox, passWrapper);
 
         // Thông báo lỗi
-        lblError.setStyle("-fx-text-fill: #C62828; -fx-font-size: 11.5px; -fx-font-weight: 600;");
+        lblError.setStyle("-fx-text-fill: #B91C1C; -fx-font-size: 11.5px; -fx-font-weight: 700;");
         lblError.setVisible(false);
         lblError.setManaged(false);
 
@@ -215,75 +236,95 @@ public class LoginView extends HBox {
         btnLogin.setPrefHeight(42);
         btnLogin.setMinHeight(42);
         btnLogin.getStyleClass().add("pos-btn-primary");
-        btnLogin.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 13.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-cursor: hand;");
+        btnLogin.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 13px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-cursor: hand;");
         AnimationHelper.applyButtonPress(btnLogin);
 
-        // Phân cách: "Hoặc đăng nhập bằng"
+        // Phân cách: "Chọn nhanh chế độ truy cập"
         HBox dividerBox = new HBox(8);
         dividerBox.setAlignment(Pos.CENTER);
         dividerBox.setPadding(new Insets(4, 0, 4, 0));
 
-        Line lineLeft = new Line(0, 0, 75, 0);
-        lineLeft.setStroke(Color.web("#DED7CD"));
-        Line lineRight = new Line(0, 0, 75, 0);
-        lineRight.setStroke(Color.web("#DED7CD"));
+        Line lineLeft = new Line(0, 0, 65, 0);
+        lineLeft.setStroke(Color.web("#E2DDD5"));
+        Line lineRight = new Line(0, 0, 65, 0);
+        lineRight.setStroke(Color.web("#E2DDD5"));
 
-        Label lblOr = new Label("Hoặc đăng nhập bằng");
-        lblOr.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-text-fill: #817A70;");
+        Label lblOr = new Label("Chọn nhanh vai trò (Demo Quick-Fill)");
+        lblOr.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: #6E675F;");
 
         dividerBox.getChildren().addAll(lineLeft, lblOr, lineRight);
 
-        // Nút phân quyền: [Khách] và [Nhân viên] và [Quản lý]
-        HBox roleButtons = new HBox(10);
+        // Segmented Pill: [Kiosk Khách] [Thu ngân (Staff)] [Quản lý (Admin)]
+        HBox roleButtons = new HBox(6);
         roleButtons.setAlignment(Pos.CENTER);
+        roleButtons.setPadding(new Insets(4));
+        roleButtons.setStyle("-fx-background-color: #EDE6DB; -fx-background-radius: 10px; -fx-border-color: #DFD7CA; -fx-border-radius: 10px;");
 
+        final String pillIdle = "-fx-font-family: 'Inter', sans-serif; -fx-background-color: transparent; -fx-text-fill: #4A453E; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 7px; -fx-cursor: hand;";
+        final String pillActive = "-fx-font-family: 'Inter', sans-serif; -fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 7px; -fx-cursor: hand;";
+
+        btnCustomer.setText("Kiosk Khách");
         btnCustomer.setMaxWidth(Double.MAX_VALUE);
-        btnCustomer.setPrefHeight(38);
-        btnCustomer.setMinHeight(38);
-        btnCustomer.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-background-color: #FBF9F5; -fx-text-fill: #1C1917; -fx-font-size: 12px; -fx-font-weight: 600; -fx-background-radius: 8px; -fx-border-color: #DED7CD; -fx-border-radius: 8px; -fx-cursor: hand;");
+        btnCustomer.setPrefHeight(34);
+        btnCustomer.setMinHeight(34);
+        btnCustomer.setStyle(pillIdle);
         HBox.setHgrow(btnCustomer, Priority.ALWAYS);
         AnimationHelper.applyButtonPress(btnCustomer);
+
+        btnStaff.setText("Thu ngân (POS)");
+        btnStaff.setMaxWidth(Double.MAX_VALUE);
+        btnStaff.setPrefHeight(34);
+        btnStaff.setMinHeight(34);
+        btnStaff.setStyle(pillIdle);
+        HBox.setHgrow(btnStaff, Priority.ALWAYS);
+        AnimationHelper.applyButtonPress(btnStaff);
+
+        btnManager.setText("Quản lý (Admin)");
+        btnManager.setMaxWidth(Double.MAX_VALUE);
+        btnManager.setPrefHeight(34);
+        btnManager.setMinHeight(34);
+        btnManager.setStyle(pillIdle);
+        HBox.setHgrow(btnManager, Priority.ALWAYS);
+        AnimationHelper.applyButtonPress(btnManager);
+
         btnCustomer.setOnAction(e -> {
             txtAccount.setText("5");
             txtPassword.setText("");
+            btnCustomer.setStyle(pillActive);
+            btnStaff.setStyle(pillIdle);
+            btnManager.setStyle(pillIdle);
             clearError();
         });
 
-        btnStaff.setMaxWidth(Double.MAX_VALUE);
-        btnStaff.setPrefHeight(38);
-        btnStaff.setMinHeight(38);
-        btnStaff.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-background-color: #FBF9F5; -fx-text-fill: #1C1917; -fx-font-size: 12px; -fx-font-weight: 600; -fx-background-radius: 8px; -fx-border-color: #DED7CD; -fx-border-radius: 8px; -fx-cursor: hand;");
-        HBox.setHgrow(btnStaff, Priority.ALWAYS);
-        AnimationHelper.applyButtonPress(btnStaff);
         btnStaff.setOnAction(e -> {
             txtAccount.setText("cashier1");
             txtPassword.setText("cafe123");
+            btnStaff.setStyle(pillActive);
+            btnCustomer.setStyle(pillIdle);
+            btnManager.setStyle(pillIdle);
             clearError();
         });
 
-        btnManager.setMaxWidth(Double.MAX_VALUE);
-        btnManager.setPrefHeight(38);
-        btnManager.setMinHeight(38);
-        btnManager.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-background-color: #FBF9F5; -fx-text-fill: #1C1917; -fx-font-size: 12px; -fx-font-weight: 600; -fx-background-radius: 8px; -fx-border-color: #DED7CD; -fx-border-radius: 8px; -fx-cursor: hand;");
-        HBox.setHgrow(btnManager, Priority.ALWAYS);
-        AnimationHelper.applyButtonPress(btnManager);
         btnManager.setOnAction(e -> {
             txtAccount.setText("admin");
             txtPassword.setText("admin123");
+            btnManager.setStyle(pillActive);
+            btnCustomer.setStyle(pillIdle);
+            btnStaff.setStyle(pillIdle);
             clearError();
         });
 
         roleButtons.getChildren().addAll(btnCustomer, btnStaff, btnManager);
 
-        // Footer thương hiệu
-        Label lblFooter = new Label("Brew & Bean © 2025");
-        lblFooter.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 10px; -fx-text-fill: #817A70; -fx-padding: 8 0 0 0;");
-        lblFooter.setAlignment(Pos.CENTER);
+        // Footer thương hiệu (Chuẩn hóa 2026)
+        Label lblFooter = new Label("Brew & Bean © 2026 — Hệ thống Quản lý Quán Cà Phê");
+        lblFooter.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-text-fill: #6E675F; -fx-padding: 8 0 0 0;");
         lblFooter.setAlignment(Pos.CENTER);
 
         formCard.getChildren().addAll(
             iconBean,
             titleBox,
+            serverStatusBadge,
             accountGroup,
             passGroup,
             lblError,
@@ -396,5 +437,27 @@ public class LoginView extends HBox {
         lblError.setText("");
         lblError.setVisible(false);
         lblError.setManaged(false);
+    }
+
+    public void setServerStatus(boolean connected, String host, int port) {
+        if (connected) {
+            lblServerDot.setStyle("-fx-text-fill: #15803D; -fx-font-size: 11px;");
+            lblServerStatusText.setText("Máy chủ: Sẵn sàng (" + host + ":" + port + ")");
+            lblServerStatusText.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #15803D;");
+            btnRetryConnection.setVisible(false);
+            btnRetryConnection.setManaged(false);
+            serverStatusBadge.setStyle("-fx-background-color: #DCFCE7; -fx-border-color: #BBF7D0; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-padding: 5 10 5 10;");
+        } else {
+            lblServerDot.setStyle("-fx-text-fill: #DC2626; -fx-font-size: 11px;");
+            lblServerStatusText.setText("Máy chủ: Chưa kết nối (Server đang tắt)");
+            lblServerStatusText.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #DC2626;");
+            btnRetryConnection.setVisible(true);
+            btnRetryConnection.setManaged(true);
+            serverStatusBadge.setStyle("-fx-background-color: #FEE2E2; -fx-border-color: #FECACA; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-padding: 5 10 5 10;");
+        }
+    }
+
+    public Button getBtnRetryConnection() {
+        return btnRetryConnection;
     }
 }

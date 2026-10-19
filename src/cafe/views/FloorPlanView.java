@@ -387,7 +387,7 @@ public class FloorPlanView extends BorderPane {
 
         HBox titleRow = new HBox(10);
         titleRow.setAlignment(Pos.CENTER_LEFT);
-        lblCurrentTableTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 24px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+        lblCurrentTableTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #112823;");
         lblCurrentTableStatus.setStyle("-fx-background-color: #DCE8D9; -fx-text-fill: #597256; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 999px; -fx-padding: 4 12 4 12;");
         titleRow.getChildren().addAll(lblCurrentTableTitle, lblCurrentTableStatus);
 
@@ -1228,8 +1228,19 @@ public class FloorPlanView extends BorderPane {
     }
 
     private void showModalScene(Stage modal, VBox root) {
+        AdminSubViews.styleInputs(root);
+
+        Button btnClose = new Button("✕");
+        btnClose.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #4A453E; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 999px; -fx-min-width: 28px; -fx-min-height: 28px; -fx-max-width: 28px; -fx-max-height: 28px; -fx-padding: 0; -fx-cursor: hand;");
+        btnClose.setOnAction(e -> modal.close());
+
         cafe.utils.WindowChromeHelper.makeDraggable(modal, root);
-        StackPane wrap = new StackPane(root);
+        StackPane card = new StackPane(root, btnClose);
+        StackPane.setAlignment(btnClose, Pos.TOP_RIGHT);
+        StackPane.setMargin(btnClose, new Insets(14, 14, 0, 0));
+        card.setStyle("-fx-background-color: transparent;");
+
+        StackPane wrap = new StackPane(card);
         wrap.setPadding(new Insets(16));
         wrap.setStyle("-fx-background-color: transparent;");
         Scene scene = new Scene(wrap);
@@ -1237,6 +1248,7 @@ public class FloorPlanView extends BorderPane {
         cafe.utils.WindowChromeHelper.applyTheme(scene);
         modal.setScene(scene);
         modal.show();
+        AnimationHelper.playDialogEntrance(card);
     }
 
     // =========================================================================

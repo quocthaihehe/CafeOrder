@@ -19,10 +19,80 @@ public class OrderItem {
 
     public OrderItem(String name, int qty, String note) {
         this(0, name, qty, 0.0, "M", 0.0, 100, 100, "COLD", new ArrayList<>(), note);
+        parseLegacyCustomizationsFromNote();
     }
 
     public OrderItem(String name, int qty, String note, double unitPrice) {
         this(0, name, qty, unitPrice, "M", 0.0, 100, 100, "COLD", new ArrayList<>(), note);
+        parseLegacyCustomizationsFromNote();
+    }
+
+    private void parseLegacyCustomizationsFromNote() {
+        if (this.note == null || this.note.trim().isEmpty()) return;
+        String raw = this.note.trim();
+        List<String> remainingNotes = new ArrayList<>();
+
+        String[] tokens = raw.split("•");
+        for (String t : tokens) {
+            String token = t.trim();
+            if (token.isEmpty()) continue;
+
+            java.util.regex.Matcher mSize = java.util.regex.Pattern.compile("(?i)^[«\"']?\\s*size\\s*([SML])\\s*[»\"']?$").matcher(token);
+            if (mSize.find()) {
+                this.sizeCode = mSize.group(1).toUpperCase();
+                continue;
+            }
+
+            if (token.startsWith("+")) {
+                String topName = token.substring(1).trim();
+                if (!topName.isEmpty()) {
+                    boolean exists = false;
+                    for (ToppingItem item : this.toppings) {
+                        if (topName.equalsIgnoreCase(item.getName())) {
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists) {
+                        this.toppings.add(new ToppingItem(topName, 0.0));
+                    }
+                }
+                continue;
+            }
+
+            java.util.regex.Matcher mSugar = java.util.regex.Pattern.compile("(?i)(\\d+)%\\s*đường").matcher(token);
+            if (mSugar.find()) {
+                try {
+                    this.sugarPercent = Integer.parseInt(mSugar.group(1));
+                    continue;
+                } catch (NumberFormatException ignored) {}
+            }
+            if (token.matches("(?i).*không đường.*")) {
+                this.sugarPercent = 0;
+                continue;
+            }
+
+            java.util.regex.Matcher mIce = java.util.regex.Pattern.compile("(?i)(?:đá\\s*)?(\\d+)%\\s*(?:đá)?").matcher(token);
+            if (mIce.find() && token.toLowerCase().contains("đá")) {
+                try {
+                    this.icePercent = Integer.parseInt(mIce.group(1));
+                    continue;
+                } catch (NumberFormatException ignored) {}
+            }
+            if (token.matches("(?i).*không đá.*")) {
+                this.icePercent = 0;
+                continue;
+            }
+
+            if (token.matches("(?i).*nóng.*")) {
+                this.temperature = "HOT";
+                this.icePercent = 0;
+                continue;
+            }
+
+            remainingNotes.add(token);
+        }
+        this.note = String.join(" • ", remainingNotes).trim();
     }
 
     public OrderItem(int productId, String name, int qty, double basePrice, String sizeCode, double sizeDelta,

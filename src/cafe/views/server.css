@@ -6,7 +6,7 @@
 
 .root {
     -fx-font-family: 'Inter', 'Segoe UI', -apple-system, sans-serif;
-    -fx-background-color: #F4F0E8;
+    -fx-background-color: #F5F0E8;
     -fx-text-fill: #292722;
 }
 
@@ -23,9 +23,9 @@
 .kds-brand-title {
     -fx-font-family: 'Playfair Display', 'Georgia', serif;
     -fx-font-style: normal;
-    -fx-font-size: 20px;
-    -fx-font-weight: 700;
-    -fx-text-fill: #183C32;
+    -fx-font-size: 22px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #112823;
 }
 
 .kds-brand-subtitle {
@@ -87,46 +87,48 @@
 
 .kds-filter-btn {
     -fx-background-color: #FFFFFF;
-    -fx-text-fill: #817B70;
-    -fx-font-size: 12px;
+    -fx-text-fill: #57534E;
+    -fx-font-family: 'Inter', sans-serif;
+    -fx-font-size: 12.5px;
     -fx-font-weight: 600;
-    -fx-background-radius: 4px;
-    -fx-border-color: #D8D1C3;
-    -fx-border-radius: 4px;
+    -fx-background-radius: 8px;
+    -fx-border-color: #DFD7CA;
+    -fx-border-radius: 8px;
     -fx-border-width: 1px;
-    -fx-padding: 6 14 6 14;
+    -fx-padding: 7 16 7 16;
     -fx-cursor: hand;
 }
 
 .kds-filter-btn:hover {
-    -fx-background-color: #EFE9DE;
-    -fx-text-fill: #292722;
+    -fx-background-color: #F5EFEB;
+    -fx-text-fill: #112823;
 }
 
-.kds-filter-btn:selected {
-    -fx-background-color: #183C32;
+.kds-filter-btn.selected, .kds-filter-btn:selected {
+    -fx-background-color: #112823;
     -fx-text-fill: #FFFFFF;
-    -fx-border-color: #183C32;
+    -fx-border-color: #112823;
     -fx-font-weight: 700;
 }
 
 .kds-clear-btn {
-    -fx-background-color: #FBF9F4;
-    -fx-text-fill: #817B70;
-    -fx-font-size: 12px;
+    -fx-background-color: #F5EFEB;
+    -fx-text-fill: #854D0E;
+    -fx-font-family: 'Inter', sans-serif;
+    -fx-font-size: 12.5px;
     -fx-font-weight: 600;
-    -fx-background-radius: 4px;
-    -fx-border-color: #D8D1C3;
-    -fx-border-radius: 4px;
+    -fx-background-radius: 8px;
+    -fx-border-color: #DFD7CA;
+    -fx-border-radius: 8px;
     -fx-border-width: 1px;
-    -fx-padding: 6 12 6 12;
+    -fx-padding: 7 14 7 14;
     -fx-cursor: hand;
 }
 
 .kds-clear-btn:hover {
-    -fx-background-color: #FDEEEE;
-    -fx-text-fill: #C62828;
-    -fx-border-color: #F9CBCB;
+    -fx-background-color: #FEE2E2;
+    -fx-text-fill: #DC2626;
+    -fx-border-color: #FECACA;
 }
 
 /* --------------------------------------------------------------------------
@@ -134,13 +136,14 @@
    -------------------------------------------------------------------------- */
 .ticket-card {
     -fx-background-color: #FFFFFF;
-    -fx-background-radius: 4px;
+    -fx-background-radius: 10px;
     -fx-border-color: #D8D1C3;
-    -fx-border-radius: 4px;
+    -fx-border-radius: 10px;
     -fx-border-width: 1px;
     -fx-padding: 14;
-    -fx-pref-width: 280;
-    -fx-max-width: 320;
+    -fx-pref-width: 320;
+    -fx-max-width: 360;
+    -fx-min-width: 290;
 }
 
 .ticket-header {

@@ -1,29 +1,29 @@
 package cafe.views;
 
-import cafe.models.MessageProtocol;
 import cafe.models.Order;
 import cafe.models.OrderItem;
-import cafe.utils.SvgIcons;
+import cafe.models.ToppingItem;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.SVGPath;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.BiConsumer;
 
 /**
- * OrderTicketCard - Card phiếu đơn hàng trong quầy KDS.
- * Hallmark Discipline:
- * - Dễ scan nhanh từ xa (high-contrast status, table, item count)
- * - 4px radius, hairline borders #D8D1C3
- * - Action buttons tactile & distinct
+ * OrderTicketCard - Card phiếu đơn hàng trong quầy KDS (Kitchen Display System).
+ * Tái cấu trúc 100% theo bản đặc tả F&B chuyên nghiệp:
+ * 1. Tiêu đề gọn gàng: Huy hiệu [BÀN XX] hoặc [MANG VỀ] + #Mã đơn, SLA Tracker thời gian thực đổi màu theo hạn mức.
+ * 2. Phân tách từng món: Đường dashed divider, Badge số lượng [ 2x ] nền tối nổi bật, Pill [ Size L ], Tùy chọn đá/đường.
+ * 3. Kitchen Note Alert Box màu vàng cam nhạt (#FEF3C7) - lọc bỏ triệt để các ghi chú rác/trùng lặp.
+ * 4. Pinned Action Bar: Cố định sát đáy thẻ (Priority.ALWAYS trên danh sách món), thẳng hàng tắp trên toàn bộ lưới.
  */
 public class OrderTicketCard extends VBox {
     private final Order order;
     private final BiConsumer<Order, String> onStatusChange;
-    private final Label lblTime = new Label();
+    private final Label lblSlaTime = new Label();
 
     public OrderTicketCard(Order order, BiConsumer<Order, String> onStatusChange) {
         this.order = order;
@@ -33,140 +33,344 @@ public class OrderTicketCard extends VBox {
     }
 
     public void updateElapsedTime() {
-        long elapsedMillis = System.currentTimeMillis() - order.getTimestamp();
-        long elapsedMinutes = Math.max(0, elapsedMillis / 60000);
-        lblTime.setText(order.getFormattedTime() + " (" + elapsedMinutes + "p trước)");
-        if (elapsedMinutes >= 15) {
-            lblTime.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 800; -fx-text-fill: #D32F2F;");
-        } else if (elapsedMinutes >= 10) {
-            lblTime.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 800; -fx-text-fill: #F57C00;");
+        long elapsedMillis = Math.max(0, System.currentTimeMillis() - order.getTimestamp());
+        long elapsedMinutes = elapsedMillis / 60000;
+        long elapsedSeconds = (elapsedMillis % 60000) / 1000;
+
+        String timeFormatted = String.format("%02d:%02d", elapsedMinutes, elapsedSeconds);
+        if (elapsedMinutes > 0) {
+            timeFormatted += " (" + elapsedMinutes + "p)";
+        }
+        lblSlaTime.setText(timeFormatted);
+
+        if (elapsedMinutes >= 10) {
+            // SLA > 10 phút: Đỏ cảnh báo khẩn cấp
+            lblSlaTime.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-font-weight: 800; -fx-text-fill: #DC2626;");
+        } else if (elapsedMinutes >= 5) {
+            // SLA 5 - 10 phút: Cam hổ phách
+            lblSlaTime.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800; -fx-text-fill: #D97706;");
         } else {
-            lblTime.getStyleClass().setAll("ticket-time");
-            lblTime.setStyle("");
+            // SLA < 5 phút: Xám trung tính
+            lblSlaTime.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #78716C;");
         }
     }
 
     private void initUI() {
         getStyleClass().add("ticket-card");
-        setSpacing(8);
+        setSpacing(10);
+        setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 10px; -fx-border-color: #D8D1C3; -fx-border-radius: 10px; -fx-border-width: 1px; -fx-padding: 14; -fx-pref-width: 320px; -fx-max-width: 360px; -fx-min-width: 290px;");
 
-        // Header: Order Type + ID + Time + Status
-        HBox header = new HBox(8);
-        header.getStyleClass().add("ticket-header");
-        header.setAlignment(Pos.CENTER_LEFT);
+        // 1. TICKET HEADER
+        HBox header = buildHeader();
+        getChildren().add(header);
 
-        VBox titleBox = new VBox(2);
+        // 2. ITEMS LIST (Pinned Sticky Baseline với Vgrow ALWAYS)
+        VBox itemsBox = buildItemsBox();
+        VBox.setVgrow(itemsBox, Priority.ALWAYS);
+        getChildren().add(itemsBox);
 
-        HBox topTitleRow = new HBox(6);
-        topTitleRow.setAlignment(Pos.CENTER_LEFT);
-
-        // Order Type Label
-        Label lblType = new Label(order.getOrderTypeLabel());
-        if ("TAKEAWAY".equalsIgnoreCase(order.getOrderType())) {
-            lblType.setStyle("-fx-background-color: #FFF3E0; -fx-text-fill: #E65100; -fx-font-weight: 800; -fx-font-size: 10px; -fx-padding: 2 6 2 6; -fx-background-radius: 4px;");
-        } else {
-            lblType.setStyle("-fx-background-color: #EFEBE9; -fx-text-fill: #3E2723; -fx-font-weight: 800; -fx-font-size: 10px; -fx-padding: 2 6 2 6; -fx-background-radius: 4px;");
+        // 3. GENERAL ORDER NOTE (Nếu có)
+        if (order.getNote() != null && !order.getNote().trim().isEmpty()) {
+            HBox orderNoteBox = new HBox(6);
+            orderNoteBox.setAlignment(Pos.CENTER_LEFT);
+            orderNoteBox.setStyle("-fx-background-color: #FBF4E6; -fx-border-color: #EBD9BC; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-padding: 5 8 5 8;");
+            Label iconOrderNote = new Label("📌");
+            iconOrderNote.setStyle("-fx-font-size: 11px;");
+            Label lblOrderNote = new Label("Ghi chú đơn: " + order.getNote().trim());
+            lblOrderNote.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #854D0E;");
+            lblOrderNote.setWrapText(true);
+            HBox.setHgrow(lblOrderNote, Priority.ALWAYS);
+            orderNoteBox.getChildren().addAll(iconOrderNote, lblOrderNote);
+            getChildren().add(orderNoteBox);
         }
 
-        Label lblId = new Label("#" + order.getOrderId() + " • BÀN " + order.getTable());
-        lblId.getStyleClass().add("ticket-order-id");
-        topTitleRow.getChildren().addAll(lblType, lblId);
+        // 4. ACTION BAR SÁT ĐÁY THẺ
+        HBox actionsBar = buildActionBar();
+        getChildren().add(actionsBar);
+    }
+
+    private HBox buildHeader() {
+        HBox header = new HBox(8);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setStyle("-fx-padding: 0 0 10 0; -fx-border-color: transparent transparent #EAE4DA transparent; -fx-border-width: 0 0 1 0;");
+
+        // Bên trái: Huy hiệu bàn / mang về + Mã đơn hàng (KHÔNG lặp lại chữ BÀN)
+        boolean isTakeaway = "TAKEAWAY".equalsIgnoreCase(order.getOrderType()) || order.getTable() <= 0;
+        Label lblTypeBadge = new Label();
+        if (isTakeaway) {
+            lblTypeBadge.setText("MANG VỀ");
+            lblTypeBadge.setStyle("-fx-background-color: #FFF3E0; -fx-text-fill: #C05621; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 800; -fx-padding: 3 8 3 8; -fx-background-radius: 6px;");
+        } else {
+            int tbl = order.getTable();
+            lblTypeBadge.setText("BÀN " + (tbl < 10 ? "0" + tbl : String.valueOf(tbl)));
+            lblTypeBadge.setStyle("-fx-background-color: #EAE4DA; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 800; -fx-padding: 3 8 3 8; -fx-background-radius: 6px;");
+        }
+
+        Label lblOrderId = new Label("#" + order.getOrderId());
+        lblOrderId.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 600; -fx-text-fill: #78716C;");
+
+        HBox leftHeader = new HBox(6, lblTypeBadge, lblOrderId);
+        leftHeader.setAlignment(Pos.CENTER_LEFT);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        // Bên phải: Huy hiệu trạng thái + SLA Tracker
+        Label lblStatus = new Label();
+        applyStatusBadgeStyle(lblStatus, order.getStatus());
 
         updateElapsedTime();
 
-        titleBox.getChildren().addAll(topTitleRow, lblTime);
-        HBox.setHgrow(titleBox, Priority.ALWAYS);
+        HBox rightHeader = new HBox(6, lblStatus, lblSlaTime);
+        rightHeader.setAlignment(Pos.CENTER_RIGHT);
 
-        // Status Badge
-        Label lblStatus = new Label();
-        lblStatus.getStyleClass().add("ticket-status-badge");
-        applyStatusBadgeStyle(lblStatus, order.getStatus());
+        header.getChildren().addAll(leftHeader, spacer, rightHeader);
+        return header;
+    }
 
-        header.getChildren().addAll(titleBox, lblStatus);
-        getChildren().add(header);
-
-        // Items list
+    private VBox buildItemsBox() {
         VBox itemsBox = new VBox(6);
-        itemsBox.setPadding(new Insets(4, 0, 6, 0));
+        itemsBox.setPadding(new Insets(6, 0, 8, 0));
 
-        if (order.getItems() != null) {
-            for (OrderItem oi : order.getItems()) {
-                VBox itemRow = new VBox(2);
-                itemRow.getStyleClass().add("ticket-item-row");
+        List<OrderItem> items = order.getItems();
+        if (items != null && !items.isEmpty()) {
+            for (int i = 0; i < items.size(); i++) {
+                OrderItem oi = items.get(i);
+                VBox itemBlock = createItemBlock(oi);
+                itemsBox.getChildren().add(itemBlock);
 
-                HBox mainLine = new HBox(8);
-                mainLine.setAlignment(Pos.CENTER_LEFT);
-
-                Label lblQty = new Label(oi.getQty() + "x");
-                lblQty.getStyleClass().add("ticket-item-qty");
-
-                String nameAndSize = oi.getName();
-                if (oi.getSizeCode() != null && !oi.getSizeCode().isEmpty()) {
-                    nameAndSize += " (" + oi.getSizeCode() + ")";
+                // Đường phân cách đứt đoạn giữa các món (Dashed Divider)
+                if (i < items.size() - 1) {
+                    Region divider = new Region();
+                    divider.setStyle("-fx-border-style: dashed; -fx-border-color: #E6E0D6 transparent transparent transparent; -fx-border-width: 1 0 0 0; -fx-min-height: 1px; -fx-pref-height: 1px;");
+                    VBox.setMargin(divider, new Insets(6, 0, 6, 0));
+                    itemsBox.getChildren().add(divider);
                 }
-                Label lblName = new Label(nameAndSize);
-                lblName.getStyleClass().add("ticket-item-name");
-                lblName.setWrapText(true);
-                HBox.setHgrow(lblName, Priority.ALWAYS);
-
-                mainLine.getChildren().addAll(lblQty, lblName);
-                itemRow.getChildren().add(mainLine);
-
-                // Customizations (Đá, Đường, Topping, Ghi chú)
-                String custom = oi.getCustomizationSummary();
-                if (!custom.isEmpty()) {
-                    Label lblCustom = new Label(custom);
-                    lblCustom.getStyleClass().add("ticket-item-custom");
-                    lblCustom.setWrapText(true);
-                    itemRow.getChildren().add(lblCustom);
-                }
-
-                if (oi.getNote() != null && !oi.getNote().trim().isEmpty()) {
-                    Label lblNote = new Label("✎ " + oi.getNote().trim());
-                    lblNote.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 700; -fx-text-fill: #A66A42; -fx-padding: 0 0 0 24;");
-                    lblNote.setWrapText(true);
-                    itemRow.getChildren().add(lblNote);
-                }
-
-                itemsBox.getChildren().add(itemRow);
             }
         }
-        getChildren().add(itemsBox);
+        return itemsBox;
+    }
 
-        // General Note / Payment Method (if any)
-        if (order.getNote() != null && !order.getNote().trim().isEmpty()) {
-            Label lblOrderNote = new Label(order.getNote().trim());
-            SVGPath cardIcon = SvgIcons.createOutlineIcon(SvgIcons.CREDIT_CARD, 0.65, Color.web("#183C32"));
-            lblOrderNote.setGraphic(cardIcon);
-            lblOrderNote.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: #183C32; -fx-background-color: #F4F0E8; -fx-padding: 3 8 3 6; -fx-background-radius: 4px;");
-            getChildren().add(lblOrderNote);
+    private VBox createItemBlock(OrderItem oi) {
+        VBox block = new VBox(3);
+
+        // Dòng 1: [ 2x ]  Tên Món                             [ Size L ]
+        HBox headline = new HBox(8);
+        headline.setAlignment(Pos.CENTER_LEFT);
+
+        Label lblQty = new Label(oi.getQty() + "x");
+        lblQty.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 800; -fx-padding: 2 7 2 7; -fx-background-radius: 5px; -fx-min-width: 28px; -fx-alignment: center;");
+
+        String cleanName = cleanProductName(oi.getName());
+        Label lblName = new Label(cleanName);
+        lblName.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 13.5px; -fx-font-weight: 700; -fx-text-fill: #112823;");
+        lblName.setWrapText(true);
+        HBox.setHgrow(lblName, Priority.ALWAYS);
+
+        String size = resolveItemSize(oi);
+        Label lblSize = new Label("Size " + size);
+        lblSize.setStyle("-fx-background-color: #F5F0E8; -fx-border-color: #DFD7CA; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-text-fill: #563521; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800; -fx-padding: 1 6 1 6;");
+
+        headline.getChildren().addAll(lblQty, lblName, lblSize);
+        block.getChildren().add(headline);
+
+        // Dòng 2: Tùy chọn pha chế (Đá, Đường, Nhiệt độ)
+        String specs = buildDrinkSpecs(oi);
+        if (!specs.isEmpty()) {
+            Label lblSpecs = new Label(specs);
+            lblSpecs.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-text-fill: #57534E; -fx-padding: 0 0 0 36;");
+            lblSpecs.setWrapText(true);
+            block.getChildren().add(lblSpecs);
         }
 
-        // Action Buttons Bar
+        // Dòng 3: Topping thêm (nếu có)
+        List<String> toppings = resolveToppings(oi);
+        if (!toppings.isEmpty()) {
+            Label lblTopping = new Label("• +Topping: " + String.join(", ", toppings));
+            lblTopping.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-font-weight: 600; -fx-text-fill: #15803D; -fx-padding: 0 0 0 36;");
+            lblTopping.setWrapText(true);
+            block.getChildren().add(lblTopping);
+        }
+
+        // Dòng 4: Ghi chú đặc biệt của món (Kitchen Note Alert Box)
+        String cleanNote = cleanKitchenNote(oi);
+        if (!cleanNote.isEmpty()) {
+            HBox noteBox = new HBox(5);
+            noteBox.setAlignment(Pos.CENTER_LEFT);
+            noteBox.setStyle("-fx-background-color: #FEF3C7; -fx-border-color: #FDE68A; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-padding: 3 8 3 8;");
+            VBox.setMargin(noteBox, new Insets(2, 0, 0, 36));
+
+            Label lblIcon = new Label("⚡");
+            lblIcon.setStyle("-fx-font-size: 11px;");
+            Label lblNoteText = new Label("Ghi chú: " + cleanNote);
+            lblNoteText.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #92400E;");
+            lblNoteText.setWrapText(true);
+            HBox.setHgrow(lblNoteText, Priority.ALWAYS);
+
+            noteBox.getChildren().addAll(lblIcon, lblNoteText);
+            block.getChildren().add(noteBox);
+        }
+
+        return block;
+    }
+
+    private String cleanProductName(String name) {
+        if (name == null) return "";
+        return name.replaceAll("(?i)\\s*\\([SMLsml]\\)", "")
+                   .replaceAll("(?i)\\s*\\(Size\\s+[SMLsml]\\)", "")
+                   .replaceAll("(?i)\\s*-\\s*Size\\s+[SMLsml]", "")
+                   .trim();
+    }
+
+    private String resolveItemSize(OrderItem oi) {
+        String code = oi.getSizeCode();
+        if (code != null && !code.trim().isEmpty()) {
+            return code.trim().toUpperCase();
+        }
+        if (oi.getNote() != null) {
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?i)size\\s*([SML])").matcher(oi.getNote());
+            if (m.find()) {
+                return m.group(1).toUpperCase();
+            }
+        }
+        return "M";
+    }
+
+    private String buildDrinkSpecs(OrderItem oi) {
+        List<String> specs = new ArrayList<>();
+
+        if ("HOT".equalsIgnoreCase(oi.getTemperature())) {
+            specs.add("• Nóng");
+        } else {
+            int ice = oi.getIcePercent();
+            if (ice == 0) {
+                specs.add("• Không đá");
+            } else {
+                specs.add("• " + ice + "% Đá");
+            }
+        }
+
+        int sugar = oi.getSugarPercent();
+        if (sugar == 100) {
+            specs.add("• Chuẩn đường");
+        } else if (sugar == 0) {
+            specs.add("• Không đường");
+        } else {
+            specs.add("• " + sugar + "% Đường");
+        }
+
+        return String.join("  ", specs);
+    }
+
+    private List<String> resolveToppings(OrderItem oi) {
+        List<String> list = new ArrayList<>();
+        if (oi.getToppings() != null && !oi.getToppings().isEmpty()) {
+            for (ToppingItem t : oi.getToppings()) {
+                if (t != null && t.getName() != null && !t.getName().trim().isEmpty()) {
+                    list.add(t.getName().trim());
+                }
+            }
+        } else if (oi.getNote() != null && oi.getNote().contains("+")) {
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\+([^•«»\n\r]+)").matcher(oi.getNote());
+            while (m.find()) {
+                String top = m.group(1).trim();
+                if (!top.isEmpty() && !list.contains(top)) {
+                    list.add(top);
+                }
+            }
+        }
+        return list;
+    }
+
+    private String cleanKitchenNote(OrderItem oi) {
+        if (oi.getNote() == null) return "";
+        String n = oi.getNote().trim();
+        if (n.isEmpty()) return "";
+
+        // Xóa dấu ngoặc nhọn hoặc ngoặc kép «...»
+        n = n.replaceAll("^[«\"']+|[»\"']+$", "").trim();
+
+        // Nếu chuỗi chỉ ghi Size (VD: "Size L", "Size M", "Size: L")
+        if (n.matches("(?i)^size\\s*[:\\-]?\\s*[sml]$")) {
+            return "";
+        }
+
+        // Nếu chuỗi là "Size L • +Đào miếng"
+        if (n.matches("(?i)^size\\s*[sml]\\s*•\\s*.*$")) {
+            n = n.replaceAll("(?i)^size\\s*[sml]\\s*•\\s*", "").trim();
+        }
+
+        // Nếu là Topping đơn thuần (đã hiển thị ở dòng topping)
+        if (n.startsWith("+")) {
+            return "";
+        }
+
+        // Xóa các đặc tính đá/đường thừa trong note
+        n = n.replaceAll("(?i)(?:•\\s*)?(?:đá\\s*)?\\d+%\\s*(?:đá)?", "")
+             .replaceAll("(?i)(?:•\\s*)?\\d+%\\s*đường", "")
+             .replaceAll("(?i)(?:•\\s*)?nóng", "")
+             .replaceAll("(?i)^•\\s*|\\s*•$", "")
+             .trim();
+
+        if (n.equalsIgnoreCase("Size " + oi.getSizeCode()) || n.equalsIgnoreCase(oi.getSizeCode())) {
+            return "";
+        }
+
+        return n;
+    }
+
+    private HBox buildActionBar() {
         HBox actionsBar = new HBox(8);
-        actionsBar.getStyleClass().add("ticket-actions-bar");
-        actionsBar.setAlignment(Pos.CENTER_RIGHT);
+        actionsBar.setAlignment(Pos.CENTER);
+        actionsBar.setStyle("-fx-padding: 10 0 0 0; -fx-border-color: #EAE4DA transparent transparent transparent; -fx-border-width: 1 0 0 0;");
 
         String st = order.getStatus() != null ? order.getStatus().toUpperCase() : "QUEUED";
 
         if ("QUEUED".equals(st)) {
-            Button btnPrep = new Button("Bắt đầu pha chế");
-            btnPrep.getStyleClass().add("btn-primary");
-            btnPrep.setStyle("-fx-font-size: 11.5px; -fx-padding: 6 12 6 12;");
-            btnPrep.setOnAction(e -> onStatusChange.accept(order, "PREPARING"));
-            actionsBar.getChildren().add(btnPrep);
+            Button btnStart = new Button("▶ Bắt đầu pha chế");
+            btnStart.setMaxWidth(Double.MAX_VALUE);
+            btnStart.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 38px; -fx-cursor: hand;");
+            btnStart.setOnMouseEntered(e -> btnStart.setStyle("-fx-background-color: #1A3B34; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 38px; -fx-cursor: hand;"));
+            btnStart.setOnMouseExited(e -> btnStart.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 38px; -fx-cursor: hand;"));
+            btnStart.setOnAction(e -> onStatusChange.accept(order, "PREPARING"));
+            HBox.setHgrow(btnStart, Priority.ALWAYS);
+            actionsBar.getChildren().add(btnStart);
         } else if ("PREPARING".equals(st)) {
-            Button btnDone = new Button("✓ Hoàn thành");
-            btnDone.setStyle("-fx-background-color: #1B5E20; -fx-text-fill: #FFFFFF; -fx-font-weight: 700; -fx-font-size: 11.5px; -fx-background-radius: 4px; -fx-padding: 6 12 6 12; -fx-cursor: hand;");
+            Button btnDone = new Button("✓ Hoàn tất món & Báo phục vụ");
+            btnDone.setMaxWidth(Double.MAX_VALUE);
+            btnDone.setStyle("-fx-background-color: #15803D; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 38px; -fx-cursor: hand;");
+            btnDone.setOnMouseEntered(e -> btnDone.setStyle("-fx-background-color: #166534; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 38px; -fx-cursor: hand;"));
+            btnDone.setOnMouseExited(e -> btnDone.setStyle("-fx-background-color: #15803D; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 38px; -fx-cursor: hand;"));
             btnDone.setOnAction(e -> onStatusChange.accept(order, "DONE"));
+            HBox.setHgrow(btnDone, Priority.ALWAYS);
             actionsBar.getChildren().add(btnDone);
         } else {
-            Label lblFinished = new Label("Đã xong • Chờ giao");
-            lblFinished.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #1B5E20;");
-            actionsBar.getChildren().add(lblFinished);
+            // DONE
+            Button btnUndo = new Button("↺ Hoàn tác");
+            btnUndo.setMaxWidth(Double.MAX_VALUE);
+            btnUndo.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #D8D1C3; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-text-fill: #57534E; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 600; -fx-pref-height: 36px; -fx-cursor: hand;");
+            btnUndo.setOnMouseEntered(e -> btnUndo.setStyle("-fx-background-color: #F5EFEB; -fx-border-color: #DFD7CA; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 600; -fx-pref-height: 36px; -fx-cursor: hand;"));
+            btnUndo.setOnMouseExited(e -> btnUndo.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #D8D1C3; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-text-fill: #57534E; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 600; -fx-pref-height: 36px; -fx-cursor: hand;"));
+            btnUndo.setOnAction(e -> onStatusChange.accept(order, "PREPARING"));
+            HBox.setHgrow(btnUndo, Priority.ALWAYS);
+
+            Button btnPrint = new Button("🖨 In lại vé");
+            btnPrint.setMaxWidth(Double.MAX_VALUE);
+            btnPrint.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #D8D1C3; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-text-fill: #57534E; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 600; -fx-pref-height: 36px; -fx-cursor: hand;");
+            btnPrint.setOnMouseEntered(e -> btnPrint.setStyle("-fx-background-color: #F5EFEB; -fx-border-color: #DFD7CA; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 600; -fx-pref-height: 36px; -fx-cursor: hand;"));
+            btnPrint.setOnMouseExited(e -> btnPrint.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #D8D1C3; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-text-fill: #57534E; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 600; -fx-pref-height: 36px; -fx-cursor: hand;"));
+            btnPrint.setOnAction(e -> {
+                btnPrint.setText("✓ Đã in!");
+                javafx.animation.PauseTransition p = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(2));
+                p.setOnFinished(ev -> btnPrint.setText("🖨 In lại vé"));
+                p.play();
+            });
+            HBox.setHgrow(btnPrint, Priority.ALWAYS);
+
+            actionsBar.getChildren().addAll(btnUndo, btnPrint);
         }
 
-        getChildren().add(actionsBar);
+        return actionsBar;
     }
 
     private void applyStatusBadgeStyle(Label lbl, String status) {
@@ -174,19 +378,19 @@ public class OrderTicketCard extends VBox {
         switch (st) {
             case "QUEUED":
                 lbl.setText("ĐANG CHỜ");
-                lbl.setStyle("-fx-background-color: #FDF4ED; -fx-text-fill: #C05621; -fx-border-color: #F4D3BC; -fx-border-radius: 4px; -fx-background-radius: 4px;");
+                lbl.setStyle("-fx-background-color: #FEF3C7; -fx-text-fill: #B45309; -fx-border-color: #FDE68A; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-padding: 3 8 3 8; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 700;");
                 break;
             case "PREPARING":
                 lbl.setText("ĐANG PHA CHẾ");
-                lbl.setStyle("-fx-background-color: #EBF8FF; -fx-text-fill: #2B6CB0; -fx-border-color: #BEE3F8; -fx-border-radius: 4px; -fx-background-radius: 4px;");
+                lbl.setStyle("-fx-background-color: #EFF6FF; -fx-text-fill: #1D4ED8; -fx-border-color: #BFDBFE; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-padding: 3 8 3 8; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 700;");
                 break;
             case "DONE":
-                lbl.setText("ĐÃ HOÀN THÀNH");
-                lbl.setStyle("-fx-background-color: #EDF7ED; -fx-text-fill: #1B5E20; -fx-border-color: #C8E6C9; -fx-border-radius: 4px; -fx-background-radius: 4px;");
+                lbl.setText("HOÀN THÀNH");
+                lbl.setStyle("-fx-background-color: #DCFCE7; -fx-text-fill: #15803D; -fx-border-color: #BBF7D0; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-padding: 3 8 3 8; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 700;");
                 break;
             default:
                 lbl.setText(st);
-                lbl.setStyle("-fx-background-color: #F5F5F5; -fx-text-fill: #616161; -fx-border-radius: 4px; -fx-background-radius: 4px;");
+                lbl.setStyle("-fx-background-color: #F5F5F5; -fx-text-fill: #616161; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-padding: 3 8 3 8; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 700;");
                 break;
         }
     }

@@ -5,16 +5,22 @@ public class OrderItem {
     private int qty;
     private String note;
     private double unitPrice;
+    private String status = "CONFIRMED"; // CONFIRMED, OUT_OF_STOCK, CANCELLED
 
     public OrderItem(String name, int qty, String note) {
-        this(name, qty, note, 0.0);
+        this(name, qty, note, 0.0, "CONFIRMED");
     }
 
     public OrderItem(String name, int qty, String note, double unitPrice) {
+        this(name, qty, note, unitPrice, "CONFIRMED");
+    }
+
+    public OrderItem(String name, int qty, String note, double unitPrice, String status) {
         this.name = name;
         this.qty = qty;
         this.note = note;
         this.unitPrice = unitPrice;
+        this.status = status != null ? status : "CONFIRMED";
     }
 
     public String getName() { return name; }
@@ -29,7 +35,20 @@ public class OrderItem {
     public double getUnitPrice() { return unitPrice; }
     public void setUnitPrice(double unitPrice) { this.unitPrice = unitPrice; }
 
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public boolean isBillable() {
+        return qty > 0
+                && Double.isFinite(unitPrice)
+                && unitPrice >= 0
+                && (status == null || "CONFIRMED".equalsIgnoreCase(status.trim()));
+    }
+
     public double getSubtotal() {
+        if (qty <= 0 || !Double.isFinite(unitPrice) || unitPrice < 0) {
+            return 0.0;
+        }
         return unitPrice * qty;
     }
 

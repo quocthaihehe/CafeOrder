@@ -86,6 +86,10 @@ public class Order {
         return Math.max(0, getSubtotalAmount() - discountAmount + vatAmount);
     }
 
+    public double getFinalAmount() {
+        return getTotalAmount();
+    }
+
     public String getFormattedTime() {
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
         return sdf.format(new Date(timestamp));

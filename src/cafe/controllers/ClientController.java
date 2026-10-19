@@ -23,9 +23,14 @@ public class ClientController {
     private String currentSearchKeyword = "";
     private final javafx.animation.PauseTransition searchDebounce = new javafx.animation.PauseTransition(javafx.util.Duration.millis(160));
 
-    // Stored transaction state for OrderSuccess confirmation slip
+    // Stored transaction state for OrderSuccess confirmation slip (Editorial Receipt Slip)
     private String lastPaymentMethod = "TIỀN MẶT";
+    private double lastOrderSubtotal = 0.0;
+    private double lastOrderDiscount = 0.0;
+    private String lastVoucherCode = null;
     private double lastOrderTotal = 0.0;
+    private int lastOrderQuantity = 0;
+    private List<OrderItem> lastOrderItems = new ArrayList<>();
     private CartModalDialog activeCartDialog = null;
     private final Runnable onBackToFloorPlan;
 
@@ -77,25 +82,51 @@ public class ClientController {
 
         socketService.setOnOrderAckReceived(ack -> {
             int confirmedOrderId = ack.orderId;
+            String translatedStatus = MessageProtocol.translateStatus(ack.status);
+
+            List<OrderItem> snapshotItems = !lastOrderItems.isEmpty()
+                ? new ArrayList<>(lastOrderItems)
+                : new ArrayList<>(cartModel.getItems());
+            int snapshotQty = lastOrderQuantity > 0 ? lastOrderQuantity : cartModel.getTotalQuantity();
+            double snapshotSubtotal = lastOrderSubtotal > 0 ? lastOrderSubtotal : cartModel.getSubtotalAmount();
+            double snapshotDiscount = lastOrderDiscount > 0 ? lastOrderDiscount : cartModel.getDiscountAmount();
+            String snapshotVoucher = lastVoucherCode != null ? lastVoucherCode
+                : (cartModel.getAppliedVoucher() != null ? cartModel.getAppliedVoucher().getCode() : null);
             double finalTotal = lastOrderTotal > 0 ? lastOrderTotal : cartModel.getTotalAmount();
             String finalMethod = lastPaymentMethod;
 
             cartModel.clear();
             view.updateCartBadge(0);
-            view.updateActiveOrderStatus(confirmedOrderId, MessageProtocol.translateStatus(ack.status));
+            view.updateActiveOrderStatus(confirmedOrderId, translatedStatus);
 
             if (activeCartDialog != null && activeCartDialog.isShowing()) {
                 activeCartDialog.close();
             }
 
-            // Hiển thị Order Confirmation Screen
-            OrderSuccessDialog successDialog = new OrderSuccessDialog(
-                primaryStage,
+            OrderSuccessDialog.ReceiptData receiptData = new OrderSuccessDialog.ReceiptData(
                 confirmedOrderId,
                 tableNumber,
+                java.time.LocalDateTime.now(),
+                snapshotItems,
+                snapshotQty,
+                snapshotSubtotal,
+                snapshotDiscount,
+                snapshotVoucher,
                 finalTotal,
                 finalMethod,
-                () -> view.showToast("Đơn #" + confirmedOrderId + " đang được pha chế!")
+                "ĐÃ THANH TOÁN",
+                "Kiosk Tự Phục Vụ #01"
+            );
+
+            // Hiển thị Phiếu Thanh Toán (Editorial Receipt Slip)
+            OrderSuccessDialog successDialog = new OrderSuccessDialog(
+                primaryStage,
+                receiptData,
+                () -> view.showToast("Đơn #" + confirmedOrderId + " đang được pha chế!"),
+                () -> {
+                    view.highlightActiveOrderBox();
+                    view.showToast("⏱ Đang theo dõi Đơn #" + confirmedOrderId + " • Trạng thái: " + translatedStatus);
+                }
             );
             successDialog.show();
         });
@@ -117,11 +148,13 @@ public class ClientController {
     private void openCartModal() {
         activeCartDialog = new CartModalDialog(
             primaryStage,
+            tableNumber,
             cartModel,
             this::onCartQtyChanged,
             this::onCartItemDeleted,
             this::applyVoucherCodeFromDialog,
-            this::openPaymentFlow
+            this::openPaymentFlow,
+            () -> view.updateCartBadge(cartModel.getTotalQuantity())
         );
         activeCartDialog.show();
     }
@@ -185,17 +218,18 @@ public class ClientController {
     }
 
     private void onQuickAdd(MenuItem item) {
-        // Quick add default configuration (Size M, base price)
+        String nameLower = item.getName() != null ? item.getName().toLowerCase() : "";
+        boolean isHotOnly = nameLower.contains("nóng") || nameLower.equals("espresso") || nameLower.contains("cà phê trứng");
         OrderItem oi = new OrderItem(
             item.getId(),
             item.getName(),
             1,
             item.getPrice(),
-            "M",
+            item.isAllowSize() ? "M" : "",
             0.0,
             100,
-            100,
-            "COLD",
+            isHotOnly ? 0 : 100,
+            isHotOnly ? "HOT" : "COLD",
             new ArrayList<>(),
             ""
         );
@@ -244,6 +278,11 @@ public class ClientController {
 
         PaymentDialog paymentDialog = new PaymentDialog(primaryStage, tableNumber, cartModel, selectedMethod -> {
             this.lastPaymentMethod = selectedMethod;
+            this.lastOrderItems = new ArrayList<>(cartModel.getItems());
+            this.lastOrderQuantity = cartModel.getTotalQuantity();
+            this.lastOrderSubtotal = cartModel.getSubtotalAmount();
+            this.lastOrderDiscount = cartModel.getDiscountAmount();
+            this.lastVoucherCode = cartModel.getAppliedVoucher() != null ? cartModel.getAppliedVoucher().getCode() : null;
             this.lastOrderTotal = cartModel.getTotalAmount();
             submitOrder(selectedMethod);
         });
@@ -251,12 +290,17 @@ public class ClientController {
     }
 
     private void submitOrder(String paymentMethod) {
+        String customNote = cartModel.getOrderNote() != null ? cartModel.getOrderNote().trim() : "";
+        String fullNote = customNote.isEmpty()
+            ? "Thanh toán: " + paymentMethod
+            : customNote + " • TT: " + paymentMethod;
+
         boolean sent = socketService.sendOrder(
             tableNumber,
             cartModel.getOrderType(),
             cartModel.getDiscountAmount(),
             cartModel.getAppliedVoucher() != null ? cartModel.getAppliedVoucher().getCode() : null,
-            "Thanh toán: " + paymentMethod,
+            fullNote,
             new ArrayList<>(cartModel.getItems())
         );
 

@@ -76,6 +76,14 @@ public class CustomHeader extends HBox {
             }
         });
 
+        // Tự động đồng bộ icon phóng to / khôi phục theo trạng thái maximized của Stage
+        if (stage != null) {
+            stage.maximizedProperty().addListener((obs, wasMax, isNowMax) -> {
+                btnMaximize.setText(isNowMax ? "❐" : "□");
+            });
+            btnMaximize.setText(stage.isMaximized() ? "❐" : "□");
+        }
+
         // Nút Đóng (✕)
         btnClose.setOnAction(e -> {
             if (customCloseAction != null) {
@@ -113,9 +121,7 @@ public class CustomHeader extends HBox {
     }
 
     private void toggleMaximize(Stage stage) {
-        boolean isMax = !stage.isMaximized();
-        stage.setMaximized(isMax);
-        btnMaximize.setText(isMax ? "❐" : "□");
+        stage.setMaximized(!stage.isMaximized());
     }
 
     public void setTitle(String title) {

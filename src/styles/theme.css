@@ -1,7 +1,46 @@
 /* ==========================================================================
    BREW & BEAN POS SYSTEM — GLOBAL DESIGN SYSTEM & THEME
-   Figma Specification from PLAN_REFACTOR_JAVAFX.txt
+   Figma Specification from PLAN_REFACTOR_JAVAFX.txt & Phan_tich_CafeOrderv2.md
    ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   @FONT-FACE DECLARATIONS (Local embedded fonts)
+   -------------------------------------------------------------------------- */
+@font-face {
+    font-family: 'Playfair Display';
+    font-weight: 700;
+    src: url('../fonts/PlayfairDisplay-Bold.ttf');
+}
+
+@font-face {
+    font-family: 'Playfair Display';
+    font-weight: 400;
+    src: url('../fonts/PlayfairDisplay-Regular.ttf');
+}
+
+@font-face {
+    font-family: 'Inter';
+    font-weight: 400;
+    src: url('../fonts/Inter-Regular.ttf');
+}
+
+@font-face {
+    font-family: 'Inter';
+    font-weight: 500;
+    src: url('../fonts/Inter-Medium.ttf');
+}
+
+@font-face {
+    font-family: 'Inter';
+    font-weight: 600;
+    src: url('../fonts/Inter-SemiBold.ttf');
+}
+
+@font-face {
+    font-family: 'Inter';
+    font-weight: 700;
+    src: url('../fonts/Inter-SemiBold.ttf');
+}
 
 .root {
     /* --- BẢNG MÀU CHUẨN (DESIGN TOKENS) --- */
@@ -242,3 +281,93 @@
     -fx-border-width: 1px;
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.16), 24, 0.2, 0, 8);
 }
+
+/* --------------------------------------------------------------------------
+   POS TOUCH-FRIENDLY CONTROLS & CARDS (Phan_tich_CafeOrderv2)
+   -------------------------------------------------------------------------- */
+.pos-text-input {
+    -fx-font-family: 'Inter', sans-serif;
+    -fx-pref-height: 42px;
+    -fx-min-height: 42px;
+    -fx-padding: 10 14 10 14;
+    -fx-font-size: 13px;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-background-color: #FBF9F5;
+    -fx-border-color: #DED7CD;
+    -fx-border-width: 1px;
+    -fx-text-fill: -color-text-primary;
+    -fx-prompt-text-fill: -color-text-muted;
+}
+
+.pos-text-input:focused {
+    -fx-border-color: -color-primary;
+    -fx-background-color: #FFFFFF;
+}
+
+.pos-btn-primary {
+    -fx-font-family: 'Inter', sans-serif;
+    -fx-pref-height: 42px;
+    -fx-min-height: 42px;
+    -fx-padding: 10 18 10 18;
+    -fx-font-size: 13.5px;
+    -fx-font-weight: 700;
+    -fx-background-radius: 8px;
+    -fx-background-color: #112823;
+    -fx-text-fill: #FFFFFF;
+    -fx-cursor: hand;
+}
+
+.pos-btn-primary:hover {
+    -fx-background-color: -color-primary-active;
+}
+
+.pos-btn-primary:pressed {
+    -fx-background-color: #0B1916;
+}
+
+.product-card-elevated {
+    -fx-background-color: #FBF9F5;
+    -fx-background-radius: 8px;
+    -fx-border-color: #DED7CD;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.06), 8, 0.1, 0, 2);
+    -fx-cursor: hand;
+}
+
+.product-card-elevated:hover {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #CBC2B2;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.12), 12, 0.15, 0, 4);
+}
+
+.quick-add-btn {
+    -fx-font-family: 'Inter', sans-serif;
+    -fx-background-color: #FFFFFF;
+    -fx-text-fill: #112823;
+    -fx-font-size: 14px;
+    -fx-font-weight: 700;
+    -fx-background-radius: 15px;
+    -fx-border-color: #E2DDD5;
+    -fx-border-radius: 15px;
+    -fx-border-width: 1px;
+    -fx-min-width: 30px;
+    -fx-min-height: 30px;
+    -fx-pref-width: 30px;
+    -fx-pref-height: 30px;
+    -fx-max-width: 30px;
+    -fx-max-height: 30px;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+    -fx-alignment: CENTER;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 6, 0.12, 0, 2);
+}
+
+.quick-add-btn:hover {
+    -fx-background-color: #F8F4EE;
+    -fx-border-color: #112823;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.28), 8, 0.18, 0, 3);
+}
+
+

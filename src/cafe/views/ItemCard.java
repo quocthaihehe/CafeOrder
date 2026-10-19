@@ -51,11 +51,11 @@ public class ItemCard extends VBox {
         imageWrapper.setMinWidth(0);
         imageWrapper.setPrefWidth(Region.USE_COMPUTED_SIZE);
         imageWrapper.setMaxWidth(Double.MAX_VALUE);
-        imageWrapper.setMinHeight(125);
-        imageWrapper.setPrefHeight(125);
-        imageWrapper.setMaxHeight(125);
+        imageWrapper.setMinHeight(175);
+        imageWrapper.setPrefHeight(175);
+        imageWrapper.setMaxHeight(175);
 
-        ProductImagePane imagePane = new ProductImagePane(item, 125, 5);
+        ProductImagePane imagePane = new ProductImagePane(item, 175, 8);
         imageWrapper.getChildren().add(imagePane);
 
         // Circular (+) Quick-Add Button (đường kính 20px, màu #112823)

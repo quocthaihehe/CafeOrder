@@ -4,6 +4,7 @@ import cafe.models.MessageProtocol;
 import cafe.models.MessageType;
 import cafe.models.Order;
 import javafx.application.Platform;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -13,6 +14,8 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
@@ -23,7 +26,11 @@ public class CafeServerService {
 
     private ServerSocket serverSocket;
     private final AtomicInteger orderIdCounter = new AtomicInteger(1000);
-    private final Map<Integer, PrintWriter> clientMap = new ConcurrentHashMap<>();
+    
+    // Dynamic Session & Table Subscriptions (Decoupled Routing)
+    private final Map<String, ClientSession> activeSessions = new ConcurrentHashMap<>();
+    private final Map<Integer, Set<String>> tableSubscribers = new ConcurrentHashMap<>();
+    
     private final Map<Integer, Order> activeOrders = new ConcurrentHashMap<>();
     private volatile boolean isRunning = false;
 
@@ -44,21 +51,56 @@ public class CafeServerService {
         return t;
     });
 
-    // Callbacks
-    private Consumer<Order> onOrderReceived;
-    private BiConsumer<Integer, Boolean> onTableConnectionChanged;
-    private Consumer<String> onServerLog;
+    // Multicast Event Listeners
+    private final java.util.List<Consumer<Order>> orderReceivedListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private final java.util.List<BiConsumer<Integer, String>> orderStatusChangedListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private final java.util.List<BiConsumer<Integer, Boolean>> tableConnectionListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private final java.util.List<BiConsumer<Integer, String>> tableStatusBroadcastListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private final java.util.List<Consumer<String>> serverLogListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    public static class ClientSession {
+        public final String sessionId;
+        public final Socket socket;
+        public final PrintWriter writer;
+        public volatile int currentTable;
+        public volatile String deviceType;
+        public volatile long lastHeartbeat;
+
+        public ClientSession(String sessionId, Socket socket, PrintWriter writer, int currentTable, String deviceType) {
+            this.sessionId = sessionId;
+            this.socket = socket;
+            this.writer = writer;
+            this.currentTable = currentTable;
+            this.deviceType = deviceType;
+            this.lastHeartbeat = System.currentTimeMillis();
+        }
+
+        public synchronized void send(String jsonLine) {
+            if (writer != null) {
+                writer.print(jsonLine);
+                writer.flush();
+            }
+        }
+    }
 
     public void setOnOrderReceived(Consumer<Order> callback) {
-        this.onOrderReceived = callback;
+        if (callback != null) this.orderReceivedListeners.add(callback);
+    }
+
+    public void setOnOrderStatusChanged(BiConsumer<Integer, String> callback) {
+        if (callback != null) this.orderStatusChangedListeners.add(callback);
     }
 
     public void setOnTableConnectionChanged(BiConsumer<Integer, Boolean> callback) {
-        this.onTableConnectionChanged = callback;
+        if (callback != null) this.tableConnectionListeners.add(callback);
+    }
+
+    public void setOnTableStatusBroadcasted(BiConsumer<Integer, String> callback) {
+        if (callback != null) this.tableStatusBroadcastListeners.add(callback);
     }
 
     public void setOnServerLog(Consumer<String> callback) {
-        this.onServerLog = callback;
+        if (callback != null) this.serverLogListeners.add(callback);
     }
 
     public void start(int port) {
@@ -68,7 +110,7 @@ public class CafeServerService {
         Thread serverThread = new Thread(() -> {
             try {
                 serverSocket = new ServerSocket(port);
-                log("Máy chủ KDS pha chế đã mở cổng " + port + ". Đang sẵn sàng đón nhận đơn.");
+                log("Máy chủ KDS pha chế & Quản trị CoffeePOS đã mở cổng " + port + ". Đang sẵn sàng đón nhận đơn.");
 
                 while (isRunning) {
                     Socket clientSocket = serverSocket.accept();
@@ -94,28 +136,52 @@ public class CafeServerService {
     }
 
     private void handleClientConnection(Socket socket) {
-        int currentTable = -1;
-        PrintWriter out = null;
+        String sessionId = UUID.randomUUID().toString().substring(0, 8);
+        ClientSession session = null;
         try (
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true, StandardCharsets.UTF_8)
         ) {
-            out = writer;
+            session = new ClientSession(sessionId, socket, writer, -1, "KIOSK");
+            activeSessions.put(sessionId, session);
+
             String line;
             while ((line = in.readLine()) != null) {
+                if (line.trim().isEmpty()) continue;
                 MessageType type = MessageProtocol.getMessageType(line);
                 if (type == null) continue;
+
+                session.lastHeartbeat = System.currentTimeMillis();
 
                 switch (type) {
                     case HELLO:
                         MessageProtocol.HelloMessage hello = MessageProtocol.fromJson(line, MessageProtocol.HelloMessage.class);
-                        currentTable = hello.table;
-                        clientMap.put(currentTable, out);
-                        log("Bàn số " + currentTable + " đã kết nối mạng.");
-                        final int tConnect = currentTable;
+                        int registeredTable = hello.table;
+                        session.currentTable = registeredTable;
+                        if (hello.deviceType != null) session.deviceType = hello.deviceType;
+
+                        // Đăng ký bảng định tuyến bàn
+                        bindTableSubscriber(registeredTable, sessionId);
+
+                        log("Thiết bị [" + session.deviceType + " #" + sessionId + "] gắn với Bàn " + registeredTable + " đã kết nối.");
+                        final int tConnect = registeredTable;
                         dispatch(() -> {
-                            if (onTableConnectionChanged != null) onTableConnectionChanged.accept(tConnect, true);
+                            for (BiConsumer<Integer, Boolean> l : tableConnectionListeners) l.accept(tConnect, true);
                         });
+                        break;
+
+                    case TABLE_FOCUS_CHANGE:
+                        MessageProtocol.TableFocusChangeMessage focus = MessageProtocol.fromJson(line, MessageProtocol.TableFocusChangeMessage.class);
+                        int oldTable = session.currentTable;
+                        int newTable = focus.newTable;
+                        session.currentTable = newTable;
+                        unbindTableSubscriber(oldTable, sessionId);
+                        bindTableSubscriber(newTable, sessionId);
+                        log("Thiết bị #" + sessionId + " chuyển trọng tâm phục vụ: Bàn " + oldTable + " -> Bàn " + newTable);
+                        break;
+
+                    case PING:
+                        session.send(MessageProtocol.toJson(new MessageProtocol.PongMessage()));
                         break;
 
                     case NEW_ORDER:
@@ -135,22 +201,25 @@ public class CafeServerService {
                             System.currentTimeMillis()
                         );
                         activeOrders.put(newOrderId, newOrder);
-                        log("Nhận Đơn hàng #" + newOrderId + " (" + newOrder.getOrderTypeLabel() + ") - " + newOrder.getTotalQuantity() + " món.");
+                        log("Nhận Đơn hàng #" + newOrderId + " (" + newOrder.getOrderTypeLabel() + ") - Bàn " + orderMsg.table + " (" + newOrder.getTotalQuantity() + " món).");
 
                         // 1. Phản hồi ORDER_ACK siêu tốc (<1ms) ngay lập tức về Kiosk
                         MessageProtocol.OrderAckMessage ack = new MessageProtocol.OrderAckMessage(newOrderId, "QUEUED", activeOrders.size());
-                        out.print(MessageProtocol.toJson(ack));
-                        out.flush();
+                        session.send(MessageProtocol.toJson(ack));
 
-                        // 2. Bắn sự kiện tức thì lên giao diện KDS Bar
+                        // 2. Bắn sự kiện tức thì lên giao diện KDS Bar và Dashboard Admin
                         dispatch(() -> {
-                            if (onOrderReceived != null) onOrderReceived.accept(newOrder);
+                            for (Consumer<Order> l : orderReceivedListeners) l.accept(newOrder);
                         });
 
-                        // 3. Bất đồng bộ lưu bền vững vào SQL Server qua worker riêng, không chặn socket
+                        // 3. Broadcast trạng thái bàn sang OCCUPIED cho tất cả các máy trạm sơ đồ bàn
+                        broadcastTableStatus(orderMsg.table, "OCCUPIED");
+
+                        // 4. Bất đồng bộ lưu bền vững vào SQL Server qua worker riêng, không chặn socket
+                        final Order orderToSave = newOrder;
                         dbExecutor.submit(() -> {
                             try {
-                                DatabaseManager.saveOrder(newOrder);
+                                DatabaseManager.saveOrder(orderToSave);
                             } catch (Exception ex) {
                                 log("Lỗi lưu đơn vào DB: " + ex.getMessage());
                             }
@@ -161,23 +230,40 @@ public class CafeServerService {
                         break;
                 }
             }
-            } catch (SocketException e) {
-                // Client ngắt kết nối
-            } catch (IOException e) {
-                log("Lỗi I/O client bàn " + currentTable + ": " + e.getMessage());
-            } finally {
-                if (currentTable != -1) {
-                    clientMap.remove(currentTable);
-                    log("Bàn số " + currentTable + " đã ngắt kết nối.");
-                    final int tDisconnect = currentTable;
+        } catch (SocketException ignored) {
+            // Client ngắt kết nối
+        } catch (IOException e) {
+            log("Lỗi I/O client [" + sessionId + "]: " + e.getMessage());
+        } finally {
+            if (session != null) {
+                int disconnectedTable = session.currentTable;
+                activeSessions.remove(sessionId);
+                unbindTableSubscriber(disconnectedTable, sessionId);
+                log("Thiết bị #" + sessionId + " (Bàn " + disconnectedTable + ") đã rời mạng.");
+                if (disconnectedTable != -1) {
                     dispatch(() -> {
-                        if (onTableConnectionChanged != null) onTableConnectionChanged.accept(tDisconnect, false);
+                        for (BiConsumer<Integer, Boolean> l : tableConnectionListeners) l.accept(disconnectedTable, false);
                     });
                 }
-                try {
-                    if (socket != null && !socket.isClosed()) socket.close();
-                } catch (IOException ignored) {}
             }
+            try {
+                if (socket != null && !socket.isClosed()) socket.close();
+            } catch (IOException ignored) {}
+        }
+    }
+
+    private void bindTableSubscriber(int table, String sessionId) {
+        if (table <= 0 || sessionId == null) return;
+        tableSubscribers.computeIfAbsent(table, k -> ConcurrentHashMap.newKeySet()).add(sessionId);
+    }
+
+    private void unbindTableSubscriber(int table, String sessionId) {
+        if (table <= 0 || sessionId == null) return;
+        Set<String> set = tableSubscribers.get(table);
+        if (set != null) {
+            set.remove(sessionId);
+            if (set.isEmpty()) tableSubscribers.remove(table);
+        }
     }
 
     public boolean updateOrderStatus(int orderId, String newStatus) {
@@ -186,27 +272,61 @@ public class CafeServerService {
             order.setStatus(newStatus);
             log("Cập nhật Đơn #" + orderId + " (Bàn " + order.getTable() + ") -> " + MessageProtocol.translateStatus(newStatus));
 
-            // Bắn tín hiệu về Client bàn đó
-            PrintWriter out = clientMap.get(order.getTable());
-            if (out != null) {
-                MessageProtocol.OrderStatusUpdateMessage updateMsg = new MessageProtocol.OrderStatusUpdateMessage(orderId, newStatus);
-                out.print(MessageProtocol.toJson(updateMsg));
-                out.flush();
+            // Bắn tín hiệu về tất cả Client đang theo dõi bàn đó
+            MessageProtocol.OrderStatusUpdateMessage updateMsg = new MessageProtocol.OrderStatusUpdateMessage(orderId, order.getTable(), newStatus);
+            String updateJson = MessageProtocol.toJson(updateMsg);
+
+            Set<String> subscribers = tableSubscribers.get(order.getTable());
+            if (subscribers != null && !subscribers.isEmpty()) {
+                for (String sid : subscribers) {
+                    ClientSession s = activeSessions.get(sid);
+                    if (s != null) s.send(updateJson);
+                }
                 log("Đã thông báo trạng thái mới về Bàn " + order.getTable());
-            } else {
-                log("Không tìm thấy kết nối Bàn " + order.getTable() + " (có thể đã rời mạng).");
             }
+
+            // Kích hoạt callback UI
+            dispatch(() -> {
+                for (BiConsumer<Integer, String> l : orderStatusChangedListeners) l.accept(orderId, newStatus);
+            });
+
+            // Nếu Barista bấm Hoàn tất (DONE) -> Tự động kích hoạt trừ tồn kho nguyên vật liệu (BOM)
+            if ("DONE".equalsIgnoreCase(newStatus)) {
+                dbExecutor.submit(() -> {
+                    try {
+                        DatabaseManager.updateOrderStatusInDb(orderId, "DONE");
+                        DatabaseManager.deductStockForOrder(order);
+                    } catch (Exception ex) {
+                        System.err.println("[SERVER] Lỗi trừ kho định lượng: " + ex.getMessage());
+                    }
+                });
+            } else {
+                dbExecutor.submit(() -> DatabaseManager.updateOrderStatusInDb(orderId, newStatus));
+            }
+
             return true;
         }
         return false;
+    }
+
+    public void broadcastTableStatus(int tableNumber, String status) {
+        MessageProtocol.TableStatusBroadcastMessage msg = new MessageProtocol.TableStatusBroadcastMessage(tableNumber, status);
+        String json = MessageProtocol.toJson(msg);
+        for (ClientSession session : activeSessions.values()) {
+            session.send(json);
+        }
+        dispatch(() -> {
+            for (BiConsumer<Integer, String> l : tableStatusBroadcastListeners) l.accept(tableNumber, status);
+        });
+        dbExecutor.submit(() -> DatabaseManager.updateTableStatusInDb(tableNumber, status));
     }
 
     public Map<Integer, Order> getActiveOrders() {
         return activeOrders;
     }
 
-    public Map<Integer, PrintWriter> getClientMap() {
-        return clientMap;
+    public Map<String, ClientSession> getActiveSessions() {
+        return activeSessions;
     }
 
     public void stop() {
@@ -223,7 +343,7 @@ public class CafeServerService {
 
     private void log(String message) {
         dispatch(() -> {
-            if (onServerLog != null) onServerLog.accept(message);
+            for (Consumer<String> l : serverLogListeners) l.accept(message);
         });
     }
 
@@ -235,7 +355,6 @@ public class CafeServerService {
                 Platform.runLater(action);
             }
         } catch (IllegalStateException e) {
-            // Hỗ trợ kiểm thử tự động / môi trường không có JavaFX Toolkit
             action.run();
         }
     }

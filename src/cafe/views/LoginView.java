@@ -1,6 +1,7 @@
 package cafe.views;
 
 import cafe.utils.AnimationHelper;
+import cafe.utils.SvgIcons;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -11,6 +12,7 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.SVGPath;
 import javafx.stage.Stage;
 
 import java.net.URL;
@@ -25,19 +27,21 @@ import java.net.URL;
  *     Cột trái tự động điều chỉnh theo tỉ lệ ảnh (1058/1487 ~ 740px ở chiều cao 1040px), hiển thị
  *     trọn vẹn các phần quan trọng (logo, chữ, bàn cafe, ly sữa, ly cafe, ghế).
  * - Cột phải: Form nền #FBF9F5, formCard căn giữa sang trọng, Icon hạt cafe, "Chào mừng trở lại!",
- *   "Tài khoản", "Mật khẩu" (icon mắt), Nút "Đăng nhập" #112823, [👤 Nhân viên] / [💼 Quản lý].
+ *   "Tài khoản", "Mật khẩu" (icon mắt SVG), Nút "Đăng nhập" #112823, [Nhân viên] / [Quản lý].
  */
 public class LoginView extends HBox {
 
     private final TextField txtAccount = new TextField();
     private final PasswordField txtPassword = new PasswordField();
     private final TextField txtPasswordVisible = new TextField();
-    private final Button btnToggleEye = new Button("👁");
+    private final Button btnToggleEye = new Button();
+    private final SVGPath eyeSvg = SvgIcons.createOutlineIcon(SvgIcons.EYE, 0.7, Color.web("#817A70"));
     private final Button btnLogin = new Button("Đăng nhập");
     private final Label lblError = new Label();
 
-    private final Button btnStaff = new Button("👤  Nhân viên");
-    private final Button btnManager = new Button("💼  Quản lý");
+    private final Button btnCustomer = new Button("🍹  Khách (Bàn 05)");
+    private final Button btnStaff = new Button("Nhân viên");
+    private final Button btnManager = new Button("Quản lý");
 
     private boolean isPasswordVisible = false;
 
@@ -145,52 +149,54 @@ public class LoginView extends HBox {
         // Tiêu đề & Lời chào
         VBox titleBox = new VBox(3);
         Label lblWelcome = new Label("Chào mừng trở lại!");
-        lblWelcome.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 18px; -fx-font-weight: 700; -fx-text-fill: #292722;");
+        lblWelcome.setStyle("-fx-font-family: 'Playfair Display', Georgia, serif; -fx-font-size: 22px; -fx-font-weight: 700; -fx-text-fill: #1C1917;");
 
         Label lblDesc = new Label("Đăng nhập để bắt đầu phục vụ khách hàng.");
-        lblDesc.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #817A70;");
+        lblDesc.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-text-fill: #78716C;");
         titleBox.getChildren().addAll(lblWelcome, lblDesc);
 
         // 1. Ô Tài khoản
-        VBox accountGroup = new VBox(5);
-        HBox lblAccBox = new HBox(6);
+        VBox accountGroup = new VBox(6);
+        HBox lblAccBox = new HBox(8);
         lblAccBox.setAlignment(Pos.CENTER_LEFT);
-        Label iconUser = new Label("👤");
-        iconUser.setStyle("-fx-font-size: 11px; -fx-text-fill: #817A70;");
+        SVGPath iconUser = SvgIcons.createOutlineIcon(SvgIcons.USER, 0.65, Color.web("#817A70"));
         Label lblAccountTitle = new Label("Tài khoản");
-        lblAccountTitle.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 600; -fx-text-fill: #292722;");
+        lblAccountTitle.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 600; -fx-text-fill: #1C1917;");
         lblAccBox.getChildren().addAll(iconUser, lblAccountTitle);
 
         txtAccount.setPromptText("Nhập tên đăng nhập (hoặc số bàn 1..12)");
-        txtAccount.getStyleClass().add("text-input-field");
-        txtAccount.setPrefHeight(34);
-        txtAccount.setStyle("-fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-font-size: 12px; -fx-padding: 6 10 6 10;");
+        txtAccount.getStyleClass().addAll("text-input-field", "pos-text-input");
+        txtAccount.setPrefHeight(42);
+        txtAccount.setMinHeight(42);
+        txtAccount.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-size: 13px; -fx-padding: 10 14 10 14; -fx-text-fill: #1C1917;");
         accountGroup.getChildren().addAll(lblAccBox, txtAccount);
 
         // 2. Ô Mật khẩu kèm Icon Mắt
-        VBox passGroup = new VBox(5);
-        HBox lblPassBox = new HBox(6);
+        VBox passGroup = new VBox(6);
+        HBox lblPassBox = new HBox(8);
         lblPassBox.setAlignment(Pos.CENTER_LEFT);
-        Label iconLock = new Label("🔒");
-        iconLock.setStyle("-fx-font-size: 11px; -fx-text-fill: #817A70;");
+        SVGPath iconLock = SvgIcons.createOutlineIcon(SvgIcons.LOCK, 0.65, Color.web("#817A70"));
         Label lblPassTitle = new Label("Mật khẩu");
-        lblPassTitle.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 600; -fx-text-fill: #292722;");
+        lblPassTitle.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 600; -fx-text-fill: #1C1917;");
         lblPassBox.getChildren().addAll(iconLock, lblPassTitle);
 
         txtPassword.setPromptText("Nhập mật khẩu");
-        txtPassword.setPrefHeight(34);
-        txtPassword.setStyle("-fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-font-size: 12px; -fx-padding: 6 34 6 10;");
+        txtPassword.setPrefHeight(42);
+        txtPassword.setMinHeight(42);
+        txtPassword.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-size: 13px; -fx-padding: 10 40 10 14; -fx-text-fill: #1C1917;");
 
         txtPasswordVisible.setPromptText("Nhập mật khẩu");
-        txtPasswordVisible.setPrefHeight(34);
-        txtPasswordVisible.setStyle("-fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-background-radius: 5px; -fx-font-size: 12px; -fx-padding: 6 34 6 10;");
+        txtPasswordVisible.setPrefHeight(42);
+        txtPasswordVisible.setMinHeight(42);
+        txtPasswordVisible.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-size: 13px; -fx-padding: 10 40 10 14; -fx-text-fill: #1C1917;");
         txtPasswordVisible.setVisible(false);
         txtPasswordVisible.setManaged(false);
 
         // Sync text between password fields
         txtPassword.textProperty().bindBidirectional(txtPasswordVisible.textProperty());
 
-        btnToggleEye.setStyle("-fx-background-color: transparent; -fx-cursor: hand; -fx-font-size: 12px; -fx-padding: 2 6 2 6; -fx-text-fill: #817A70;");
+        btnToggleEye.setGraphic(eyeSvg);
+        btnToggleEye.setStyle("-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 6 12 6 12;");
         btnToggleEye.setOnAction(e -> togglePasswordVisibility());
 
         StackPane passWrapper = new StackPane();
@@ -200,14 +206,16 @@ public class LoginView extends HBox {
         passGroup.getChildren().addAll(lblPassBox, passWrapper);
 
         // Thông báo lỗi
-        lblError.setStyle("-fx-text-fill: #C62828; -fx-font-size: 11px; -fx-font-weight: 600;");
+        lblError.setStyle("-fx-text-fill: #C62828; -fx-font-size: 11.5px; -fx-font-weight: 600;");
         lblError.setVisible(false);
         lblError.setManaged(false);
 
-        // Nút Đăng nhập chính (#112823, cao 34px, radius 5px)
+        // Nút Đăng nhập chính (#112823, cao 42px, radius 8px)
         btnLogin.setMaxWidth(Double.MAX_VALUE);
-        btnLogin.setPrefHeight(34);
-        btnLogin.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12px; -fx-font-weight: 600; -fx-background-radius: 5px; -fx-cursor: hand;");
+        btnLogin.setPrefHeight(42);
+        btnLogin.setMinHeight(42);
+        btnLogin.getStyleClass().add("pos-btn-primary");
+        btnLogin.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 13.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-cursor: hand;");
         AnimationHelper.applyButtonPress(btnLogin);
 
         // Phân cách: "Hoặc đăng nhập bằng"
@@ -221,41 +229,56 @@ public class LoginView extends HBox {
         lineRight.setStroke(Color.web("#DED7CD"));
 
         Label lblOr = new Label("Hoặc đăng nhập bằng");
-        lblOr.setStyle("-fx-font-size: 10px; -fx-text-fill: #817A70;");
+        lblOr.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-text-fill: #817A70;");
 
         dividerBox.getChildren().addAll(lineLeft, lblOr, lineRight);
 
-        // Nút phân quyền: [👤 Nhân viên] và [💼 Quản lý]
+        // Nút phân quyền: [Khách] và [Nhân viên] và [Quản lý]
         HBox roleButtons = new HBox(10);
         roleButtons.setAlignment(Pos.CENTER);
 
+        btnCustomer.setMaxWidth(Double.MAX_VALUE);
+        btnCustomer.setPrefHeight(38);
+        btnCustomer.setMinHeight(38);
+        btnCustomer.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-background-color: #FBF9F5; -fx-text-fill: #1C1917; -fx-font-size: 12px; -fx-font-weight: 600; -fx-background-radius: 8px; -fx-border-color: #DED7CD; -fx-border-radius: 8px; -fx-cursor: hand;");
+        HBox.setHgrow(btnCustomer, Priority.ALWAYS);
+        AnimationHelper.applyButtonPress(btnCustomer);
+        btnCustomer.setOnAction(e -> {
+            txtAccount.setText("5");
+            txtPassword.setText("");
+            clearError();
+        });
+
         btnStaff.setMaxWidth(Double.MAX_VALUE);
-        btnStaff.setPrefHeight(32);
-        btnStaff.setStyle("-fx-background-color: #FBF9F5; -fx-text-fill: #292722; -fx-font-size: 11px; -fx-font-weight: 500; -fx-background-radius: 5px; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-cursor: hand;");
+        btnStaff.setPrefHeight(38);
+        btnStaff.setMinHeight(38);
+        btnStaff.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-background-color: #FBF9F5; -fx-text-fill: #1C1917; -fx-font-size: 12px; -fx-font-weight: 600; -fx-background-radius: 8px; -fx-border-color: #DED7CD; -fx-border-radius: 8px; -fx-cursor: hand;");
         HBox.setHgrow(btnStaff, Priority.ALWAYS);
         AnimationHelper.applyButtonPress(btnStaff);
         btnStaff.setOnAction(e -> {
-            txtAccount.setText("5");
-            txtPassword.setText("123456");
+            txtAccount.setText("cashier1");
+            txtPassword.setText("cafe123");
             clearError();
         });
 
         btnManager.setMaxWidth(Double.MAX_VALUE);
-        btnManager.setPrefHeight(32);
-        btnManager.setStyle("-fx-background-color: #FBF9F5; -fx-text-fill: #292722; -fx-font-size: 11px; -fx-font-weight: 500; -fx-background-radius: 5px; -fx-border-color: #DED7CD; -fx-border-radius: 5px; -fx-cursor: hand;");
+        btnManager.setPrefHeight(38);
+        btnManager.setMinHeight(38);
+        btnManager.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-background-color: #FBF9F5; -fx-text-fill: #1C1917; -fx-font-size: 12px; -fx-font-weight: 600; -fx-background-radius: 8px; -fx-border-color: #DED7CD; -fx-border-radius: 8px; -fx-cursor: hand;");
         HBox.setHgrow(btnManager, Priority.ALWAYS);
         AnimationHelper.applyButtonPress(btnManager);
         btnManager.setOnAction(e -> {
-            txtAccount.setText("1");
+            txtAccount.setText("admin");
             txtPassword.setText("admin123");
             clearError();
         });
 
-        roleButtons.getChildren().addAll(btnStaff, btnManager);
+        roleButtons.getChildren().addAll(btnCustomer, btnStaff, btnManager);
 
         // Footer thương hiệu
         Label lblFooter = new Label("Brew & Bean © 2025");
-        lblFooter.setStyle("-fx-font-size: 9.5px; -fx-text-fill: #817A70; -fx-padding: 8 0 0 0;");
+        lblFooter.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 10px; -fx-text-fill: #817A70; -fx-padding: 8 0 0 0;");
+        lblFooter.setAlignment(Pos.CENTER);
         lblFooter.setAlignment(Pos.CENTER);
 
         formCard.getChildren().addAll(
@@ -335,14 +358,14 @@ public class LoginView extends HBox {
             txtPassword.setManaged(false);
             txtPasswordVisible.setVisible(true);
             txtPasswordVisible.setManaged(true);
-            btnToggleEye.setText("🔒");
+            eyeSvg.setContent(SvgIcons.EYE_OFF);
         } else {
             txtPassword.setText(txtPasswordVisible.getText());
             txtPasswordVisible.setVisible(false);
             txtPasswordVisible.setManaged(false);
             txtPassword.setVisible(true);
             txtPassword.setManaged(true);
-            btnToggleEye.setText("👁");
+            eyeSvg.setContent(SvgIcons.EYE);
         }
     }
 

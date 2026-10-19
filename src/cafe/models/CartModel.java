@@ -15,6 +15,7 @@ public class CartModel {
     private final IntegerProperty totalQuantity = new SimpleIntegerProperty(0);
 
     private String orderType = "DINE_IN"; // "DINE_IN" or "TAKEAWAY"
+    private String orderNote = "";
     private Voucher appliedVoucher = null;
 
     public CartModel() {
@@ -39,6 +40,9 @@ public class CartModel {
 
     public String getOrderType() { return orderType; }
     public void setOrderType(String orderType) { this.orderType = orderType; }
+
+    public String getOrderNote() { return orderNote; }
+    public void setOrderNote(String orderNote) { this.orderNote = orderNote != null ? orderNote : ""; }
 
     public Voucher getAppliedVoucher() { return appliedVoucher; }
 
@@ -102,6 +106,17 @@ public class CartModel {
         recalculate();
     }
 
+    public void replaceItem(OrderItem oldItem, OrderItem updatedItem) {
+        if (oldItem == null || updatedItem == null) return;
+        int idx = items.indexOf(oldItem);
+        if (idx >= 0) {
+            items.set(idx, updatedItem);
+        } else {
+            items.add(updatedItem);
+        }
+        recalculate();
+    }
+
     public void removeItem(OrderItem item) {
         items.remove(item);
         recalculate();
@@ -110,6 +125,7 @@ public class CartModel {
     public void clear() {
         items.clear();
         this.appliedVoucher = null;
+        this.orderNote = "";
         recalculate();
     }
 

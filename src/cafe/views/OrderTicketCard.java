@@ -3,11 +3,14 @@ package cafe.views;
 import cafe.models.MessageProtocol;
 import cafe.models.Order;
 import cafe.models.OrderItem;
+import cafe.utils.SvgIcons;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.SVGPath;
 import java.util.function.BiConsumer;
 
 /**
@@ -132,8 +135,10 @@ public class OrderTicketCard extends VBox {
 
         // General Note / Payment Method (if any)
         if (order.getNote() != null && !order.getNote().trim().isEmpty()) {
-            Label lblOrderNote = new Label("💳 " + order.getNote().trim());
-            lblOrderNote.setStyle("-fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: #183C32; -fx-background-color: #F4F0E8; -fx-padding: 3 6 3 6; -fx-background-radius: 4px;");
+            Label lblOrderNote = new Label(order.getNote().trim());
+            SVGPath cardIcon = SvgIcons.createOutlineIcon(SvgIcons.CREDIT_CARD, 0.65, Color.web("#183C32"));
+            lblOrderNote.setGraphic(cardIcon);
+            lblOrderNote.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: #183C32; -fx-background-color: #F4F0E8; -fx-padding: 3 8 3 6; -fx-background-radius: 4px;");
             getChildren().add(lblOrderNote);
         }
 

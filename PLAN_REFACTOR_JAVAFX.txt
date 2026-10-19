@@ -1,0 +1,143 @@
+# KẾ HOẠCH HÀNH ĐỘNG REFACTOR GIAO DIỆN: BREW & BEAN POS SYSTEM
+*Chuyển đổi và chuẩn hóa giao diện JavaFX theo chuẩn Figma*
+
+---
+
+## GIAI ĐOẠN 1: THIẾT LẬP NỀN TẢNG THIẾT KẾ (DESIGN SYSTEM & ASSETS)
+
+### Task 1.1: Cấu trúc thư mục Resources & Typography
+* **Mục tiêu:** Cài đặt font chữ nhận diện thương hiệu thay thế font mặc định của hệ điều hành.
+* **Tài nguyên cần thêm:**
+  * Font tiêu đề: `PlayfairDisplay-Bold.ttf`, `PlayfairDisplay-Regular.ttf`
+  * Font nội dung: `Inter-Regular.ttf`, `Inter-Medium.ttf`, `Inter-SemiBold.ttf`
+  * Vị trí lưu: `src/main/resources/fonts/`
+* **Triển khai trong Java:**
+  * Load font động trong phương thức `init()` hoặc `start()` của `App.java`:
+    ```java
+    Font.loadFont(getClass().getResourceAsStream("/fonts/PlayfairDisplay-Bold.ttf"), 14);
+    Font.loadFont(getClass().getResourceAsStream("/fonts/Inter-Regular.ttf"), 14);
+    ```
+
+### Task 1.2: Xây dựng File Stylesheet toàn cục (`theme.css`)
+* **Mục tiêu:** Định nghĩa biến màu, lớp dùng chung, nút bấm và ô nhập liệu[cite: 1].
+* **File tạo mới:** `src/main/resources/styles/theme.css`
+* **Nội dung đặc tả:**
+  * Bảng màu chuẩn:
+    * Primary (Xanh rêu): `#172B23` (Active: `#233F34`)
+    * Accent (Cam phục vụ): `#E88338`
+    * Background (Be sáng): `#F3EFEA`
+    * Card Background: `#FFFFFF`
+    * Text Primary: `#1C1917`
+    * Text Muted / Placeholder: `#78716C`
+    * Border: `#E7E2DA`
+  * Khử outline mặc định của focus trên JavaFX:
+    ```css
+    .text-input:focused, .button:focused {
+        -fx-faint-focus-color: transparent;
+        -fx-focus-color: -color-primary;
+    }
+    ```
+
+---
+
+## GIAI ĐOẠN 2: CHUẨN HÓA KHUNG ỨNG DỤNG & CỬA SỔ (WINDOW CHROME)
+
+### Task 2.1: Loại bỏ Title Bar mặc định của OS
+* **Hiện trạng cần sửa:** Giao diện bị đứt gãy do thanh tiêu đề trắng/xám và nút Close đỏ của Windows[cite: 2, 3, 4, 5, 6, 7, 8].
+* **Thực hiện:**
+  1. Trong `MainApp.java`, thiết lập `primaryStage.initStyle(StageStyle.UNDECORATED);`.
+  2. Tạo Component `CustomHeader.fxml` (dùng chung cho mọi màn hình chính và dialog popup):
+     * Chiều cao `prefHeight="36"`, nền trùng màu nền cha (`#F3EFEA` hoặc `#FFFFFF`).
+     * Góc phải: Nút ẩn (`-`) và nút đóng (`✕`) có icon xám, hover đổi nền `#E5E0D8`.
+     * Xử lý kéo thả cửa sổ: Bắt sự kiện `onMousePressed` và `onMouseDragged` trên Header Pane.
+
+---
+
+## GIAI ĐOẠN 3: CHI TIẾT SỬA ĐỔI TỪNG MÀN HÌNH (SCREENS IMPLEMENTATION)
+
+### Task 3.1: Màn hình Đăng nhập (`LoginView.fxml`)
+* **Đối chiếu hiện trạng:**
+  * Sai lệch tỷ lệ 2 cột: Cột form phải bị hẹp[cite: 1, 2].
+  * Icon tách cafe bốc khói đen sai mẫu hạt cafe[cite: 1, 2].
+  * Placeholder ô tài khoản bị quá dài[cite: 1, 2].
+* **Checklist công việc:**
+  - [ ] Chia lại tỷ lệ bố cục `HBox`: Trái (Ảnh poster `ImageView`) chiếm **46%**, Phải (Form đăng nhập `VBox`) chiếm **54%**.
+  - [ ] Thay icon tách cafe bằng SVG Path hoặc ảnh PNG 2 hạt cà phê nghiêng theo mẫu[cite: 1, 2].
+  - [ ] Sửa placeholder ô nhập tài khoản thành: `"Nhập tên đăng nhập"`[cite: 1, 2].
+  - [ ] Cập nhật style cho 2 nút phụ (Nhân viên, Quản lý): Nền trắng `#FFFFFF`, viền `#E7E2DA`, bo góc `8px`[cite: 1, 2].
+
+---
+
+### Task 3.2: Sơ đồ bàn (`FloorPlanView.fxml`)
+* **Đối chiếu hiện trạng:**
+  * Thừa nút *"Vào thực đơn đặt món ->"*[cite: 3].
+  * Sidebar bên trái hẹp làm chữ bị cắt cụt (`Thực đ...`, `Đơn h...`)[cite: 3].
+  * Xuất hiện các ô đen dựng đứng lỗi hiển thị trên sơ đồ[cite: 3].
+* **Checklist công việc:**
+  - [ ] **Xóa bỏ hoàn toàn nút *"Vào thực đơn đặt món ->"*** ở header[cite: 3]. Bắt sự kiện trực tiếp khi người dùng click vào Card bàn để mở thực đơn[cite: 1].
+  - [ ] **Mở rộng Sidebar:** Tăng `prefWidth` lên `130px - 140px` để nhãn hiển thị đầy đủ[cite: 3].
+  - [ ] **Loại bỏ các vệt/khung đen dựng đứng** trên bản vẽ sơ đồ[cite: 3].
+  - [ ] **Tái cấu trúc Card bàn (`TableItem.fxml`):**
+    * Dùng `VBox` bo góc `16px`, nền `#FDFBF8`, viền `#E7E2DA`[cite: 1].
+    * Trạng thái đang chọn/đang phục vụ: Thêm chấm tròn màu cam `#E88338` ở góc trên trái số bàn[cite: 1].
+    * Bàn được chọn: Nền đổi sang xanh rêu `#172B23`, chữ chuyển sang màu trắng[cite: 1, 3].
+  - [ ] Bổ sung avatar nhân viên thật dạng tròn (clip Circle) ở góc trên bên phải thay vì hình tròn xám rỗng[cite: 1, 3].
+
+---
+
+### Task 3.3: Màn hình Thực đơn (`MenuView.fxml` & `FoodCard.fxml`)
+* **Đối chiếu hiện trạng:**
+  * Dùng hình tròn vector tách cafe nâu to thay vì ảnh chụp sản phẩm thực tế[cite: 4].
+  * Nút `+` nhỏ, dính sát đáy card món ăn[cite: 4].
+  * Nút giỏ hàng ở header đang là một nút dài thô chữ `"Giỏ hàng 0"`[cite: 4].
+* **Checklist công việc:**
+  - [ ] **Thiết kế lại Card món ăn (`FoodCard.fxml`):**
+    * Dùng `StackPane` bọc `ImageView` món ăn (bo góc bằng `Rectangle clip` `arcWidth="16"` `arcHeight="16"`)[cite: 1].
+    * Tải bộ ảnh mẫu cafe chất lượng cao (cà phê đen, bạc xỉu, cappuccino, matcha latte) thay thế toàn bộ vector placeholder[cite: 1, 4].
+    * Đặt nút tròn dấu cộng `[+]` (nền xanh đen `#172B23`, chữ trắng) đè ở góc dưới bên phải ảnh[cite: 1].
+  - [ ] **Sửa cụm Search & Giỏ hàng trên Header:**
+    * Thay nút dài bằng cụm: Ô `TextField` tìm kiếm bo tròn + Icon Giỏ hàng độc lập[cite: 1, 4].
+    * Badge hiển thị số lượng giỏ hàng: Chấm tròn đen `#172B23`, chữ trắng số món đè góc trên phải icon[cite: 1].
+
+---
+
+### Task 3.4: Modal Giỏ hàng (`CartModal.fxml`)
+* **Đối chiếu hiện trạng:**
+  * Bộ tăng giảm số lượng gồm 3 nút `[-]`, `[+]`, `[X]` vuông vức, viền xám 3D kiểu Windows cũ[cite: 6].
+  * Nút "Thanh toán ->" khi giỏ hàng trống có màu xám đậm gây nhầm lẫn[cite: 5].
+* **Checklist công việc:**
+  - [ ] **Thay thế Stepper số lượng:**
+    * Tạo `HBox` dạng viên thuốc (Pill shape, bo góc `20px`), nền xám be `#F8F5F0`, viền `#E7E2DA`[cite: 1, 6].
+    * Chứa nút trừ `-`, label số lượng, nút cộng `+`, và icon thùng rác màu xám[cite: 1, 6].
+  - [ ] **Trạng thái giỏ hàng rỗng (Empty State):**
+    * Khi `cart.isEmpty() == true`: Nút *"Thanh toán ->"* chuyển style `disabled` (nền xám nhạt `#E5E0D8`, chữ xám mờ `#A8A29E`, chuột không đổi hình bàn tay)[cite: 5].
+  - [ ] Thêm chi tiết món phụ (Size, đá, đường) hiển thị bằng text nhỏ màu xám dưới tên món[cite: 1, 6].
+
+---
+
+### Task 3.5: Modal Tùy chọn món ăn (`ItemDetailModal.fxml`)
+* **Đối chiếu hiện trạng:**
+  * Dùng `CheckBox` hệ điều hành xám vuông thô[cite: 7].
+  * Layout ảnh chiếm quá nhiều diện tích dọc[cite: 7].
+* **Checklist công việc:**
+  - [ ] Thay ảnh bên trái bằng ảnh chụp đồ uống thật bo góc `16px`[cite: 1, 7].
+  - [ ] Tùy biến `CheckBox` sang style bo tròn hiện đại, khi chọn có nền xanh `#172B23` và dấu tích trắng[cite: 1, 7].
+  - [ ] Tùy chọn Size (S - M - L): Dùng nhóm `ToggleButton` dạng viên thuốc. Nút được chọn có nền xanh `#172B23`, chữ trắng; nút chưa chọn nền trắng viền nhạt[cite: 1, 7].
+  - [ ] Tăng chiều cao (`height="46"`) cho nút *"Thêm vào giỏ hàng"* để thao tác cảm ứng dễ dàng[cite: 1, 7].
+
+---
+
+### Task 3.6: Popup Xác nhận đơn hàng (`OrderSuccessModal.fxml`)
+* **Đối chiếu hiện trạng:**
+  * Icon tích xanh nhạt chưa đủ độ tương phản, chữ dính sát nhau[cite: 8].
+* **Checklist công việc:**
+  - [ ] Đổi màu icon checkmark `✓` sang xanh rêu `#172B23` hoặc xanh lá sẫm tương phản cao[cite: 8].
+  - [ ] Tăng khoảng cách đệm (Padding) xung quanh hộp thoại để bố cục thoáng mắt[cite: 8].
+
+---
+
+## GIAI ĐOẠN 4: THẨM ĐỊNH VÀ ĐÓNG GÓI (QA & VERIFICATION)
+
+* [ ] Kiểm tra font chữ trên các màn hình hiển thị đúng Playfair Display và Inter, không bị fallback về font hệ thống[cite: 1].
+* [ ] Kiểm tra tính mượt mà của hover effect trên các nút bấm.
+* [ ] Kiểm tra toàn bộ luồng thao tác: Đăng nhập -> Chọn bàn -> Chọn món -> Tùy chọn size/topping -> Xem giỏ hàng -> Xác nhận đơn[cite: 1, 2, 3, 4, 5, 6, 7, 8].

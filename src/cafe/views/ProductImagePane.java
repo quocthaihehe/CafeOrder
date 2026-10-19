@@ -25,20 +25,40 @@ public class ProductImagePane extends Pane {
      * Khởi tạo khung ảnh Responsive (Tự co giãn theo chiều rộng thẻ, chiều cao cố định).
      */
     public ProductImagePane(MenuItem item, double height, double cornerRadius) {
-        this(item, -1, height, cornerRadius > 0 ? cornerRadius : 12.0);
+        this(item, -1, height, cornerRadius > 0 ? cornerRadius : 12.0, false);
     }
 
     /**
      * Khởi tạo khung ảnh kích thước cụ thể (Dành cho Dialog / Popup).
+     * Mặc định ở Dialog luôn nạp 100% độ phân giải gốc nguyên bản (Full Native Resolution) siêu nét.
      */
     public ProductImagePane(MenuItem item, double width, double height, double cornerRadius) {
+        this(item, width, height, cornerRadius, true);
+    }
+
+    public ProductImagePane(MenuItem item, double width, double height, double cornerRadius, boolean fullResolution) {
         this.fixedWidth = width;
         this.cornerRadius = cornerRadius;
 
-        Image img = ImageManager.getProductImage(item, 400, 400);
+        // Nếu là Dialog/Popup (fullResolution = true): nạp 100% ảnh gốc nguyên bản (971x1620px), sắc nét tuyệt đối
+        // Nếu là Card Grid: nạp 320x420px ở chế độ đa luồng (backgroundLoading = true) khớp bộ nhớ đệm, mở màn hình tức thì 0ms
+        Image img = fullResolution ? ImageManager.getProductImageFull(item) : ImageManager.getProductImage(item, 320, 420);
         this.imageView = new ImageView(img);
         this.imageView.setPreserveRatio(true);
         this.imageView.setSmooth(true);
+
+        if (img != null && img.getWidth() <= 0) {
+            img.widthProperty().addListener((obs, oldW, newW) -> {
+                if (newW != null && newW.doubleValue() > 0) {
+                    requestLayout();
+                }
+            });
+            img.heightProperty().addListener((obs, oldH, newH) -> {
+                if (newH != null && newH.doubleValue() > 0) {
+                    requestLayout();
+                }
+            });
+        }
 
         this.clipRect = new Rectangle();
         this.clipRect.setArcWidth(cornerRadius * 2);
@@ -91,9 +111,9 @@ public class ProductImagePane extends Pane {
             imageView.setFitWidth(targetW);
             imageView.setFitHeight(targetH);
 
-            // Căn giữa ảnh vào tâm khung
+            // Căn giữa cho Dialog, neo tỷ lệ vàng 0.35 cho thẻ lưới (Card Grid) để bắt trọn cả miệng ly lẫn đĩa lót
             double x = (w - targetW) / 2.0;
-            double y = (h - targetH) / 2.0;
+            double y = (fixedWidth > 0) ? (h - targetH) / 2.0 : ((targetH > h) ? (h - targetH) * 0.35 : (h - targetH) / 2.0);
             imageView.relocate(x, y);
         }
     }

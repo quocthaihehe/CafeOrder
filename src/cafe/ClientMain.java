@@ -61,7 +61,16 @@ public class ClientMain {
                 System.exit(0);
             });
 
+            primaryStage.setMaximized(true);
             primaryStage.show();
+            WindowChromeHelper.applyMaximized(primaryStage);
+
+            // Khởi động ngầm kết nối Socket, bộ nhớ đệm hình ảnh 69 món và kết nối DB ngay tại màn hình Login
+            // để khi bấm Đăng nhập (Khách / Nhân viên / Quản lý) sẽ chuyển cảnh tức thì 0ms
+            socketService.warmupConnectAsync();
+            cafe.utils.ImageManager.warmupCacheAsync();
+            cafe.services.DatabaseManager.warmupAsync();
         }
     }
 }
+

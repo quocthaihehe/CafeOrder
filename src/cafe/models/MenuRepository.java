@@ -7,6 +7,7 @@ public class MenuRepository {
     private static final List<SizeItem> sizeItems = new ArrayList<>();
     private static final List<ToppingItem> toppingItems = new ArrayList<>();
     private static final Map<String, List<ToppingItem>> categoryToppingsMap = new HashMap<>();
+    private static final Map<Integer, List<ToppingItem>> productToppingsMap = new HashMap<>();
     private static final Map<String, Voucher> vouchersMap = new HashMap<>();
 
     static {
@@ -49,13 +50,94 @@ public class MenuRepository {
             foamMuoi, kemTuoi, oreo, shotEspresso, suaDacThem
         ));
 
-        // Category toppings mapping
-        categoryToppingsMap.put("Cà phê", Arrays.asList(shotEspresso, thachCaPhe, foamMuoi, kemTuoi, puddingTrung, suaDacThem));
-        categoryToppingsMap.put("Trà & Trái cây", Arrays.asList(tcTrang, thachTraiCay, daoMieng, traiVai, nhaDam, hatSen, thachDua));
-        categoryToppingsMap.put("Trà sữa", Arrays.asList(tcDen, tcDuongDen, tcHoangKim, puddingTrung, suongSao, kemCheese, thachDua, thachTraiCay));
+        // Category toppings mapping (dự phòng theo danh mục)
+        categoryToppingsMap.put("Cà phê", Arrays.asList(shotEspresso, thachCaPhe, foamMuoi, kemTuoi, suaDacThem));
+        categoryToppingsMap.put("Trà & Trái cây", Arrays.asList(tcTrang, thachTraiCay, nhaDam, thachDua));
+        categoryToppingsMap.put("Trà sữa", Arrays.asList(tcDen, tcTrang, tcDuongDen, tcHoangKim, puddingTrung, suongSao, kemCheese, thachDua));
         categoryToppingsMap.put("Đá xay & Sinh tố", Arrays.asList(kemTuoi, oreo, tcDen, thachCaPhe));
-        categoryToppingsMap.put("Soda & Nước ép", Arrays.asList(thachTraiCay, nhaDam, suongSao));
+        categoryToppingsMap.put("Soda & Nước ép", Arrays.asList(thachTraiCay, nhaDam, tcTrang));
         categoryToppingsMap.put("Matcha & Chocolate", Arrays.asList(kemTuoi, tcDen, kemCheese, oreo));
+        categoryToppingsMap.put("Bánh ngọt", Collections.emptyList());
+        categoryToppingsMap.put("Món ăn nhẹ", Collections.emptyList());
+
+        // =================================================================
+        // Phân bổ Topping chuẩn xác theo TỪNG MÓN (Product-specific Toppings)
+        // Một số món có bộ topping riêng biệt, một số món KHÔNG có topping nào
+        // =================================================================
+
+        // 1. CÀ PHÊ (15 món)
+        productToppingsMap.put(1, Arrays.asList(shotEspresso, thachCaPhe, foamMuoi)); // Cà phê Đen Phin
+        productToppingsMap.put(2, Arrays.asList(shotEspresso, suaDacThem, thachCaPhe, foamMuoi)); // Cà phê Sữa Đá
+        productToppingsMap.put(3, Arrays.asList(suaDacThem, foamMuoi, thachCaPhe, tcTrang, puddingTrung)); // Bạc Xỉu Kem Béo
+        productToppingsMap.put(4, Arrays.asList(foamMuoi, shotEspresso, suaDacThem, thachCaPhe)); // Cà phê Muối Cố Đô
+        productToppingsMap.put(5, Arrays.asList(shotEspresso, daoMieng, nhaDam)); // Cold Brew Cam Vàng
+        productToppingsMap.put(6, Arrays.asList(shotEspresso, kemTuoi, foamMuoi, thachCaPhe)); // Caramel Macchiato
+        productToppingsMap.put(17, Collections.emptyList()); // Espresso (Nguyên bản, không topping)
+        productToppingsMap.put(18, Arrays.asList(shotEspresso, foamMuoi)); // Americano
+        productToppingsMap.put(19, Arrays.asList(shotEspresso, foamMuoi, thachCaPhe)); // Latte
+        productToppingsMap.put(20, Arrays.asList(shotEspresso, foamMuoi)); // Cappuccino
+        productToppingsMap.put(21, Arrays.asList(shotEspresso, kemTuoi, oreo, thachCaPhe)); // Mocha
+        productToppingsMap.put(22, Arrays.asList(shotEspresso, foamMuoi)); // Flat White
+        productToppingsMap.put(23, Arrays.asList(thachDua, thachCaPhe, suaDacThem, kemTuoi)); // Cà phê Dừa
+        productToppingsMap.put(24, Collections.emptyList()); // Cà phê Trứng (Kem trứng đặc trưng, không topping)
+        productToppingsMap.put(25, Collections.emptyList()); // Cold Brew Truyền Thống (Ủ lạnh nguyên bản, không topping)
+
+        // 2. TRÀ & TRÁI CÂY (9 món)
+        productToppingsMap.put(7, Arrays.asList(daoMieng, tcTrang, thachDua, nhaDam)); // Trà Đào Cam Sả
+        productToppingsMap.put(8, Arrays.asList(traiVai, tcTrang, thachDua, nhaDam)); // Trà Vải Hoa Hồng
+        productToppingsMap.put(9, Arrays.asList(hatSen, kemCheese, tcTrang, thachDua)); // Trà Sen Vàng Kem Cheese
+        productToppingsMap.put(10, Arrays.asList(tcTrang, thachDua, nhaDam, thachTraiCay)); // Trà Ô Long Mãng Cầu
+        productToppingsMap.put(26, Arrays.asList(tcTrang, thachDua, nhaDam, thachTraiCay)); // Trà Chanh Dây Nhiệt Đới
+        productToppingsMap.put(27, Arrays.asList(tcTrang, thachDua, nhaDam)); // Trà Tắc Xí Muội
+        productToppingsMap.put(28, Arrays.asList(tcTrang, thachTraiCay, nhaDam, kemCheese)); // Trà Ổi Hồng
+        productToppingsMap.put(29, Arrays.asList(tcTrang, thachTraiCay, nhaDam, thachDua)); // Trà Hibiscus Dâu
+        productToppingsMap.put(30, Arrays.asList(tcTrang, thachTraiCay, nhaDam, kemCheese)); // Trà Xoài Nhiệt Đới
+
+        // 3. ĐÁ XAY & SINH TỐ (8 món)
+        productToppingsMap.put(11, Arrays.asList(kemTuoi, tcDen, tcTrang, thachDua)); // Matcha Đá Xay Uji
+        productToppingsMap.put(12, Arrays.asList(kemTuoi, oreo, puddingTrung, tcDen)); // Cookie & Cream Đá Xay
+        productToppingsMap.put(13, Arrays.asList(thachDua, tcTrang)); // Sinh Tố Bơ Dừa Non
+        productToppingsMap.put(31, Arrays.asList(kemTuoi, oreo, puddingTrung, tcDen)); // Chocolate Chip Đá Xay
+        productToppingsMap.put(32, Arrays.asList(thachTraiCay, nhaDam, tcTrang)); // Dâu Sữa Chua Đá Xay
+        productToppingsMap.put(33, Arrays.asList(thachTraiCay, nhaDam, tcTrang)); // Xoài Đá Xay
+        productToppingsMap.put(34, Arrays.asList(kemTuoi, thachCaPhe, shotEspresso, oreo)); // Cà phê Đá Xay
+        productToppingsMap.put(35, Collections.emptyList()); // Sinh Tố Dâu (Nguyên chất, không topping)
+
+        // 4. TRÀ SỮA (7 món)
+        productToppingsMap.put(36, Arrays.asList(tcDen, tcTrang, tcHoangKim, puddingTrung, suongSao, kemCheese)); // Trà Sữa Truyền Thống
+        productToppingsMap.put(37, Arrays.asList(tcDen, tcTrang, suongSao, thachDua, puddingTrung)); // Trà Sữa Thái Xanh
+        productToppingsMap.put(38, Arrays.asList(tcDen, tcTrang, tcHoangKim, puddingTrung, kemCheese)); // Hồng Trà Sữa
+        productToppingsMap.put(39, Arrays.asList(kemCheese, tcDen, tcHoangKim, hatSen, suongSao)); // Trà Sữa Ô Long Macchiato
+        productToppingsMap.put(40, Arrays.asList(kemCheese, tcDuongDen, tcDen, puddingTrung, oreo)); // Trà Sữa Kem Cheese
+        productToppingsMap.put(41, Arrays.asList(tcDen, tcTrang, puddingTrung, kemCheese, suongSao)); // Trà Sữa Matcha
+        productToppingsMap.put(42, Arrays.asList(tcDen, tcHoangKim, puddingTrung, thachDua)); // Trà Sữa Khoai Môn
+
+        // 5. SODA & NƯỚC ÉP (8 món)
+        productToppingsMap.put(43, Arrays.asList(thachTraiCay, nhaDam, tcTrang)); // Soda Chanh Dây
+        productToppingsMap.put(44, Arrays.asList(thachTraiCay, nhaDam, tcTrang)); // Soda Việt Quất
+        productToppingsMap.put(45, Arrays.asList(thachTraiCay, nhaDam, tcTrang)); // Soda Dâu Bạc Hà
+        productToppingsMap.put(46, Collections.emptyList()); // Nước Cam Ép (Nguyên chất, không topping)
+        productToppingsMap.put(47, Collections.emptyList()); // Nước Ép Dưa Hấu (Nguyên chất, không topping)
+        productToppingsMap.put(48, Collections.emptyList()); // Nước Ép Ổi Hồng (Nguyên chất, không topping)
+        productToppingsMap.put(49, Arrays.asList(nhaDam, thachDua)); // Chanh Dây Mật Ong
+        productToppingsMap.put(50, Collections.emptyList()); // Nước Ép Thơm Táo (Nguyên chất, không topping)
+
+        // 6. MATCHA & CHOCOLATE (5 món)
+        productToppingsMap.put(51, Arrays.asList(tcDen, tcTrang, kemCheese, puddingTrung)); // Matcha Latte
+        productToppingsMap.put(52, Arrays.asList(tcTrang, kemCheese, puddingTrung)); // Matcha Dâu
+        productToppingsMap.put(53, Arrays.asList(kemTuoi, oreo)); // Chocolate Nóng
+        productToppingsMap.put(54, Arrays.asList(kemTuoi, oreo, puddingTrung, kemCheese)); // Chocolate Đá
+        productToppingsMap.put(55, Arrays.asList(tcDen, tcHoangKim, kemCheese, suongSao)); // Hojicha Latte
+
+        // 7. BÁNH NGỌT (9 món - Không có topping)
+        for (int id : new int[]{14, 15, 16, 56, 57, 58, 59, 60, 61}) {
+            productToppingsMap.put(id, Collections.emptyList());
+        }
+
+        // 8. MÓN ĂN NHẸ (8 món - Không có topping)
+        for (int id : new int[]{62, 63, 64, 65, 66, 67, 68, 69}) {
+            productToppingsMap.put(id, Collections.emptyList());
+        }
     }
 
     private static void initProducts() {
@@ -81,9 +163,9 @@ public class MenuRepository {
         menuItems.add(new MenuItem(8, "Trà Vải Hoa Hồng", 42000, "Trà & Trái cây", "Hương hoa hồng dịu mát phối hợp trái vải giòn tan thơm mát mùa hè.", "🌹", true, false, false, false, 4));
         menuItems.add(new MenuItem(9, "Trà Sen Vàng Kem Cheese", 45000, "Trà & Trái cây", "Hạt sen bùi thơm, trân châu ngọc trai và lớp kem cheese béo mặn.", "🪷", true, false, false, false, 5));
         menuItems.add(new MenuItem(10, "Trà Ô Long Mãng Cầu", 42000, "Trà & Trái cây", "Vị chua ngọt bùng nổ từ mãng cầu xiêm tươi cùng nền trà ô long thanh vị.", "🍹", true, false, false, false, 4));
-        menuItems.add(new MenuItem(26, "Trà Chanh Giã Tay", 29000, "Trà & Trái cây", "Trà đen, chanh tươi giã tay, thêm chút mật ong.", "🍋", true, false, true, false, 4));
+        menuItems.add(new MenuItem(26, "Trà Chanh Dây Nhiệt Đới", 39000, "Trà & Trái cây", "Trà lài thanh khiết hòa cùng cốt chanh dây vàng tươi chua ngọt sảng khoái.", "🍋", true, false, true, false, 4));
         menuItems.add(new MenuItem(27, "Trà Tắc Xí Muội", 29000, "Trà & Trái cây", "Trà thanh, quất tươi và xí muội chua mặn nhẹ.", "🍊", true, false, false, false, 4));
-        menuItems.add(new MenuItem(28, "Trà Gừng Mật Ong", 35000, "Trà & Trái cây", "Trà nóng gừng tươi và mật ong, ấm bụng.", "🍯", false, true, false, false, 4));
+        menuItems.add(new MenuItem(28, "Trà Ổi Hồng", 42000, "Trà & Trái cây", "Trà ô long thanh vị kết hợp nước ép ổi hồng thơm ngát và thạch giòn sần sật.", "🍐", true, false, false, true, 4));
         menuItems.add(new MenuItem(29, "Trà Hibiscus Dâu", 42000, "Trà & Trái cây", "Trà hoa atiso đỏ với dâu tươi, chua dịu, màu đẹp.", "🍓", true, false, false, true, 4));
         menuItems.add(new MenuItem(30, "Trà Xoài Nhiệt Đới", 42000, "Trà & Trái cây", "Trà xanh, xoài chín và hạt chia.", "🥭", true, false, false, true, 4));
 
@@ -100,9 +182,9 @@ public class MenuRepository {
         // 4. TRÀ SỮA
         menuItems.add(new MenuItem(36, "Trà Sữa Truyền Thống", 35000, "Trà sữa", "Trà đen đậm vị, sữa béo, vị quen thuộc.", "🧋", true, true, true, false, 4));
         menuItems.add(new MenuItem(37, "Trà Sữa Thái Xanh", 38000, "Trà sữa", "Trà Thái xanh thơm, ngọt béo.", "🧋", true, false, false, false, 4));
-        menuItems.add(new MenuItem(38, "Hồng Trà Sữa Trân Châu", 40000, "Trà sữa", "Hồng trà, sữa và trân châu đen dai.", "🧋", true, true, true, false, 4));
-        menuItems.add(new MenuItem(39, "Trà Sữa Ô Long Nướng", 42000, "Trà sữa", "Ô long rang thơm khói, sữa béo mịn.", "🧋", true, true, false, false, 4));
-        menuItems.add(new MenuItem(40, "Sữa Tươi Trân Châu Đường Đen", 45000, "Trà sữa", "Sữa tươi, trân châu nấu đường đen, vân hổ.", "🐯", true, false, true, false, 5));
+        menuItems.add(new MenuItem(38, "Hồng Trà Sữa", 38000, "Trà sữa", "Hồng trà thượng hạng ủ đậm hương vị kết hợp sữa tươi thanh béo.", "🧋", true, true, true, false, 4));
+        menuItems.add(new MenuItem(39, "Trà Sữa Ô Long Macchiato", 45000, "Trà sữa", "Trà ô long đậm vị phủ lớp kem béo mặn macchiato mềm mịn óng ả.", "🧋", true, true, true, false, 4));
+        menuItems.add(new MenuItem(40, "Trà Sữa Kem Cheese", 45000, "Trà sữa", "Trà sữa truyền thống béo ngậy phối hợp lớp kem phô mai cheese béo mặn tuyệt hảo.", "🧀", true, true, false, true, 4));
         menuItems.add(new MenuItem(41, "Trà Sữa Matcha", 45000, "Trà sữa", "Matcha, sữa tươi và chút kem sữa.", "🍵", true, true, false, true, 4));
         menuItems.add(new MenuItem(42, "Trà Sữa Khoai Môn", 42000, "Trà sữa", "Khoai môn nghiền thơm bùi, trà sữa béo.", "🍠", true, false, false, true, 4));
 
@@ -114,7 +196,7 @@ public class MenuRepository {
         menuItems.add(new MenuItem(47, "Nước Ép Dưa Hấu", 35000, "Soda & Nước ép", "Dưa hấu ép tươi mát.", "🍉", true, false, false, false, 3));
         menuItems.add(new MenuItem(48, "Nước Ép Ổi Hồng", 40000, "Soda & Nước ép", "Ổi hồng ép nguyên chất, thơm dịu.", "🍐", true, false, false, false, 3));
         menuItems.add(new MenuItem(49, "Chanh Dây Mật Ong", 35000, "Soda & Nước ép", "Chanh dây, mật ong và đá, chua ngọt cân bằng.", "🍯", true, false, false, false, 3));
-        menuItems.add(new MenuItem(50, "Sữa Chua Đánh Đá", 32000, "Soda & Nước ép", "Sữa chua lên men mịn, đánh cùng đá.", "🥛", true, false, false, false, 3));
+        menuItems.add(new MenuItem(50, "Nước Ép Thơm Táo", 40000, "Soda & Nước ép", "Thơm chín mọng ép cùng táo đỏ tươi giòn, giàu vitamin, thanh mát tự nhiên.", "🍍", true, false, false, true, 3));
 
         // 6. MATCHA & CHOCOLATE
         menuItems.add(new MenuItem(51, "Matcha Latte", 48000, "Matcha & Chocolate", "Matcha Nhật, sữa tươi, vị trà rõ.", "🍵", true, true, true, false, 5));
@@ -131,7 +213,7 @@ public class MenuRepository {
         menuItems.add(new MenuItem(57, "Bông Lan Trứng Muối", 35000, "Bánh ngọt", "Bông lan mềm, sốt trứng muối và ruốc.", "🍰", false, false, true, false, 2));
         menuItems.add(new MenuItem(58, "Bánh Flan Caramel", 25000, "Bánh ngọt", "Flan trứng mịn, caramel đắng nhẹ.", "🍮", false, false, false, false, 2));
         menuItems.add(new MenuItem(59, "Mochi Kem", 30000, "Bánh ngọt", "Vỏ mochi dẻo, nhân kem lạnh, chọn vị.", "🍡", false, false, false, true, 2));
-        menuItems.add(new MenuItem(60, "Cookie Chocolate", 22000, "Bánh ngọt", "Cookie bơ giòn, chocolate chip.", "🍪", false, false, false, false, 2));
+        menuItems.add(new MenuItem(60, "Macaron", 32000, "Bánh ngọt", "Bánh Macaron Pháp vỏ giòn xốp, nhân kem ganache ngọt dịu nhiều hương vị.", "🧁", false, false, false, true, 2));
         menuItems.add(new MenuItem(61, "Red Velvet Slice", 42000, "Bánh ngọt", "Bánh nhung đỏ, phủ kem cheese.", "🍰", false, false, false, false, 2));
 
         // 8. MÓN ĂN NHẸ
@@ -139,11 +221,14 @@ public class MenuRepository {
         menuItems.add(new MenuItem(63, "Sandwich Gà Phô Mai", 45000, "Món ăn nhẹ", "Gà xé, phô mai, rau tươi, nướng nóng.", "🥪", false, false, false, false, 7));
         menuItems.add(new MenuItem(64, "Khoai Tây Chiên", 35000, "Món ăn nhẹ", "Khoai chiên giòn, kèm sốt tương cà.", "🍟", false, false, true, false, 7));
         menuItems.add(new MenuItem(65, "Gà Viên Chiên", 40000, "Món ăn nhẹ", "Gà viên chiên vàng, sốt mayonnaise.", "🍗", false, false, false, false, 7));
-        menuItems.add(new MenuItem(66, "Mì Ý Bò Bằm", 55000, "Món ăn nhẹ", "Mì Ý sốt bò bằm cà chua, phô mai.", "🍝", false, false, false, true, 10));
-        menuItems.add(new MenuItem(67, "Bánh Tráng Nướng", 30000, "Món ăn nhẹ", "Bánh tráng nướng giòn, trứng, hành, phô mai.", "🫓", false, false, false, false, 6));
+        menuItems.add(new MenuItem(66, "Bánh Mì Thịt", 35000, "Món ăn nhẹ", "Bánh mì vỏ giòn nóng hổi, nhân thịt nguội, chả lụa, pate, dưa góp và sốt đậm đà.", "🥖", false, false, true, false, 5));
+        menuItems.add(new MenuItem(67, "Bánh Tráng Trộn", 28000, "Món ăn nhẹ", "Bánh tráng dẻo trộn bò khô, trứng cút, xoài xanh, rau răm và sốt tắc chua ngọt.", "🥗", false, false, true, false, 5));
+        menuItems.add(new MenuItem(68, "Khô Gà Anh Độ Mixi", 35000, "Món ăn nhẹ", "Khô gà lá chanh giòn cay thơm lừng chuẩn vị Bộ Tộc, nhâm nhi cực cuốn.", "🍗", false, false, true, true, 3));
+        menuItems.add(new MenuItem(69, "Xiên Bẩn Lộn Xộn", 45000, "Món ăn nhẹ", "Combo cá viên, bò viên, tôm viên, xúc xích, hồ lô chiên giòn chấm tương ớt.", "🍢", false, false, true, true, 6));
     }
 
     private static void initVouchers() {
+        vouchersMap.put("GIAM10", new Voucher("GIAM10", "PERCENT", 10, 0));
         vouchersMap.put("WELCOME10", new Voucher("WELCOME10", "PERCENT", 10, 50000));
         vouchersMap.put("GIAM15K", new Voucher("GIAM15K", "AMOUNT", 15000, 100000));
     }
@@ -175,6 +260,22 @@ public class MenuRepository {
         if (category == null) return Collections.emptyList();
         List<ToppingItem> list = categoryToppingsMap.get(category);
         return list != null ? Collections.unmodifiableList(list) : Collections.emptyList();
+    }
+
+    public static List<ToppingItem> getToppingsForItem(MenuItem item) {
+        if (item == null) return Collections.emptyList();
+        int id = item.getId();
+        if (id <= 0 && item.getName() != null) {
+            MenuItem matched = findByName(item.getName());
+            if (matched != null) {
+                id = matched.getId();
+            }
+        }
+        if (productToppingsMap.containsKey(id)) {
+            List<ToppingItem> list = productToppingsMap.get(id);
+            return list != null ? Collections.unmodifiableList(list) : Collections.emptyList();
+        }
+        return getToppingsForCategory(item.getCategory());
     }
 
     public static Voucher getVoucher(String code) {

@@ -8,5 +8,10 @@ public enum MessageType {
     ORDER_ACK,
     ORDER_STATUS_UPDATE,
     ORDER_DONE,
+    TABLE_FOCUS_CHANGE,
+    TABLE_STATUS_BROADCAST,
+    PING,
+    PONG,
+    SYNC_CATALOG,
     ERROR
 }

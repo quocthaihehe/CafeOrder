@@ -17,6 +17,7 @@ GO
 -- ---------------------------------------------------------------------
 IF OBJECT_ID('dbo.StockMovements', 'U') IS NOT NULL DROP TABLE dbo.StockMovements;
 IF OBJECT_ID('dbo.OrderDetailToppings', 'U') IS NOT NULL DROP TABLE dbo.OrderDetailToppings;
+IF OBJECT_ID('dbo.ProductToppings', 'U') IS NOT NULL DROP TABLE dbo.ProductToppings;
 IF OBJECT_ID('dbo.CategoryToppings', 'U') IS NOT NULL DROP TABLE dbo.CategoryToppings;
 IF OBJECT_ID('dbo.Payments', 'U') IS NOT NULL DROP TABLE dbo.Payments;
 IF OBJECT_ID('dbo.OrderDetails', 'U') IS NOT NULL DROP TABLE dbo.OrderDetails;
@@ -89,6 +90,16 @@ CREATE TABLE CategoryToppings (
     PRIMARY KEY (category_id, topping_id),
     CONSTRAINT FK_CatTop_Categories FOREIGN KEY (category_id) REFERENCES Categories(category_id),
     CONSTRAINT FK_CatTop_Toppings FOREIGN KEY (topping_id) REFERENCES Toppings(topping_id)
+);
+GO
+
+-- Bảng 5b: Từng món cụ thể được phép dùng Topping nào (ProductToppings)
+CREATE TABLE ProductToppings (
+    product_id INT NOT NULL,
+    topping_id INT NOT NULL,
+    PRIMARY KEY (product_id, topping_id),
+    CONSTRAINT FK_ProdTop_Products FOREIGN KEY (product_id) REFERENCES Products(product_id) ON DELETE CASCADE,
+    CONSTRAINT FK_ProdTop_Toppings FOREIGN KEY (topping_id) REFERENCES Toppings(topping_id) ON DELETE CASCADE
 );
 GO
 
@@ -307,9 +318,9 @@ FROM (VALUES
  (N'Cà phê', N'Cà phê Trứng', 48000, N'Lớp kem trứng đánh bông trên nền cà phê phin.', N'🥚', 1,1,0,0,6),
  (N'Cà phê', N'Cold Brew Truyền Thống', 40000, N'Cà phê ủ lạnh 18 giờ, ít chua, hậu vị ngọt.', N'🧊', 1,0,0,0,2),
  -- TRÀ & TRÁI CÂY
- (N'Trà & Trái cây', N'Trà Chanh Giã Tay', 29000, N'Trà đen, chanh tươi giã tay, thêm chút mật ong.', N'🍋', 1,0,1,0,4),
+ (N'Trà & Trái cây', N'Trà Chanh Dây Nhiệt Đới', 39000, N'Trà lài thanh khiết hòa cùng cốt chanh dây vàng tươi chua ngọt sảng khoái.', N'🍋', 1,0,1,0,4),
  (N'Trà & Trái cây', N'Trà Tắc Xí Muội', 29000, N'Trà thanh, quất tươi và xí muội chua mặn nhẹ.', N'🍊', 1,0,0,0,4),
- (N'Trà & Trái cây', N'Trà Gừng Mật Ong', 35000, N'Trà nóng gừng tươi và mật ong, ấm bụng.', N'🍯', 0,1,0,0,4),
+ (N'Trà & Trái cây', N'Trà Ổi Hồng', 42000, N'Trà ô long thanh vị kết hợp nước ép ổi hồng thơm ngát và thạch giòn sần sật.', N'🍐', 1,0,0,1,4),
  (N'Trà & Trái cây', N'Trà Hibiscus Dâu', 42000, N'Trà hoa atiso đỏ với dâu tươi, chua dịu, màu đẹp.', N'🍓', 1,0,0,1,4),
  (N'Trà & Trái cây', N'Trà Xoài Nhiệt Đới', 42000, N'Trà xanh, xoài chín và hạt chia.', N'🥭', 1,0,0,1,4),
  -- ĐÁ XAY & SINH TỐ
@@ -321,9 +332,9 @@ FROM (VALUES
  -- TRÀ SỮA
  (N'Trà sữa', N'Trà Sữa Truyền Thống', 35000, N'Trà đen đậm vị, sữa béo, vị quen thuộc.', N'🧋', 1,1,1,0,4),
  (N'Trà sữa', N'Trà Sữa Thái Xanh', 38000, N'Trà Thái xanh thơm, ngọt béo.', N'🧋', 1,0,0,0,4),
- (N'Trà sữa', N'Hồng Trà Sữa Trân Châu', 40000, N'Hồng trà, sữa và trân châu đen dai.', N'🧋', 1,1,1,0,4),
- (N'Trà sữa', N'Trà Sữa Ô Long Nướng', 42000, N'Ô long rang thơm khói, sữa béo mịn.', N'🧋', 1,1,0,0,4),
- (N'Trà sữa', N'Sữa Tươi Trân Châu Đường Đen', 45000, N'Sữa tươi, trân châu nấu đường đen, vân hổ.', N'🐯', 1,0,1,0,5),
+ (N'Trà sữa', N'Hồng Trà Sữa', 38000, N'Hồng trà thượng hạng ủ đậm hương vị kết hợp sữa tươi thanh béo.', N'🧋', 1,1,1,0,4),
+ (N'Trà sữa', N'Trà Sữa Ô Long Macchiato', 45000, N'Trà ô long đậm vị phủ lớp kem béo mặn macchiato mềm mịn óng ả.', N'🧋', 1,1,1,0,4),
+ (N'Trà sữa', N'Trà Sữa Kem Cheese', 45000, N'Trà sữa truyền thống béo ngậy phối hợp lớp kem phô mai cheese béo mặn tuyệt hảo.', N'🧀', 1,1,0,1,4),
  (N'Trà sữa', N'Trà Sữa Matcha', 45000, N'Matcha, sữa tươi và chút kem sữa.', N'🍵', 1,1,0,1,4),
  (N'Trà sữa', N'Trà Sữa Khoai Môn', 42000, N'Khoai môn nghiền thơm bùi, trà sữa béo.', N'🍠', 1,0,0,1,4),
  -- SODA & NƯỚC ÉP
@@ -334,7 +345,7 @@ FROM (VALUES
  (N'Soda & Nước ép', N'Nước Ép Dưa Hấu', 35000, N'Dưa hấu ép tươi mát.', N'🍉', 1,0,0,0,3),
  (N'Soda & Nước ép', N'Nước Ép Ổi Hồng', 40000, N'Ổi hồng ép nguyên chất, thơm dịu.', N'🍐', 1,0,0,0,3),
  (N'Soda & Nước ép', N'Chanh Dây Mật Ong', 35000, N'Chanh dây, mật ong và đá, chua ngọt cân bằng.', N'🍯', 1,0,0,0,3),
- (N'Soda & Nước ép', N'Sữa Chua Đánh Đá', 32000, N'Sữa chua lên men mịn, đánh cùng đá.', N'🥛', 1,0,0,0,3),
+ (N'Soda & Nước ép', N'Nước Ép Thơm Táo', 40000, N'Thơm chín mọng ép cùng táo đỏ tươi giòn, giàu vitamin, thanh mát tự nhiên.', N'🍍', 1,0,0,1,3),
  -- MATCHA & CHOCOLATE
  (N'Matcha & Chocolate', N'Matcha Latte', 48000, N'Matcha Nhật, sữa tươi, vị trà rõ.', N'🍵', 1,1,1,0,5),
  (N'Matcha & Chocolate', N'Matcha Dâu', 52000, N'Matcha phối dâu tươi, hai tầng màu.', N'🍵', 1,0,0,1,5),
@@ -346,15 +357,17 @@ FROM (VALUES
  (N'Bánh ngọt', N'Bông Lan Trứng Muối', 35000, N'Bông lan mềm, sốt trứng muối và ruốc.', N'🍰', 0,0,1,0,2),
  (N'Bánh ngọt', N'Bánh Flan Caramel', 25000, N'Flan trứng mịn, caramel đắng nhẹ.', N'🍮', 0,0,0,0,2),
  (N'Bánh ngọt', N'Mochi Kem', 30000, N'Vỏ mochi dẻo, nhân kem lạnh, chọn vị.', N'🍡', 0,0,0,1,2),
- (N'Bánh ngọt', N'Cookie Chocolate', 22000, N'Cookie bơ giòn, chocolate chip.', N'🍪', 0,0,0,0,2),
+ (N'Bánh ngọt', N'Macaron', 32000, N'Bánh Macaron Pháp vỏ giòn xốp, nhân kem ganache ngọt dịu nhiều hương vị.', N'🧁', 0,0,0,1,2),
  (N'Bánh ngọt', N'Red Velvet Slice', 42000, N'Bánh nhung đỏ, phủ kem cheese.', N'🍰', 0,0,0,0,2),
  -- MÓN ĂN NHẸ
  (N'Món ăn nhẹ', N'Bánh Mì Que Pate', 20000, N'Bánh mì que giòn, pate và bơ.', N'🥖', 0,0,1,0,4),
  (N'Món ăn nhẹ', N'Sandwich Gà Phô Mai', 45000, N'Gà xé, phô mai, rau tươi, nướng nóng.', N'🥪', 0,0,0,0,7),
  (N'Món ăn nhẹ', N'Khoai Tây Chiên', 35000, N'Khoai chiên giòn, kèm sốt tương cà.', N'🍟', 0,0,1,0,7),
  (N'Món ăn nhẹ', N'Gà Viên Chiên', 40000, N'Gà viên chiên vàng, sốt mayonnaise.', N'🍗', 0,0,0,0,7),
- (N'Món ăn nhẹ', N'Mì Ý Bò Bằm', 55000, N'Mì Ý sốt bò bằm cà chua, phô mai.', N'🍝', 0,0,0,1,10),
- (N'Món ăn nhẹ', N'Bánh Tráng Nướng', 30000, N'Bánh tráng nướng giòn, trứng, hành, phô mai.', N'🫓', 0,0,0,0,6)
+ (N'Món ăn nhẹ', N'Bánh Mì Thịt', 35000, N'Bánh mì vỏ giòn nóng hổi, nhân thịt nguội, chả lụa, pate, dưa góp và sốt đậm đà.', N'🥖', 0,0,1,0,5),
+ (N'Món ăn nhẹ', N'Bánh Tráng Trộn', 28000, N'Bánh tráng dẻo trộn bò khô, trứng cút, xoài xanh, rau răm và sốt tắc chua ngọt.', N'🥗', 0,0,1,0,5),
+ (N'Món ăn nhẹ', N'Khô Gà Anh Độ Mixi', 35000, N'Khô gà lá chanh giòn cay thơm lừng chuẩn vị Bộ Tộc, nhâm nhi cực cuốn.', N'🍗', 0,0,1,1,3),
+ (N'Món ăn nhẹ', N'Xiên Bẩn Lộn Xộn', 45000, N'Combo cá viên, bò viên, tôm viên, xúc xích, hồ lô chiên giòn chấm tương ớt.', N'🍢', 0,0,1,1,6)
 ) v(cat, name, price, descr, emoji, sz, hot, best, nw, prep)
 JOIN Categories c ON c.name = v.cat;
 GO
@@ -395,6 +408,65 @@ FROM (VALUES
  (N'Matcha & Chocolate', N'Kem cheese macchiato'), (N'Matcha & Chocolate', N'Oreo vụn')
 ) v(cat, topping)
 JOIN Categories c ON c.name = v.cat
+JOIN Toppings t ON t.name = v.topping;
+GO
+
+-- ProductToppings mapping (Phân bổ Topping chuẩn xác theo từng món cụ thể; các món không có trong bảng này sẽ không có topping)
+INSERT INTO ProductToppings (product_id, topping_id)
+SELECT p.product_id, t.topping_id
+FROM (VALUES
+ -- 1. CÀ PHÊ (Espresso, Cà phê Trứng, Cold Brew Truyền Thống không có topping)
+ (N'Cà phê Đen Phin', N'Shot espresso thêm'), (N'Cà phê Đen Phin', N'Thạch cà phê'), (N'Cà phê Đen Phin', N'Foam muối'),
+ (N'Cà phê Sữa Đá', N'Shot espresso thêm'), (N'Cà phê Sữa Đá', N'Sữa đặc thêm'), (N'Cà phê Sữa Đá', N'Thạch cà phê'), (N'Cà phê Sữa Đá', N'Foam muối'),
+ (N'Bạc Xỉu Kem Béo', N'Sữa đặc thêm'), (N'Bạc Xỉu Kem Béo', N'Foam muối'), (N'Bạc Xỉu Kem Béo', N'Thạch cà phê'), (N'Bạc Xỉu Kem Béo', N'Trân châu trắng'), (N'Bạc Xỉu Kem Béo', N'Pudding trứng'),
+ (N'Cà phê Muối Cố Đô', N'Foam muối'), (N'Cà phê Muối Cố Đô', N'Shot espresso thêm'), (N'Cà phê Muối Cố Đô', N'Sữa đặc thêm'), (N'Cà phê Muối Cố Đô', N'Thạch cà phê'),
+ (N'Cold Brew Cam Vàng', N'Shot espresso thêm'), (N'Cold Brew Cam Vàng', N'Đào miếng'), (N'Cold Brew Cam Vàng', N'Nha đam'),
+ (N'Caramel Macchiato', N'Shot espresso thêm'), (N'Caramel Macchiato', N'Kem tươi whipping'), (N'Caramel Macchiato', N'Foam muối'), (N'Caramel Macchiato', N'Thạch cà phê'),
+ (N'Americano', N'Shot espresso thêm'), (N'Americano', N'Foam muối'),
+ (N'Latte', N'Shot espresso thêm'), (N'Latte', N'Foam muối'), (N'Latte', N'Thạch cà phê'),
+ (N'Cappuccino', N'Shot espresso thêm'), (N'Cappuccino', N'Foam muối'),
+ (N'Mocha', N'Shot espresso thêm'), (N'Mocha', N'Kem tươi whipping'), (N'Mocha', N'Oreo vụn'), (N'Mocha', N'Thạch cà phê'),
+ (N'Flat White', N'Shot espresso thêm'), (N'Flat White', N'Foam muối'),
+ (N'Cà phê Dừa', N'Thạch dừa'), (N'Cà phê Dừa', N'Thạch cà phê'), (N'Cà phê Dừa', N'Sữa đặc thêm'), (N'Cà phê Dừa', N'Kem tươi whipping'),
+ -- 2. TRÀ & TRÁI CÂY
+ (N'Trà Đào Cam Sả', N'Đào miếng'), (N'Trà Đào Cam Sả', N'Trân châu trắng'), (N'Trà Đào Cam Sả', N'Thạch dừa'), (N'Trà Đào Cam Sả', N'Nha đam'),
+ (N'Trà Vải Hoa Hồng', N'Vải'), (N'Trà Vải Hoa Hồng', N'Trân châu trắng'), (N'Trà Vải Hoa Hồng', N'Thạch dừa'), (N'Trà Vải Hoa Hồng', N'Nha đam'),
+ (N'Trà Sen Vàng Kem Cheese', N'Hạt sen'), (N'Trà Sen Vàng Kem Cheese', N'Kem cheese macchiato'), (N'Trà Sen Vàng Kem Cheese', N'Trân châu trắng'), (N'Trà Sen Vàng Kem Cheese', N'Thạch dừa'),
+ (N'Trà Ô Long Mãng Cầu', N'Trân châu trắng'), (N'Trà Ô Long Mãng Cầu', N'Thạch dừa'), (N'Trà Ô Long Mãng Cầu', N'Nha đam'), (N'Trà Ô Long Mãng Cầu', N'Thạch trái cây'),
+ (N'Trà Chanh Dây Nhiệt Đới', N'Trân châu trắng'), (N'Trà Chanh Dây Nhiệt Đới', N'Thạch dừa'), (N'Trà Chanh Dây Nhiệt Đới', N'Nha đam'), (N'Trà Chanh Dây Nhiệt Đới', N'Thạch trái cây'),
+ (N'Trà Tắc Xí Muội', N'Trân châu trắng'), (N'Trà Tắc Xí Muội', N'Thạch dừa'), (N'Trà Tắc Xí Muội', N'Nha đam'),
+ (N'Trà Ổi Hồng', N'Trân châu trắng'), (N'Trà Ổi Hồng', N'Thạch trái cây'), (N'Trà Ổi Hồng', N'Nha đam'), (N'Trà Ổi Hồng', N'Kem cheese macchiato'),
+ (N'Trà Hibiscus Dâu', N'Trân châu trắng'), (N'Trà Hibiscus Dâu', N'Thạch trái cây'), (N'Trà Hibiscus Dâu', N'Nha đam'), (N'Trà Hibiscus Dâu', N'Thạch dừa'),
+ (N'Trà Xoài Nhiệt Đới', N'Trân châu trắng'), (N'Trà Xoài Nhiệt Đới', N'Thạch trái cây'), (N'Trà Xoài Nhiệt Đới', N'Nha đam'), (N'Trà Xoài Nhiệt Đới', N'Kem cheese macchiato'),
+ -- 3. ĐÁ XAY & SINH TỐ (Sinh Tố Dâu không có topping)
+ (N'Matcha Đá Xay Uji', N'Kem tươi whipping'), (N'Matcha Đá Xay Uji', N'Trân châu đen'), (N'Matcha Đá Xay Uji', N'Trân châu trắng'), (N'Matcha Đá Xay Uji', N'Thạch dừa'),
+ (N'Cookie & Cream Đá Xay', N'Kem tươi whipping'), (N'Cookie & Cream Đá Xay', N'Oreo vụn'), (N'Cookie & Cream Đá Xay', N'Pudding trứng'), (N'Cookie & Cream Đá Xay', N'Trân châu đen'),
+ (N'Sinh Tố Bơ Dừa Non', N'Thạch dừa'), (N'Sinh Tố Bơ Dừa Non', N'Trân châu trắng'),
+ (N'Chocolate Chip Đá Xay', N'Kem tươi whipping'), (N'Chocolate Chip Đá Xay', N'Oreo vụn'), (N'Chocolate Chip Đá Xay', N'Pudding trứng'), (N'Chocolate Chip Đá Xay', N'Trân châu đen'),
+ (N'Dâu Sữa Chua Đá Xay', N'Thạch trái cây'), (N'Dâu Sữa Chua Đá Xay', N'Nha đam'), (N'Dâu Sữa Chua Đá Xay', N'Trân châu trắng'),
+ (N'Xoài Đá Xay', N'Thạch trái cây'), (N'Xoài Đá Xay', N'Nha đam'), (N'Xoài Đá Xay', N'Trân châu trắng'),
+ (N'Cà phê Đá Xay', N'Kem tươi whipping'), (N'Cà phê Đá Xay', N'Thạch cà phê'), (N'Cà phê Đá Xay', N'Shot espresso thêm'), (N'Cà phê Đá Xay', N'Oreo vụn'),
+ -- 4. TRÀ SỮA
+ (N'Trà Sữa Truyền Thống', N'Trân châu đen'), (N'Trà Sữa Truyền Thống', N'Trân châu trắng'), (N'Trà Sữa Truyền Thống', N'Trân châu hoàng kim'), (N'Trà Sữa Truyền Thống', N'Pudding trứng'), (N'Trà Sữa Truyền Thống', N'Sương sáo'), (N'Trà Sữa Truyền Thống', N'Kem cheese macchiato'),
+ (N'Trà Sữa Thái Xanh', N'Trân châu đen'), (N'Trà Sữa Thái Xanh', N'Trân châu trắng'), (N'Trà Sữa Thái Xanh', N'Sương sáo'), (N'Trà Sữa Thái Xanh', N'Thạch dừa'), (N'Trà Sữa Thái Xanh', N'Pudding trứng'),
+ (N'Hồng Trà Sữa', N'Trân châu đen'), (N'Hồng Trà Sữa', N'Trân châu trắng'), (N'Hồng Trà Sữa', N'Trân châu hoàng kim'), (N'Hồng Trà Sữa', N'Pudding trứng'), (N'Hồng Trà Sữa', N'Kem cheese macchiato'),
+ (N'Trà Sữa Ô Long Macchiato', N'Kem cheese macchiato'), (N'Trà Sữa Ô Long Macchiato', N'Trân châu đen'), (N'Trà Sữa Ô Long Macchiato', N'Trân châu hoàng kim'), (N'Trà Sữa Ô Long Macchiato', N'Hạt sen'), (N'Trà Sữa Ô Long Macchiato', N'Sương sáo'),
+ (N'Trà Sữa Kem Cheese', N'Kem cheese macchiato'), (N'Trà Sữa Kem Cheese', N'Trân châu đường đen'), (N'Trà Sữa Kem Cheese', N'Trân châu đen'), (N'Trà Sữa Kem Cheese', N'Pudding trứng'), (N'Trà Sữa Kem Cheese', N'Oreo vụn'),
+ (N'Trà Sữa Matcha', N'Trân châu đen'), (N'Trà Sữa Matcha', N'Trân châu trắng'), (N'Trà Sữa Matcha', N'Pudding trứng'), (N'Trà Sữa Matcha', N'Kem cheese macchiato'), (N'Trà Sữa Matcha', N'Sương sáo'),
+ (N'Trà Sữa Khoai Môn', N'Trân châu đen'), (N'Trà Sữa Khoai Môn', N'Trân châu hoàng kim'), (N'Trà Sữa Khoai Môn', N'Pudding trứng'), (N'Trà Sữa Khoai Môn', N'Thạch dừa'),
+ -- 5. SODA & NƯỚC ÉP (Các món Nước Ép nguyên chất không có topping)
+ (N'Soda Chanh Dây', N'Thạch trái cây'), (N'Soda Chanh Dây', N'Nha đam'), (N'Soda Chanh Dây', N'Trân châu trắng'),
+ (N'Soda Việt Quất', N'Thạch trái cây'), (N'Soda Việt Quất', N'Nha đam'), (N'Soda Việt Quất', N'Trân châu trắng'),
+ (N'Soda Dâu Bạc Hà', N'Thạch trái cây'), (N'Soda Dâu Bạc Hà', N'Nha đam'), (N'Soda Dâu Bạc Hà', N'Trân châu trắng'),
+ (N'Chanh Dây Mật Ong', N'Nha đam'), (N'Chanh Dây Mật Ong', N'Thạch dừa'),
+ -- 6. MATCHA & CHOCOLATE (Bánh ngọt & Món ăn nhẹ không có topping)
+ (N'Matcha Latte', N'Trân châu đen'), (N'Matcha Latte', N'Trân châu trắng'), (N'Matcha Latte', N'Kem cheese macchiato'), (N'Matcha Latte', N'Pudding trứng'),
+ (N'Matcha Dâu', N'Trân châu trắng'), (N'Matcha Dâu', N'Kem cheese macchiato'), (N'Matcha Dâu', N'Pudding trứng'),
+ (N'Chocolate Nóng', N'Kem tươi whipping'), (N'Chocolate Nóng', N'Oreo vụn'),
+ (N'Chocolate Đá', N'Kem tươi whipping'), (N'Chocolate Đá', N'Oreo vụn'), (N'Chocolate Đá', N'Pudding trứng'), (N'Chocolate Đá', N'Kem cheese macchiato'),
+ (N'Hojicha Latte', N'Trân châu đen'), (N'Hojicha Latte', N'Trân châu hoàng kim'), (N'Hojicha Latte', N'Kem cheese macchiato'), (N'Hojicha Latte', N'Sương sáo')
+) v(prod, topping)
+JOIN Products p ON p.name = v.prod
 JOIN Toppings t ON t.name = v.topping;
 GO
 

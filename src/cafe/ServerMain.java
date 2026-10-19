@@ -34,12 +34,20 @@ public class ServerMain {
             ServerKDSView kdsView = new ServerKDSView();
             new ServerController(kdsView, serverService);
 
+            // Giao diện Quản trị & Điều phối Quầy Trung tâm (CoffeePOS theo ảnh nhaminh-coffee.vn/quay)
+            cafe.views.AdminShellView adminShell = new cafe.views.AdminShellView(serverService, kdsView);
+
+            // Đồng bộ live: khi có đơn hàng mới từ Kiosk/Staff, đẩy vào Dashboard Admin
+            serverService.setOnOrderReceived(order -> {
+                adminShell.notifyNewOrderArrived(order);
+            });
+
             Scene scene = WindowChromeHelper.createWindowScene(
                 primaryStage,
-                kdsView,
-                "Quầy Điều Phối Pha Chế (KDS) • Brew & Bean CAFE",
-                1180,
-                750,
+                adminShell,
+                "CoffeePOS • Quản Trị & Quầy Điều Phối Trung Tâm (Brew & Bean)",
+                1200,
+                760,
                 true,
                 () -> {
                     serverService.stop();
@@ -47,10 +55,10 @@ public class ServerMain {
                 }
             );
 
-            primaryStage.setTitle("Quầy Điều Phối Pha Chế (KDS) • Brew & Bean CAFE");
+            primaryStage.setTitle("CoffeePOS • Quản Trị & Quầy Điều Phối Trung Tâm");
             primaryStage.setScene(scene);
-            primaryStage.setMinWidth(960);
-            primaryStage.setMinHeight(600);
+            primaryStage.setMinWidth(1000);
+            primaryStage.setMinHeight(650);
             primaryStage.centerOnScreen();
 
             primaryStage.setOnCloseRequest(e -> {
@@ -58,7 +66,9 @@ public class ServerMain {
                 System.exit(0);
             });
 
+            primaryStage.setMaximized(true);
             primaryStage.show();
+            primaryStage.setMaximized(true);
         }
     }
 }

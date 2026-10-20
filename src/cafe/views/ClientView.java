@@ -15,6 +15,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.SVGPath;
 import javafx.util.Duration;
 
@@ -35,6 +36,9 @@ public class ClientView extends BorderPane {
     private final VBox categoryNavBox = new VBox();
     private final GridPane itemsGridPane = new GridPane();
     private final ScrollPane catalogScrollPane = new ScrollPane();
+    private final VBox catalogContainer = new VBox(12);
+    private HBox mixiPromoBanner;
+    private String currentActiveCategory = "Tất cả";
     private final TextField txtSearch = new TextField();
 
     private final Button btnFloatingCart = new Button();
@@ -279,7 +283,9 @@ public class ClientView extends BorderPane {
         itemsGridPane.setVgap(14);
         itemsGridPane.setPadding(new Insets(6, 2, 16, 2));
 
-        catalogScrollPane.setContent(itemsGridPane);
+        catalogContainer.setFillWidth(true);
+        catalogContainer.getChildren().add(itemsGridPane);
+        catalogScrollPane.setContent(catalogContainer);
         catalogScrollPane.setFitToWidth(true);
         catalogScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         catalogScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
@@ -328,10 +334,132 @@ public class ClientView extends BorderPane {
             currentCards.add(card);
         }
 
+        if (mixiPromoBanner == null) {
+            mixiPromoBanner = buildMixiFoodPromoBanner(onQuickAdd);
+        }
+        boolean showPromo = (currentActiveCategory == null || currentActiveCategory.equalsIgnoreCase("Tất cả") || currentActiveCategory.toLowerCase().contains("món ăn nhẹ"));
+        mixiPromoBanner.setVisible(showPromo);
+        mixiPromoBanner.setManaged(showPromo);
+
+        catalogContainer.getChildren().clear();
+        catalogContainer.getChildren().addAll(mixiPromoBanner, itemsGridPane);
+
         double width = catalogScrollPane.getWidth();
         int cols = calculateOptimalColumns(width > 0 ? width : 750);
         this.currentColumns = cols;
         rebuildGridLayout(cols);
+    }
+
+    /**
+     * Banner Marketing Khô Gà Lá Chanh MixiFood (Độ Mixi) - Best Seller số 1 quán:
+     * Tích hợp câu slogan hài hước, viral từ Tộc Trưởng Độ Mixi và nút gọi món nhanh 1 chạm.
+     */
+    private HBox buildMixiFoodPromoBanner(Consumer<MenuItem> onQuickAdd) {
+        HBox banner = new HBox(16);
+        banner.setAlignment(Pos.CENTER_LEFT);
+        banner.setPrefHeight(138);
+        banner.setMinHeight(138);
+        banner.setPadding(new Insets(10, 18, 10, 14));
+        banner.setStyle(
+            "-fx-background-color: linear-gradient(to right, #1C1917 0%, #292524 45%, #442B1D 100%); " +
+            "-fx-background-radius: 14px; " +
+            "-fx-border-color: #F59E0B; " +
+            "-fx-border-radius: 14px; " +
+            "-fx-border-width: 1.5px; " +
+            "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 12, 0.1, 0, 4);"
+        );
+
+        // 1. Ảnh Độ Mixi cầm hũ Khô gà
+        ImageView imgView = new ImageView();
+        try {
+            java.io.InputStream is = getClass().getResourceAsStream("/cafe/resources/images/products/kho_ga_do_mixi_banner.png");
+            if (is != null) {
+                Image img = new Image(is);
+                imgView.setImage(img);
+                imgView.setFitWidth(130);
+                imgView.setFitHeight(118);
+                imgView.setPreserveRatio(true);
+                imgView.setSmooth(true);
+            }
+        } catch (Exception ignored) {}
+
+        Rectangle imgClip = new Rectangle(130, 118);
+        imgClip.setArcWidth(12);
+        imgClip.setArcHeight(12);
+        imgView.setClip(imgClip);
+
+        StackPane imgWrapper = new StackPane(imgView);
+        imgWrapper.setPrefSize(130, 118);
+        imgWrapper.setMinSize(130, 118);
+        imgWrapper.setMaxSize(130, 118);
+        imgWrapper.setStyle("-fx-background-color: #292524; -fx-background-radius: 12px;");
+
+        // 2. Nội dung Text Marketing & Câu nói viral
+        VBox textCol = new VBox(4);
+        textCol.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(textCol, Priority.ALWAYS);
+
+        HBox badgeRow = new HBox(8);
+        badgeRow.setAlignment(Pos.CENTER_LEFT);
+
+        Label lblBestSellerBadge = new Label("🔥 BEST SELLER SỐ 1 QUÁN");
+        lblBestSellerBadge.setStyle("-fx-background-color: #EA580C; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 10px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 2 7 2 7;");
+
+        Label lblMixiBadge = new Label("👑 MIXIFOOD x BREW & BEAN");
+        lblMixiBadge.setStyle("-fx-background-color: #78350F; -fx-text-fill: #FDE68A; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 10px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 2 7 2 7;");
+
+        Label lblRating = new Label("⭐ 4.9/5 (1.8k+ đã bán)");
+        lblRating.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 10.5px; -fx-font-weight: 700; -fx-text-fill: #FBBF24;");
+
+        badgeRow.getChildren().addAll(lblBestSellerBadge, lblMixiBadge, lblRating);
+
+        Label lblTitle = new Label("Khô Gà Lá Chanh MixiFood • Cực Phẩm Tộc Trưởng");
+        lblTitle.setStyle("-fx-font-family: 'Playfair Display', 'Segoe UI', serif; -fx-font-size: 16.5px; -fx-font-weight: 800; -fx-text-fill: #FFFFFF;");
+
+        Label lblSlogan = new Label("“Ăn một miếng là lươn lẹo cả ngày! Cay cay giòn rụm, đượm vị lá chanh — Nhâm nhi cùng cà phê là hết nước chấm anh em ơi!”");
+        lblSlogan.setWrapText(true);
+        lblSlogan.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-font-style: italic; -fx-text-fill: #FED7AA;");
+
+        Label lblSubDesc = new Label("🍗 Thơm cay đậm vị • Giòn tan từng thớ thịt • 100% Thịt gà tươi chuẩn công thức Độ Mixi");
+        lblSubDesc.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 10.5px; -fx-font-weight: 600; -fx-text-fill: #A8A29E;");
+
+        textCol.getChildren().addAll(badgeRow, lblTitle, lblSlogan, lblSubDesc);
+
+        // 3. Cột Giá & Nút Đặt Nhanh
+        VBox actionCol = new VBox(6);
+        actionCol.setAlignment(Pos.CENTER_RIGHT);
+        actionCol.setMinWidth(135);
+
+        Label lblPriceTag = new Label("35.000 đ");
+        lblPriceTag.setStyle("-fx-font-family: 'Segoe UI', 'Inter', sans-serif; -fx-font-size: 18px; -fx-font-weight: 800; -fx-text-fill: #F59E0B;");
+
+        Label lblUnit = new Label("Hũ 150g nhâm nhi");
+        lblUnit.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 10.5px; -fx-text-fill: #A8A29E;");
+
+        Button btnOrder = new Button("🛒 Gọi Món Ngay");
+        btnOrder.setStyle(
+            "-fx-background-color: #EA580C; " +
+            "-fx-text-fill: #FFFFFF; " +
+            "-fx-font-family: 'Inter', sans-serif; " +
+            "-fx-font-size: 12.5px; " +
+            "-fx-font-weight: 800; " +
+            "-fx-background-radius: 8px; " +
+            "-fx-padding: 8 16 8 16; " +
+            "-fx-cursor: hand;"
+        );
+        AnimationHelper.applyButtonPress(btnOrder);
+        btnOrder.setOnAction(e -> {
+            MenuItem item = cafe.models.MenuRepository.findById(68);
+            if (item != null && onQuickAdd != null) {
+                onQuickAdd.accept(item);
+                showToast("🔥 Đã thêm Khô Gà Lá Chanh MixiFood vào giỏ hàng! Nhâm nhi cùng cà phê cực cuốn!");
+            }
+        });
+
+        actionCol.getChildren().addAll(lblPriceTag, lblUnit, btnOrder);
+
+        banner.getChildren().addAll(imgWrapper, textCol, actionCol);
+        return banner;
     }
 
     private void rebuildGridLayout(int cols) {
@@ -361,6 +489,12 @@ public class ClientView extends BorderPane {
         this.lastCategories = categories;
         this.lastSelectedCategory = selectedCategory;
         this.lastOnCategorySelect = onSelect;
+        this.currentActiveCategory = (selectedCategory != null) ? selectedCategory : "Tất cả";
+        if (mixiPromoBanner != null) {
+            boolean showPromo = currentActiveCategory.equalsIgnoreCase("Tất cả") || currentActiveCategory.toLowerCase().contains("món ăn nhẹ");
+            mixiPromoBanner.setVisible(showPromo);
+            mixiPromoBanner.setManaged(showPromo);
+        }
         categoryNavBox.getChildren().clear();
 
         List<String> cleanList = new ArrayList<>();

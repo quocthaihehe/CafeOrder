@@ -8,7 +8,6 @@ import cafe.views.LoginView;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import javafx.stage.StageStyle;
 
 public class ClientMain {
 
@@ -25,18 +24,15 @@ public class ClientMain {
             // Giai đoạn 1: Nạp font chữ nhận diện thương hiệu (Playfair Display & Inter)
             FontLoader.loadFonts();
 
-            // Giai đoạn 2: Loại bỏ thanh Title Bar mặc định của OS (StageStyle.UNDECORATED)
-            primaryStage.initStyle(StageStyle.UNDECORATED);
-
             LoginView loginView = new LoginView();
             new LoginController(primaryStage, loginView, socketService);
 
-            // Tạo Scene hoàn chỉnh kèm CustomHeader kéo thả và cụm nút điều khiển cửa sổ
+            // Tạo Scene hoàn chỉnh. Cửa sổ chuẩn OS cho phép thu nhỏ, phóng to, đa nhiệm Taskbar mượt mà
             Scene scene = WindowChromeHelper.createWindowScene(
                 primaryStage,
                 loginView,
                 "Đăng Nhập • Brew & Bean CAFE",
-                740,
+                760,
                 700,
                 true,
                 () -> {
@@ -47,8 +43,10 @@ public class ClientMain {
 
             primaryStage.setTitle("Đăng Nhập • Brew & Bean CAFE");
             primaryStage.setScene(scene);
-            primaryStage.setMinWidth(720);
-            primaryStage.setMinHeight(650);
+            primaryStage.setMinWidth(740);
+            primaryStage.setMinHeight(660);
+            primaryStage.setWidth(760);
+            primaryStage.setHeight(700);
             primaryStage.centerOnScreen();
 
             // Lắng nghe phóng to form (Maximize) để chuyển sang login_hero2
@@ -61,16 +59,12 @@ public class ClientMain {
                 System.exit(0);
             });
 
-            primaryStage.setMaximized(true);
             primaryStage.show();
-            WindowChromeHelper.applyMaximized(primaryStage);
 
             // Khởi động ngầm kết nối Socket, bộ nhớ đệm hình ảnh 69 món và kết nối DB ngay tại màn hình Login
-            // để khi bấm Đăng nhập (Khách / Nhân viên / Quản lý) sẽ chuyển cảnh tức thì 0ms
             socketService.warmupConnectAsync();
             cafe.utils.ImageManager.warmupCacheAsync();
             cafe.services.DatabaseManager.warmupAsync();
         }
     }
 }
-

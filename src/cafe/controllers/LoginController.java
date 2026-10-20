@@ -218,7 +218,12 @@ public class LoginController {
             clientView,
             socketService,
             tableNumber,
-            null
+            null,
+            () -> {
+                socketService.disconnect();
+                socketService.warmupConnectAsync();
+                returnToLoginView();
+            }
         );
 
         if (clientView.getFloorPlanButton() != null) {
@@ -302,6 +307,7 @@ public class LoginController {
             clientView,
             socketService,
             tableNumber,
+            () -> openFloorPlan(activeTableNumber, staff),
             () -> openFloorPlan(activeTableNumber, staff)
         );
 

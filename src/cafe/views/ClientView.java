@@ -38,6 +38,7 @@ public class ClientView extends BorderPane {
     private final TextField txtSearch = new TextField();
 
     private final Button btnFloatingCart = new Button();
+    private final Button btnLogout = new Button();
     private final HBox cartButtonContent = new HBox();
     private final Label lblCartBadge = new Label("0");
 
@@ -256,7 +257,22 @@ public class ClientView extends BorderPane {
         cartButtonContent.getChildren().addAll(cartIcon, lblCartText, lblCartBadge);
         btnFloatingCart.setGraphic(cartButtonContent);
 
-        topBar.getChildren().addAll(titleBox, spacer, searchBox, btnFloatingCart);
+        // Logout / Switch Table Button (height 42px, radius 8px)
+        btnLogout.setPrefHeight(42);
+        btnLogout.setMinHeight(42);
+        btnLogout.setStyle("-fx-background-color: #FBF9F5; -fx-background-radius: 8px; -fx-border-color: #DED7CD; -fx-border-radius: 8px; -fx-border-width: 1px; -fx-padding: 6 14 6 12; -fx-cursor: hand;");
+        AnimationHelper.applyButtonPress(btnLogout);
+
+        HBox logoutContent = new HBox(6);
+        logoutContent.setAlignment(Pos.CENTER);
+        Label lblLogoutIcon = new Label("🚪");
+        lblLogoutIcon.setStyle("-fx-font-size: 13px;");
+        Label lblLogoutText = new Label("Đổi bàn / Thoát");
+        lblLogoutText.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-text-fill: #991B1B;");
+        logoutContent.getChildren().addAll(lblLogoutIcon, lblLogoutText);
+        btnLogout.setGraphic(logoutContent);
+
+        topBar.getChildren().addAll(titleBox, spacer, searchBox, btnFloatingCart, btnLogout);
 
         // Catalog Grid inside ScrollPane
         itemsGridPane.setHgap(12);
@@ -551,4 +567,5 @@ public class ClientView extends BorderPane {
     public Button getCartButton() { return btnFloatingCart; }
     public Label getCartBadge() { return lblCartBadge; }
     public Button getFloorPlanButton() { return btnFloorPlan; }
+    public Button getLogoutButton() { return btnLogout; }
 }

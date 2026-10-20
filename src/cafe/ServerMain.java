@@ -6,9 +6,11 @@ import cafe.utils.FontLoader;
 import cafe.utils.WindowChromeHelper;
 import cafe.views.ServerKDSView;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.stage.Stage;
-import javafx.stage.StageStyle;
 
 public class ServerMain {
 
@@ -25,16 +27,13 @@ public class ServerMain {
             // Giai đoạn 1: Nạp font nhận diện thương hiệu
             FontLoader.loadFonts();
 
-            // Giai đoạn 2: Loại bỏ thanh Title Bar mặc định của OS (StageStyle.UNDECORATED)
-            primaryStage.initStyle(StageStyle.UNDECORATED);
-
             // Khởi động Server socket ngầm
             serverService.start();
 
             ServerKDSView kdsView = new ServerKDSView();
             new ServerController(kdsView, serverService);
 
-            // Giao diện Quản trị & Điều phối Quầy Trung tâm (CoffeePOS theo ảnh nhaminh-coffee.vn/quay)
+            // Giao diện Quản trị & Điều phối Quầy Trung tâm (CoffeePOS)
             cafe.views.AdminShellView adminShell = new cafe.views.AdminShellView(serverService, kdsView);
 
             // Đồng bộ live: khi có đơn hàng mới từ Kiosk/Staff, đẩy vào Dashboard Admin
@@ -42,12 +41,31 @@ public class ServerMain {
                 adminShell.notifyNewOrderArrived(order);
             });
 
+            // Xử lý sự kiện Đăng xuất / Thoát phiên làm việc Quản lý
+            adminShell.setOnLogout(() -> {
+                Alert alert = new Alert(
+                    Alert.AlertType.CONFIRMATION,
+                    "Bạn có chắc chắn muốn đăng xuất và đóng phiên làm việc Máy chủ điều phối?",
+                    ButtonType.YES,
+                    ButtonType.NO
+                );
+                alert.setTitle("Đăng Xuất • Server POS");
+                alert.setHeaderText("Xác nhận đóng phiên làm việc Quản trị");
+                alert.showAndWait().ifPresent(res -> {
+                    if (res == ButtonType.YES) {
+                        serverService.stop();
+                        primaryStage.close();
+                        System.exit(0);
+                    }
+                });
+            });
+
             Scene scene = WindowChromeHelper.createWindowScene(
                 primaryStage,
                 adminShell,
                 "CoffeePOS • Quản Trị & Quầy Điều Phối Trung Tâm (Brew & Bean)",
-                1200,
-                760,
+                1280,
+                800,
                 true,
                 () -> {
                     serverService.stop();
@@ -55,10 +73,12 @@ public class ServerMain {
                 }
             );
 
-            primaryStage.setTitle("CoffeePOS • Quản Trị & Quầy Điều Phối Trung Tâm");
+            primaryStage.setTitle("CoffeePOS • Quản Trị & Quầy Điều Phối Trung Tâm (Brew & Bean)");
             primaryStage.setScene(scene);
-            primaryStage.setMinWidth(1000);
-            primaryStage.setMinHeight(650);
+            primaryStage.setMinWidth(1080);
+            primaryStage.setMinHeight(700);
+            primaryStage.setWidth(1280);
+            primaryStage.setHeight(820);
             primaryStage.centerOnScreen();
 
             primaryStage.setOnCloseRequest(e -> {
@@ -66,9 +86,7 @@ public class ServerMain {
                 System.exit(0);
             });
 
-            primaryStage.setMaximized(true);
             primaryStage.show();
-            primaryStage.setMaximized(true);
         }
     }
 }

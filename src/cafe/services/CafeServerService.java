@@ -98,70 +98,70 @@ public class CafeServerService {
             log("[SYSTEM NOTICE] SQL Server khong kha dung -> He thong dang hoat dong o che do IN-MEMORY FALLBACK (Du lieu chi luu tren RAM).");
         }
         long now = System.currentTimeMillis();
-        // BÃ n 01 (Äang phá»¥c vá»¥ - 14 phÃºt trÆ°á»›c)
-        addSeedOrder(1001, 1, "DINE_IN", "PREPARING", 0, null, "Ãt Ä‘Ã¡ 1 ly", now - 14 * 60_000L,
-            new cafe.models.OrderItem("CÃ  phÃª Sá»¯a ÄÃ¡", 2, "Size M â€¢ ÄÃ¡ 70%", 35000),
-            new cafe.models.OrderItem("BÃ¡nh Sá»«ng BÃ² Háº¡nh NhÃ¢n", 1, "HÃ¢m nÃ³ng", 42000)
+        // Bàn 01 (Đang phục vụ - 14 phút trước)
+        addSeedOrder(1001, 1, "DINE_IN", "PREPARING", 0, null, "Ít đá 1 ly", now - 14 * 60_000L,
+            new cafe.models.OrderItem("Cà phê Sữa Đá", 2, "Size M • Đá 70%", 35000),
+            new cafe.models.OrderItem("Bánh Sừng Bò Hạnh Nhân", 1, "Hâm nóng", 42000)
         );
-        // BÃ n 03 (Äang phá»¥c vá»¥ - 25 phÃºt trÆ°á»›c)
-        addSeedOrder(1002, 3, "DINE_IN", "DONE", 15000, "GIAM15K", "KhÃ¡ch VIP", now - 25 * 60_000L,
-            new cafe.models.OrderItem("Cold Brew Cam Sáº£", 2, "Size L â€¢ 70% Ä‘Æ°á»ng", 55000),
-            new cafe.models.OrderItem("Matcha Latte Kem PhÃ´ Mai", 1, "Size M â€¢ ÄÃ¡ 50%", 59000),
-            new cafe.models.OrderItem("Tiramisu Cá»• Äiá»ƒn", 1, "", 55000)
+        // Bàn 03 (Đang phục vụ - 25 phút trước)
+        addSeedOrder(1002, 3, "DINE_IN", "DONE", 15000, "GIAM15K", "Khách VIP", now - 25 * 60_000L,
+            new cafe.models.OrderItem("Cold Brew Cam Sả", 2, "Size L • 70% đường", 55000),
+            new cafe.models.OrderItem("Matcha Latte Kem Phô Mai", 1, "Size M • Đá 50%", 59000),
+            new cafe.models.OrderItem("Tiramisu Cổ Điển", 1, "", 55000)
         );
-        // BÃ n 06 (Äang phá»¥c vá»¥ - 8 phÃºt trÆ°á»›c)
+        // Bàn 06 (Đang phục vụ - 8 phút trước)
         addSeedOrder(1003, 6, "DINE_IN", "QUEUED", 0, null, "", now - 8 * 60_000L,
-            new cafe.models.OrderItem("TrÃ  ÄÃ o Cam Sáº£", 2, "Size L â€¢ +ÄÃ o miáº¿ng", 49000),
-            new cafe.models.OrderItem("Báº¡c Xá»‰u ÄÃ¡ SÃ i GÃ²n", 1, "Size M", 35000)
+            new cafe.models.OrderItem("Trà Đào Cam Sả", 2, "Size L • +Đào miếng", 49000),
+            new cafe.models.OrderItem("Bạc Xỉu Đá Sài Gòn", 1, "Size M", 35000)
         );
-        // BÃ n 09 (Äang phá»¥c vá»¥ - 19 phÃºt trÆ°á»›c)
-        addSeedOrder(1004, 9, "DINE_IN", "PREPARING", 0, null, "Mang nÆ°á»›c lá»c kÃ¨m", now - 19 * 60_000L,
-            new cafe.models.OrderItem("Caramel Macchiato", 2, "Size M â€¢ NÃ³ng", 55000),
-            new cafe.models.OrderItem("TrÃ  Ã” Long Kem Cheese", 2, "Size L â€¢ 50% Ä‘Æ°á»ng", 52000),
-            new cafe.models.OrderItem("Croissant BÆ¡ PhÃ¡p", 2, "NÆ°á»›ng giÃ²n", 38000)
+        // Bàn 09 (Đang phục vụ - 19 phút trước)
+        addSeedOrder(1004, 9, "DINE_IN", "PREPARING", 0, null, "Mang nước lọc kèm", now - 19 * 60_000L,
+            new cafe.models.OrderItem("Caramel Macchiato", 2, "Size M • Nóng", 55000),
+            new cafe.models.OrderItem("Trà Ô Long Kem Cheese", 2, "Size L • 50% đường", 52000),
+            new cafe.models.OrderItem("Croissant Bơ Pháp", 2, "Nướng giòn", 38000)
         );
-        // BÃ n 12 (Äang phá»¥c vá»¥ - 32 phÃºt trÆ°á»›c)
+        // Bàn 12 (Đang phục vụ - 32 phút trước)
         addSeedOrder(1005, 12, "DINE_IN", "DONE", 0, null, "", now - 32 * 60_000L,
-            new cafe.models.OrderItem("Espresso ÄÃ¡", 1, "Size M", 32000),
-            new cafe.models.OrderItem("TrÃ  Sen VÃ ng Kem Macchiato", 2, "Size L â€¢ +Háº¡t sen", 55000)
+            new cafe.models.OrderItem("Espresso Đá", 1, "Size M", 32000),
+            new cafe.models.OrderItem("Trà Sen Vàng Kem Macchiato", 2, "Size L • +Hạt sen", 55000)
         );
-        // Táº§ng 2 & Táº§ng 3
+        // Tầng 2 & Tầng 3
         addSeedOrder(1006, 201, "DINE_IN", "DONE", 0, null, "", now - 28 * 60_000L,
-            new cafe.models.OrderItem("Americano ÄÃ¡", 2, "Size M â€¢ KhÃ´ng Ä‘Æ°á»ng", 39000),
-            new cafe.models.OrderItem("BÃ¡nh Mousse Chanh DÃ¢y", 1, "", 45000)
+            new cafe.models.OrderItem("Americano Đá", 2, "Size M • Không đường", 39000),
+            new cafe.models.OrderItem("Bánh Mousse Chanh Dây", 1, "", 45000)
         );
-        addSeedOrder(1007, 205, "DINE_IN", "PREPARING", 0, null, "Há»p nhÃ³m", now - 12 * 60_000L,
-            new cafe.models.OrderItem("CÃ  phÃª Muá»‘i Huáº¿", 3, "Size M", 42000),
-            new cafe.models.OrderItem("TrÃ  Váº£i Hoa Há»“ng", 2, "Size L", 49000)
+        addSeedOrder(1007, 205, "DINE_IN", "PREPARING", 0, null, "Họp nhóm", now - 12 * 60_000L,
+            new cafe.models.OrderItem("Cà phê Muối Huế", 3, "Size M", 42000),
+            new cafe.models.OrderItem("Trà Vải Hoa Hồng", 2, "Size L", 49000)
         );
         addSeedOrder(1008, 209, "DINE_IN", "DONE", 0, null, "", now - 40 * 60_000L,
-            new cafe.models.OrderItem("Latte Háº¡nh NhÃ¢n", 2, "Size M â€¢ NÃ³ng", 55000)
+            new cafe.models.OrderItem("Latte Hạnh Nhân", 2, "Size M • Nóng", 55000)
         );
         addSeedOrder(1009, 214, "DINE_IN", "QUEUED", 0, null, "", now - 5 * 60_000L,
-            new cafe.models.OrderItem("Sinh Tá»‘ BÆ¡ Sáº§u RiÃªng", 2, "Size L", 62000)
+            new cafe.models.OrderItem("Sinh Tố Bơ Sầu Riêng", 2, "Size L", 62000)
         );
-        addSeedOrder(1010, 302, "DINE_IN", "PREPARING", 0, null, "Ban cÃ´ng", now - 16 * 60_000L,
-            new cafe.models.OrderItem("Cold Brew Quáº¥t Máº­t Ong", 2, "Size L", 55000),
-            new cafe.models.OrderItem("BÃ¡nh PhÃ´ Mai NÆ°á»›ng Basque", 2, "", 58000)
+        addSeedOrder(1010, 302, "DINE_IN", "PREPARING", 0, null, "Ban công", now - 16 * 60_000L,
+            new cafe.models.OrderItem("Cold Brew Quất Mật Ong", 2, "Size L", 55000),
+            new cafe.models.OrderItem("Bánh Phô Mai Nướng Basque", 2, "", 58000)
         );
         addSeedOrder(1011, 305, "DINE_IN", "DONE", 0, null, "", now - 35 * 60_000L,
-            new cafe.models.OrderItem("TrÃ  Hoa Äáº­u Biáº¿c Macchiato", 2, "Size M", 49000)
+            new cafe.models.OrderItem("Trà Hoa Đậu Biếc Macchiato", 2, "Size M", 49000)
         );
         addSeedOrder(1012, 309, "DINE_IN", "PREPARING", 0, null, "", now - 11 * 60_000L,
-            new cafe.models.OrderItem("Cappuccino Ã", 2, "Size M â€¢ NÃ³ng", 49000)
+            new cafe.models.OrderItem("Cappuccino Đá", 2, "Size M • Nóng", 49000)
         );
         addSeedOrder(1013, 311, "DINE_IN", "DONE", 0, null, "", now - 21 * 60_000L,
-            new cafe.models.OrderItem("Matcha ÄÃ¡ Xay", 3, "Size L â€¢ +Kem tÆ°Æ¡i", 59000)
+            new cafe.models.OrderItem("Matcha Đá Xay", 3, "Size L • +Kem tươi", 59000)
         );
 
-        // ÄÆ¡n mang vá» máº«u
-        addSeedOrder(1014, 0, "TAKEAWAY", "DONE", 0, null, "Láº¥y ngay táº¡i quáº§y", now - 18 * 60_000L,
-            new cafe.models.OrderItem("CÃ  phÃª Sá»¯a ÄÃ¡", 2, "Size L", 39000)
+        // Đơn mang về mẫu
+        addSeedOrder(1014, 0, "TAKEAWAY", "DONE", 0, null, "Lấy ngay tại quầy", now - 18 * 60_000L,
+            new cafe.models.OrderItem("Cà phê Sữa Đá", 2, "Size L", 39000)
         );
 
-        // Äáº·t trÆ°á»›c máº·c Ä‘á»‹nh cho BÃ n 05 & BÃ n 10
+        // Đặt trước mặc định cho Bàn 05 & Bàn 10
         tableStatuses.put(5, "RESERVED");
-        tableReservations.put(5, new ReservationInfo(5, "Nguyá»…n HoÃ ng Nam", "0908.345.678", "19:30", 2, "Ngá»“i gáº§n cá»­a sá»•"));
+        tableReservations.put(5, new ReservationInfo(5, "Nguyễn Hoàng Nam", "0908.345.678", "19:30", 2, "Ngồi gần cửa sổ"));
         tableStatuses.put(10, "RESERVED");
         tableReservations.put(10, new ReservationInfo(10, "LÃª Báº£o Ngá»c", "0912.888.999", "20:00", 6, "Sinh nháº­t gia Ä‘Ã¬nh"));
     }

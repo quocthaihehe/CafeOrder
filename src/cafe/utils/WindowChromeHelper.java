@@ -25,13 +25,14 @@ public class WindowChromeHelper {
         BorderPane root = new BorderPane();
         root.setStyle("-fx-background-color: #F3EFEA;");
 
-        CustomHeader header = new CustomHeader(stage, title, false, customClose);
-        if (!showMaximize) {
-            header.getMaximizeButton().setVisible(false);
-            header.getMaximizeButton().setManaged(false);
+        if (stage != null && stage.getStyle() == javafx.stage.StageStyle.UNDECORATED) {
+            CustomHeader header = new CustomHeader(stage, title, false, customClose);
+            if (!showMaximize) {
+                header.getMaximizeButton().setVisible(false);
+                header.getMaximizeButton().setManaged(false);
+            }
+            root.setTop(header);
         }
-
-        root.setTop(header);
         root.setCenter(content);
 
         double actualWidth = width;
@@ -61,12 +62,16 @@ public class WindowChromeHelper {
         Scene existingScene = stage.getScene();
         if (existingScene != null && existingScene.getRoot() instanceof BorderPane) {
             BorderPane root = (BorderPane) existingScene.getRoot();
-            CustomHeader header = new CustomHeader(stage, title, false, customClose);
-            if (!showMaximize) {
-                header.getMaximizeButton().setVisible(false);
-                header.getMaximizeButton().setManaged(false);
+            if (stage != null && stage.getStyle() == javafx.stage.StageStyle.UNDECORATED) {
+                CustomHeader header = new CustomHeader(stage, title, false, customClose);
+                if (!showMaximize) {
+                    header.getMaximizeButton().setVisible(false);
+                    header.getMaximizeButton().setManaged(false);
+                }
+                root.setTop(header);
+            } else {
+                root.setTop(null);
             }
-            root.setTop(header);
             root.setCenter(content);
             stage.setTitle(title);
             applyTheme(existingScene);
@@ -90,11 +95,13 @@ public class WindowChromeHelper {
         if (stage == null) return;
         javafx.application.Platform.runLater(() -> {
             try {
-                javafx.geometry.Rectangle2D bounds = javafx.stage.Screen.getPrimary().getVisualBounds();
-                stage.setX(bounds.getMinX());
-                stage.setY(bounds.getMinY());
-                stage.setWidth(bounds.getWidth());
-                stage.setHeight(bounds.getHeight());
+                if (stage.getStyle() == javafx.stage.StageStyle.UNDECORATED) {
+                    javafx.geometry.Rectangle2D bounds = javafx.stage.Screen.getPrimary().getVisualBounds();
+                    stage.setX(bounds.getMinX());
+                    stage.setY(bounds.getMinY());
+                    stage.setWidth(bounds.getWidth());
+                    stage.setHeight(bounds.getHeight());
+                }
                 stage.setMaximized(true);
             } catch (Exception ignored) {
                 stage.setMaximized(true);

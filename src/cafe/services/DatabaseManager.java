@@ -182,40 +182,40 @@ public class DatabaseManager {
         staffList.clear();
         staffPasswords.clear();
 
-        addSeedStaff(1, "admin", "Tráº§n Minh Anh", "OWNER", "ACTIVE", "123456");
-        addSeedStaff(2, "manager", "Nguyá»…n HoÃ ng Khang", "MANAGER", "ACTIVE", "123456");
-        addSeedStaff(3, "cashier1", "Tráº§n Minh Anh", "CASHIER", "ACTIVE", "123456");
-        addSeedStaff(4, "waiter", "LÃª Quá»‘c Báº£o", "WAITER", "ACTIVE", "123456");
-        addSeedStaff(5, "barista1", "Pháº¡m Thu HÃ ", "BARISTA", "ACTIVE", "123456");
-        addSeedStaff(6, "barista2", "Äáº·ng Gia Huy", "BARISTA", "ACTIVE", "123456");
+        addSeedStaff(1, "admin", "Trần Minh Anh", "OWNER", "ACTIVE", "123456");
+        addSeedStaff(2, "manager", "Nguyễn Hoàng Khang", "MANAGER", "ACTIVE", "123456");
+        addSeedStaff(3, "cashier1", "Trần Minh Anh", "CASHIER", "ACTIVE", "123456");
+        addSeedStaff(4, "waiter", "Lê Quốc Bảo", "WAITER", "ACTIVE", "123456");
+        addSeedStaff(5, "barista1", "Phạm Thu Hà", "BARISTA", "ACTIVE", "123456");
+        addSeedStaff(6, "barista2", "Đặng Gia Huy", "BARISTA", "ACTIVE", "123456");
 
         ingredientsList.clear();
-        // ÄÃºng 25 nguyÃªn váº­t liá»‡u thá»±c táº¿ tá»« báº£ng Ingredients trong setup_database.sql
-        ingredientsList.add(new IngredientItem(1, "CÃ  phÃª Robusta rang", "Háº¡t & TrÃ ", 5000, 500, "gram", 320, "Cáº§u Äáº¥t Farm"));
-        ingredientsList.add(new IngredientItem(2, "CÃ  phÃª Arabica rang", "Háº¡t & TrÃ ", 3000, 400, "gram", 480, "Cáº§u Äáº¥t Farm"));
-        ingredientsList.add(new IngredientItem(3, "Sá»¯a tÆ°Æ¡i", "Sá»¯a & Kem", 20000, 3000, "ml", 38, "Dalatmilk"));
-        ingredientsList.add(new IngredientItem(4, "Sá»¯a Ä‘áº·c", "Sá»¯a & Kem", 6000, 800, "gram", 55, "Vinamilk NgÃ´i Sao"));
-        ingredientsList.add(new IngredientItem(5, "Kem bÃ©o (whipping)", "Sá»¯a & Kem", 4000, 500, "ml", 125, "Anchor NZ"));
-        ingredientsList.add(new IngredientItem(6, "Bá»™t kem bÃ©o", "Sá»¯a & Kem", 3000, 400, "gram", 95, "Kievit Indo"));
-        ingredientsList.add(new IngredientItem(7, "TrÃ  Ä‘en", "Háº¡t & TrÃ ", 2000, 300, "gram", 280, "PhÃºc Long Tea"));
-        ingredientsList.add(new IngredientItem(8, "TrÃ  Ã´ long", "Háº¡t & TrÃ ", 1500, 200, "gram", 360, "Báº£o Lá»™c Tea"));
-        ingredientsList.add(new IngredientItem(9, "Bá»™t matcha", "Háº¡t & TrÃ ", 120, 150, "gram", 1400, "Uji Kyoto JP"));
-        ingredientsList.add(new IngredientItem(10, "Bá»™t cacao", "Háº¡t & TrÃ ", 1500, 200, "gram", 420, "Cargill Bá»‰"));
-        ingredientsList.add(new IngredientItem(11, "Sá»‘t chocolate", "Topping & Syrup", 3000, 400, "ml", 180, "Torani USA"));
-        ingredientsList.add(new IngredientItem(12, "Sá»‘t caramel", "Topping & Syrup", 250, 300, "ml", 190, "Monin PhÃ¡p"));
-        ingredientsList.add(new IngredientItem(13, "ÄÆ°á»ng nÆ°á»›c", "Topping & Syrup", 15000, 2000, "ml", 25, "BiÃªn HÃ²a Sugar"));
-        ingredientsList.add(new IngredientItem(14, "ÄÃ¡ viÃªn", "Bao bÃ¬ & KhÃ¡c", 50000, 5000, "gram", 3, "NhÃ  mÃ¡y ÄÃ¡ Tinh Khiáº¿t"));
-        ingredientsList.add(new IngredientItem(15, "TrÃ¢n chÃ¢u Ä‘en", "Topping & Syrup", 4000, 500, "gram", 65, "ÄÃ i Loan Import"));
-        ingredientsList.add(new IngredientItem(16, "Tháº¡ch trÃ¡i cÃ¢y", "Topping & Syrup", 3000, 400, "gram", 70, "Golden Farm"));
-        ingredientsList.add(new IngredientItem(17, "Cam tÆ°Æ¡i", "TrÃ¡i cÃ¢y & Má»©t", 12, 15, "cÃ¡i", 6500, "NÃ´ng tráº¡i VÄ©nh Long"));
-        ingredientsList.add(new IngredientItem(18, "Chanh tÆ°Æ¡i", "TrÃ¡i cÃ¢y & Má»©t", 100, 20, "cÃ¡i", 2000, "NÃ´ng tráº¡i Long An"));
-        ingredientsList.add(new IngredientItem(19, "ÄÃ o ngÃ¢m", "TrÃ¡i cÃ¢y & Má»©t", 320, 400, "gram", 110, "Kronos Hy Láº¡p"));
-        ingredientsList.add(new IngredientItem(20, "DÃ¢u tÆ°Æ¡i", "TrÃ¡i cÃ¢y & Má»©t", 2000, 300, "gram", 240, "ÄÃ  Láº¡t Berry"));
-        ingredientsList.add(new IngredientItem(21, "XoÃ i chÃ­n", "TrÃ¡i cÃ¢y & Má»©t", 3000, 400, "gram", 85, "XoÃ i CÃ¡t HÃ²a Lá»™c"));
-        ingredientsList.add(new IngredientItem(22, "Ly nhá»±a size M", "Bao bÃ¬ & KhÃ¡c", 800, 100, "cÃ¡i", 950, "Bao BÃ¬ Xanh"));
-        ingredientsList.add(new IngredientItem(23, "Ly nhá»±a size L", "Bao bÃ¬ & KhÃ¡c", 600, 100, "cÃ¡i", 1150, "Bao BÃ¬ Xanh"));
-        ingredientsList.add(new IngredientItem(24, "á»ng hÃºt", "Bao bÃ¬ & KhÃ¡c", 2000, 300, "cÃ¡i", 180, "Bao BÃ¬ Xanh"));
-        ingredientsList.add(new IngredientItem(25, "TÃºi giáº¥y mang Ä‘i", "Bao bÃ¬ & KhÃ¡c", 500, 80, "cÃ¡i", 1200, "Bao BÃ¬ Xanh"));
+        // Đúng 25 nguyên vật liệu thực tế từ bảng Ingredients trong setup_database.sql
+        ingredientsList.add(new IngredientItem(1, "Cà phê Robusta rang", "Hạt & Trà", 5000, 500, "gram", 320, "Cầu Đất Farm"));
+        ingredientsList.add(new IngredientItem(2, "Cà phê Arabica rang", "Hạt & Trà", 3000, 400, "gram", 480, "Cầu Đất Farm"));
+        ingredientsList.add(new IngredientItem(3, "Sữa tươi", "Sữa & Kem", 20000, 3000, "ml", 38, "Dalatmilk"));
+        ingredientsList.add(new IngredientItem(4, "Sữa đặc", "Sữa & Kem", 6000, 800, "gram", 55, "Vinamilk Ngôi Sao"));
+        ingredientsList.add(new IngredientItem(5, "Kem béo (whipping)", "Sữa & Kem", 4000, 500, "ml", 125, "Anchor NZ"));
+        ingredientsList.add(new IngredientItem(6, "Bột kem béo", "Sữa & Kem", 3000, 400, "gram", 95, "Kievit Indo"));
+        ingredientsList.add(new IngredientItem(7, "Trà đen", "Hạt & Trà", 2000, 300, "gram", 280, "Phúc Long Tea"));
+        ingredientsList.add(new IngredientItem(8, "Trà ô long", "Hạt & Trà", 1500, 200, "gram", 360, "Bảo Lộc Tea"));
+        ingredientsList.add(new IngredientItem(9, "Bột matcha", "Hạt & Trà", 120, 150, "gram", 1400, "Uji Kyoto JP"));
+        ingredientsList.add(new IngredientItem(10, "Bột cacao", "Hạt & Trà", 1500, 200, "gram", 420, "Cargill Bỉ"));
+        ingredientsList.add(new IngredientItem(11, "Sốt chocolate", "Topping & Syrup", 3000, 400, "ml", 180, "Torani USA"));
+        ingredientsList.add(new IngredientItem(12, "Sốt caramel", "Topping & Syrup", 250, 300, "ml", 190, "Monin Pháp"));
+        ingredientsList.add(new IngredientItem(13, "Đường nước", "Topping & Syrup", 15000, 2000, "ml", 25, "Biên Hòa Sugar"));
+        ingredientsList.add(new IngredientItem(14, "Đá viên", "Bao bì & Khác", 50000, 5000, "gram", 3, "Nhà máy Đá Tinh Khiết"));
+        ingredientsList.add(new IngredientItem(15, "Trân châu đen", "Topping & Syrup", 4000, 500, "gram", 65, "Đài Loan Import"));
+        ingredientsList.add(new IngredientItem(16, "Thạch trái cây", "Topping & Syrup", 3000, 400, "gram", 70, "Golden Farm"));
+        ingredientsList.add(new IngredientItem(17, "Cam tươi", "Trái cây & Mứt", 12, 15, "cái", 6500, "Nông trại Vĩnh Long"));
+        ingredientsList.add(new IngredientItem(18, "Chanh tươi", "Trái cây & Mứt", 100, 20, "cái", 2000, "Nông trại Long An"));
+        ingredientsList.add(new IngredientItem(19, "Đào ngâm", "Trái cây & Mứt", 320, 400, "gram", 110, "Kronos Hy Lạp"));
+        ingredientsList.add(new IngredientItem(20, "Dâu tươi", "Trái cây & Mứt", 2000, 300, "gram", 240, "Đà Lạt Berry"));
+        ingredientsList.add(new IngredientItem(21, "Xoài chín", "Trái cây & Mứt", 3000, 400, "gram", 85, "Xoài Cát Hòa Lộc"));
+        ingredientsList.add(new IngredientItem(22, "Ly nhựa size M", "Bao bì & Khác", 800, 100, "cái", 950, "Bao Bì Xanh"));
+        ingredientsList.add(new IngredientItem(23, "Ly nhựa size L", "Bao bì & Khác", 600, 100, "cái", 1150, "Bao Bì Xanh"));
+        ingredientsList.add(new IngredientItem(24, "Ống hút", "Bao bì & Khác", 2000, 300, "cái", 180, "Bao Bì Xanh"));
+        ingredientsList.add(new IngredientItem(25, "Túi giấy mang đi", "Bao bì & Khác", 500, 80, "cái", 1200, "Bao Bì Xanh"));
 
         customRecipesMap.clear();
     }

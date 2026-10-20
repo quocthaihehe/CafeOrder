@@ -472,13 +472,14 @@ public class DatabaseManager {
         for (OrderItem item : order.getItems()) {
             int qty = Math.max(1, item.getQty());
             for (IngredientItem ing : ingredientsList) {
-                if (ing.name.contains("CÃ  phÃª Robusta") && item.getName().toLowerCase().contains("cÃ  phÃª")) {
+                String itName = item.getName() != null ? item.getName().toLowerCase() : "";
+                if (ing.id == 1 && (itName.contains("cà phê") || itName.contains("ca phe") || itName.contains("coffee") || itName.contains("bạc xỉu"))) {
                     ing.currentStock = Math.max(0, ing.currentStock - 25 * qty);
-                } else if (ing.name.contains("Sá»¯a tÆ°Æ¡i")) {
+                } else if (ing.id == 3 && (itName.contains("sữa") || itName.contains("latte") || itName.contains("cappuccino"))) {
                     ing.currentStock = Math.max(0, ing.currentStock - 50 * qty);
-                } else if (ing.name.contains("ÄÃ¡ viÃªn")) {
+                } else if (ing.id == 14) {
                     ing.currentStock = Math.max(0, ing.currentStock - 120 * qty);
-                } else if (ing.name.contains("Ly nhá»±a size M")) {
+                } else if (ing.id == 22) {
                     ing.currentStock = Math.max(0, ing.currentStock - qty);
                 }
             }

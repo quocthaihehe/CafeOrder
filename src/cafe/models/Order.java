@@ -20,6 +20,7 @@ public class Order {
     private String createdBy;
     private String requestId;
     private List<String> timeline = new ArrayList<>();
+    private boolean stockDeducted = false;
 
     public Order(int orderId, int table, List<OrderItem> items, String status, long timestamp) {
         this(orderId, table, "DINE_IN", items, status, 0.0, 0.0, null, null, timestamp, "Bàn " + (table < 10 ? "0" + table : table), UUID.randomUUID().toString());
@@ -125,6 +126,8 @@ public class Order {
     public void setRequestId(String requestId) { this.requestId = requestId; }
 
     public List<String> getTimeline() { return timeline; }
+    public boolean isStockDeducted() { return stockDeducted; }
+    public void setStockDeducted(boolean stockDeducted) { this.stockDeducted = stockDeducted; }
     public void setTimeline(List<String> timeline) { this.timeline = timeline; }
 
     public int getTotalQuantity() {

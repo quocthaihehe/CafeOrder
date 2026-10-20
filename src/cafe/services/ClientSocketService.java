@@ -170,10 +170,17 @@ public class ClientSocketService {
         if (!isConnected() || out == null || items == null || items.isEmpty()) {
             return false;
         }
+        return sendOrderWithKey(tableNumber, orderType, discount, voucherCode, note, UUID.randomUUID().toString(), customerPhone, customerName, items);
+    }
+
+    public boolean sendOrderWithKey(int tableNumber, String orderType, double discount, String voucherCode, String note, String idempotencyKey, String customerPhone, String customerName, List<OrderItem> items) {
+        if (!isConnected() || out == null || items == null || items.isEmpty()) {
+            return false;
+        }
         try {
-            String idempotencyKey = UUID.randomUUID().toString();
+            String key = idempotencyKey != null ? idempotencyKey : UUID.randomUUID().toString();
             MessageProtocol.NewOrderMessage msg = new MessageProtocol.NewOrderMessage(
-                tableNumber, orderType, discount, voucherCode, note, idempotencyKey, customerPhone, customerName, items
+                tableNumber, orderType, discount, voucherCode, note, key, customerPhone, customerName, items
             );
             out.print(MessageProtocol.toJson(msg));
             out.flush();

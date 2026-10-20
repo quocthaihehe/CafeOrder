@@ -392,8 +392,10 @@ public class RealWorldComprehensiveAuditTest {
             client1.setOnOrderAckReceived(ack -> latch1.countDown());
             client2.setOnOrderAckReceived(ack -> latch2.countDown());
 
-            client1.sendOrder(11, Collections.singletonList(new OrderItem("Món Bàn 11", 1, "")));
-            client2.sendOrder(12, Collections.singletonList(new OrderItem("Món Bàn 12", 2, "")));
+            String name1 = MenuRepository.getAllItems().get(1).getName();
+            String name2 = MenuRepository.getAllItems().get(2).getName();
+            client1.sendOrder(11, Collections.singletonList(new OrderItem(name1, 1, "")));
+            client2.sendOrder(12, Collections.singletonList(new OrderItem(name2, 2, "")));
 
             boolean bothAck = latch1.await(1, TimeUnit.SECONDS) && latch2.await(1, TimeUnit.SECONDS);
 

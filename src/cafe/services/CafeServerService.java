@@ -14,6 +14,7 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Iterator;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Set;
@@ -320,27 +321,38 @@ public class CafeServerService {
                             break;
                         }
 
-                        // P0-1: Chống tạo đơn trùng lặp (Idempotency Key Check)
-                        if (orderMsg.idempotencyKey != null && !orderMsg.idempotencyKey.trim().isEmpty()) {
-                            Integer existingId = processedIdempotencyKeys.get(orderMsg.idempotencyKey.trim());
-                            if (existingId != null) {
-                                Order existingOrder = activeOrders.get(existingId);
-                                String curStatus = existingOrder != null ? existingOrder.getStatus() : "QUEUED";
-                                MessageProtocol.OrderAckMessage dupAck = new MessageProtocol.OrderAckMessage(existingId, curStatus, activeOrders.size());
-                                session.send(MessageProtocol.toJson(dupAck));
-                                log("Bỏ qua gói tin gửi lặp (IdempotencyKey: " + orderMsg.idempotencyKey + ") cho Đơn #" + existingId);
-                                break;
+                        // P0-1: Chống tạo đơn trùng lặp nguyên tử (Atomic Idempotency Reservation)
+                        int allocatedOrderId;
+                        String idempKey = (orderMsg.idempotencyKey != null && !orderMsg.idempotencyKey.trim().isEmpty())
+                                ? orderMsg.idempotencyKey.trim() : null;
+
+                        if (idempKey != null) {
+                            synchronized (processedIdempotencyKeys) {
+                                Integer existingId = processedIdempotencyKeys.get(idempKey);
+                                if (existingId != null) {
+                                    Order existingOrder = activeOrders.get(existingId);
+                                    String curStatus = existingOrder != null ? existingOrder.getStatus() : "QUEUED";
+                                    MessageProtocol.OrderAckMessage dupAck = new MessageProtocol.OrderAckMessage(existingId, curStatus, activeOrders.size());
+                                    session.send(MessageProtocol.toJson(dupAck));
+                                    log("Bỏ qua gói tin gửi lặp đồng thời (IdempotencyKey: " + idempKey + ") cho Đơn #" + existingId);
+                                    break;
+                                }
+                                allocatedOrderId = orderIdCounter.incrementAndGet();
+                                processedIdempotencyKeys.put(idempKey, allocatedOrderId);
                             }
+                        } else {
+                            allocatedOrderId = orderIdCounter.incrementAndGet();
                         }
 
-                        // P0-2: Xác thực tính toàn vẹn giá và voucher phía Server
+                        // P0-2: Xác thực tính toàn vẹn giá, voucher và tình trạng còn hàng (Out-of-stock)
                         validateAndSanitizeOrder(orderMsg);
-
-                        int newOrderId = orderIdCounter.incrementAndGet();
-                        if (orderMsg.idempotencyKey != null && !orderMsg.idempotencyKey.trim().isEmpty()) {
-                            processedIdempotencyKeys.put(orderMsg.idempotencyKey.trim(), newOrderId);
+                        if (orderMsg.items.isEmpty()) {
+                            log("Từ chối đơn hàng Bàn " + orderMsg.table + ": Toàn bộ món trong đơn đã hết hàng hoặc không hợp lệ.");
+                            if (idempKey != null) processedIdempotencyKeys.remove(idempKey);
+                            break;
                         }
 
+                        int newOrderId = allocatedOrderId;
                         Order newOrder = new Order(
                             newOrderId,
                             orderMsg.table,
@@ -351,7 +363,9 @@ public class CafeServerService {
                             0.0,
                             orderMsg.voucherCode,
                             orderMsg.note,
-                            System.currentTimeMillis()
+                            System.currentTimeMillis(),
+                            "Bàn " + orderMsg.table,
+                            idempKey != null ? idempKey : UUID.randomUUID().toString()
                         );
                         activeOrders.put(newOrderId, newOrder);
                         log("Nháº­n ÄÆ¡n hÃ ng #" + newOrderId + " (" + newOrder.getOrderTypeLabel() + ") - BÃ n " + orderMsg.table + " (" + newOrder.getTotalQuantity() + " mÃ³n).");
@@ -445,14 +459,19 @@ public class CafeServerService {
 
             // Náº¿u Barista báº¥m HoÃ n táº¥t (DONE) -> Tá»± Ä‘á»™ng kÃ­ch hoáº¡t trá»« tá»“n kho nguyÃªn váº­t liá»‡u (BOM)
             if ("DONE".equalsIgnoreCase(newStatus)) {
-                dbExecutor.submit(() -> {
-                    try {
-                        DatabaseManager.updateOrderStatusInDb(orderId, "DONE");
-                        DatabaseManager.deductStockForOrder(order);
-                    } catch (Exception ex) {
-                        System.err.println("[SERVER] Lá»—i trá»« kho Ä‘á»‹nh lÆ°á»£ng: " + ex.getMessage());
+                synchronized (order) {
+                    if (!order.isStockDeducted()) {
+                        order.setStockDeducted(true);
+                        dbExecutor.submit(() -> {
+                            try {
+                                DatabaseManager.updateOrderStatusInDb(orderId, "DONE");
+                                DatabaseManager.deductStockForOrder(order);
+                            } catch (Exception ex) {
+                                System.err.println("[SERVER] Lỗi trừ kho định lượng: " + ex.getMessage());
+                            }
+                        });
                     }
-                });
+                }
             } else {
                 dbExecutor.submit(() -> DatabaseManager.updateOrderStatusInDb(orderId, newStatus));
             }
@@ -668,6 +687,9 @@ public class CafeServerService {
     public static void validateOrderIntegrity(MessageProtocol.NewOrderMessage orderMsg) { validateAndSanitizeOrder(orderMsg); }
     public static void validateAndSanitizeOrder(MessageProtocol.NewOrderMessage orderMsg) {
         if (orderMsg == null || orderMsg.items == null) return;
+        if (!(orderMsg.items instanceof java.util.ArrayList)) {
+            orderMsg.items = new java.util.ArrayList<>(orderMsg.items);
+        }
         List<cafe.models.MenuItem> catalog = cafe.models.MenuRepository.getAllItems();
         Map<Integer, cafe.models.MenuItem> catalogMap = new HashMap<>();
         Map<String, cafe.models.MenuItem> nameMap = new HashMap<>();
@@ -677,8 +699,13 @@ public class CafeServerService {
         }
 
         double calculatedSubtotal = 0.0;
-        for (cafe.models.OrderItem item : orderMsg.items) {
-            if (item == null) continue;
+        Iterator<cafe.models.OrderItem> it = orderMsg.items.iterator();
+        while (it.hasNext()) {
+            cafe.models.OrderItem item = it.next();
+            if (item == null) {
+                it.remove();
+                continue;
+            }
             if (item.getQty() <= 0) {
                 item.setQty(1);
             }
@@ -691,6 +718,10 @@ public class CafeServerService {
             }
 
             if (matched != null) {
+                if (!matched.isInStock() || !matched.isActive()) {
+                    it.remove();
+                    continue;
+                }
                 item.setProductId(matched.getId());
                 item.setBasePrice(matched.getPrice());
                 if ("S".equalsIgnoreCase(item.getSizeCode())) {
@@ -701,6 +732,9 @@ public class CafeServerService {
                     item.setSizeDelta(0);
                 }
                 item.recalculateUnitPrice();
+            } else {
+                it.remove();
+                continue;
             }
             calculatedSubtotal += item.getSubtotal();
         }

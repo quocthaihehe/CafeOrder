@@ -163,7 +163,7 @@ public class CafeServerService {
         tableStatuses.put(5, "RESERVED");
         tableReservations.put(5, new ReservationInfo(5, "Nguyễn Hoàng Nam", "0908.345.678", "19:30", 2, "Ngồi gần cửa sổ"));
         tableStatuses.put(10, "RESERVED");
-        tableReservations.put(10, new ReservationInfo(10, "LÃª Báº£o Ngá»c", "0912.888.999", "20:00", 6, "Sinh nháº­t gia Ä‘Ã¬nh"));
+        tableReservations.put(10, new ReservationInfo(10, "Lê Bảo Ngọc", "0912.888.999", "20:00", 6, "Sinh nhật gia đình"));
     }
 
     private void addSeedOrder(int orderId, int table, String type, String status, double discount, String voucher, String note, long ts, cafe.models.OrderItem... items) {
@@ -252,7 +252,7 @@ public class CafeServerService {
         Thread serverThread = new Thread(() -> {
             try {
                 serverSocket = new ServerSocket(port);
-                log("MÃ¡y chá»§ KDS pha cháº¿ & Quáº£n trá»‹ CoffeePOS Ä‘Ã£ má»Ÿ cá»•ng " + port + ". Äang sáºµn sÃ ng Ä‘Ã³n nháº­n Ä‘Æ¡n.");
+                log("Máy chủ KDS pha chế & Quản trị CoffeePOS đã mở cổng " + port + ". Đang sẵn sàng đón nhận đơn.");
 
                 while (isRunning) {
                     Socket clientSocket = serverSocket.accept();
@@ -262,7 +262,7 @@ public class CafeServerService {
                 }
             } catch (IOException e) {
                 if (isRunning) {
-                    log("Lá»—i Server Socket: " + e.getMessage());
+                    log("Lỗi Server Socket: " + e.getMessage());
                 }
             } finally {
                 stop();
@@ -302,10 +302,10 @@ public class CafeServerService {
                         session.currentTable = registeredTable;
                         if (hello.deviceType != null) session.deviceType = hello.deviceType;
 
-                        // ÄÄƒng kÃ½ báº£ng Ä‘á»‹nh tuyáº¿n bÃ n
+                        // Đăng ký bảng định tuyến bàn
                         bindTableSubscriber(registeredTable, sessionId);
 
-                        log("Thiáº¿t bá»‹ [" + session.deviceType + " #" + sessionId + "] gáº¯n vá»›i BÃ n " + registeredTable + " Ä‘Ã£ káº¿t ná»‘i.");
+                        log("Thiết bị [" + session.deviceType + " #" + sessionId + "] gắn với Bàn " + registeredTable + " đã kết nối.");
                         final int tConnect = registeredTable;
                         dispatch(() -> {
                             for (BiConsumer<Integer, Boolean> l : tableConnectionListeners) l.accept(tConnect, true);
@@ -319,7 +319,7 @@ public class CafeServerService {
                         session.currentTable = newTable;
                         unbindTableSubscriber(oldTable, sessionId);
                         bindTableSubscriber(newTable, sessionId);
-                        log("Thiáº¿t bá»‹ #" + sessionId + " chuyá»ƒn trá»ng tÃ¢m phá»¥c vá»¥: BÃ n " + oldTable + " -> BÃ n " + newTable);
+                        log("Thiết bị #" + sessionId + " chuyển trọng tâm phục vụ: Bàn " + oldTable + " -> Bàn " + newTable);
                         break;
 
                     case PING:
@@ -380,23 +380,23 @@ public class CafeServerService {
                             idempKey != null ? idempKey : UUID.randomUUID().toString()
                         );
                         activeOrders.put(newOrderId, newOrder);
-                        log("Nháº­n ÄÆ¡n hÃ ng #" + newOrderId + " (" + newOrder.getOrderTypeLabel() + ") - BÃ n " + orderMsg.table + " (" + newOrder.getTotalQuantity() + " mÃ³n).");
+                        log("Nhận Đơn hàng #" + newOrderId + " (" + newOrder.getOrderTypeLabel() + ") - Bàn " + orderMsg.table + " (" + newOrder.getTotalQuantity() + " món).");
 
-                        // 1. Pháº£n há»“i ORDER_ACK siÃªu tá»‘c (<1ms) ngay láº­p tá»©c vá» Kiosk
+                        // 1. Phản hồi ORDER_ACK siêu tốc (<1ms) ngay lập tức về Kiosk
                         boolean isDbReady = DatabaseManager.isAvailable();
                         String storageMode = isDbReady ? "DATABASE" : "IN_MEMORY";
                         MessageProtocol.OrderAckMessage ack = new MessageProtocol.OrderAckMessage(newOrderId, "QUEUED", activeOrders.size(), isDbReady, storageMode);
                         session.send(MessageProtocol.toJson(ack));
 
-                        // 2. Báº¯n sá»± kiá»‡n tá»©c thÃ¬ lÃªn giao diá»‡n KDS Bar vÃ  Dashboard Admin
+                        // 2. Bắn sự kiện tức thì lên giao diện KDS Bar và Dashboard Admin
                         dispatch(() -> {
                             for (Consumer<Order> l : orderReceivedListeners) l.accept(newOrder);
                         });
 
-                        // 3. Broadcast tráº¡ng thÃ¡i bÃ n sang OCCUPIED cho táº¥t cáº£ cÃ¡c mÃ¡y tráº¡m sÆ¡ Ä‘á»“ bÃ n
+                        // 3. Broadcast trạng thái bàn sang OCCUPIED cho tất cả các máy trạm sơ đồ bàn
                         broadcastTableStatus(orderMsg.table, "OCCUPIED");
 
-                        // 4. Báº¥t Ä‘á»“ng bá»™ lÆ°u bá»n vá»¯ng vÃ o SQL Server qua worker riÃªng, khÃ´ng cháº·n socket
+                        // 4. Bất đồng bộ lưu bền vững vào SQL Server qua worker riêng, không chặn socket
                         final Order orderToSave = newOrder;
                         dbExecutor.submit(() -> {
                             try {
@@ -419,15 +419,15 @@ public class CafeServerService {
                 }
             }
         } catch (SocketException ignored) {
-            // Client ngáº¯t káº¿t ná»‘i
+            // Client ngắt kết nối
         } catch (IOException e) {
-            log("Lá»—i I/O client [" + sessionId + "]: " + e.getMessage());
+            log("Lỗi I/O client [" + sessionId + "]: " + e.getMessage());
         } finally {
             if (session != null) {
                 int disconnectedTable = session.currentTable;
                 activeSessions.remove(sessionId);
                 unbindTableSubscriber(disconnectedTable, sessionId);
-                log("Thiáº¿t bá»‹ #" + sessionId + " (BÃ n " + disconnectedTable + ") Ä‘Ã£ rá»i máº¡ng.");
+                log("Thiết bị #" + sessionId + " (Bàn " + disconnectedTable + ") đã rời mạng.");
                 if (disconnectedTable != -1) {
                     dispatch(() -> {
                         for (BiConsumer<Integer, Boolean> l : tableConnectionListeners) l.accept(disconnectedTable, false);
@@ -458,9 +458,9 @@ public class CafeServerService {
         Order order = activeOrders.get(orderId);
         if (order != null) {
             order.setStatus(newStatus);
-            log("Cáº­p nháº­t ÄÆ¡n #" + orderId + " (BÃ n " + order.getTable() + ") -> " + MessageProtocol.translateStatus(newStatus));
+            log("Cập nhật Đơn #" + orderId + " (Bàn " + order.getTable() + ") -> " + MessageProtocol.translateStatus(newStatus));
 
-            // Báº¯n tÃ­n hiá»‡u vá» táº¥t cáº£ Client Ä‘ang theo dÃµi bÃ n Ä‘Ã³
+            // Bắn tín hiệu về tất cả Client đang theo dõi bàn đó
             MessageProtocol.OrderStatusUpdateMessage updateMsg = new MessageProtocol.OrderStatusUpdateMessage(orderId, order.getTable(), newStatus);
             String updateJson = MessageProtocol.toJson(updateMsg);
 
@@ -470,15 +470,15 @@ public class CafeServerService {
                     ClientSession s = activeSessions.get(sid);
                     if (s != null) s.send(updateJson);
                 }
-                log("ÄÃ£ thÃ´ng bÃ¡o tráº¡ng thÃ¡i má»›i vá» BÃ n " + order.getTable());
+                log("Đã thông báo trạng thái mới về Bàn " + order.getTable());
             }
 
-            // KÃ­ch hoáº¡t callback UI
+            // Kích hoạt callback UI
             dispatch(() -> {
                 for (BiConsumer<Integer, String> l : orderStatusChangedListeners) l.accept(orderId, newStatus);
             });
 
-            // Náº¿u Barista báº¥m HoÃ n táº¥t (DONE) -> Tá»± Ä‘á»™ng kÃ­ch hoáº¡t trá»« tá»“n kho nguyÃªn váº­t liá»‡u (BOM)
+            // Nếu Barista bấm Hoàn tất (DONE) -> Tự động kích hoạt trừ tồn kho nguyên vật liệu (BOM)
             if ("DONE".equalsIgnoreCase(newStatus)) {
                 synchronized (order) {
                     if (!order.isStockDeducted()) {
@@ -532,13 +532,13 @@ public class CafeServerService {
         ReservationInfo info = new ReservationInfo(tableNumber, customerName, phone, time, guests, note);
         tableReservations.put(tableNumber, info);
         broadcastTableStatus(tableNumber, "RESERVED");
-        log("ÄÃ£ Ä‘áº·t trÆ°á»›c BÃ n " + tableNumber + " cho khÃ¡ch " + customerName + " (" + time + ").");
+        log("Đã đặt trước Bàn " + tableNumber + " cho khách " + customerName + " (" + time + ").");
     }
 
     public void cancelReservation(int tableNumber) {
         tableReservations.remove(tableNumber);
         broadcastTableStatus(tableNumber, "EMPTY");
-        log("ÄÃ£ há»§y Ä‘áº·t trÆ°á»›c BÃ n " + tableNumber + " -> Trá»‘ng.");
+        log("Đã hủy đặt trước Bàn " + tableNumber + " -> Trống.");
     }
 
     public java.util.List<Order> getOrdersForTable(int tableNumber) {
@@ -609,12 +609,12 @@ public class CafeServerService {
             tableReservations.put(toTable, new ReservationInfo(toTable, res.customerName, res.phone, res.reservationTime, res.guestCount, res.note));
             broadcastTableStatus(fromTable, "EMPTY");
             broadcastTableStatus(toTable, "RESERVED");
-            log("ÄÃ£ chuyá»ƒn lá»‹ch Ä‘áº·t bÃ n tá»« BÃ n " + fromTable + " sang BÃ n " + toTable + ".");
+            log("Đã chuyển lịch đặt bàn từ Bàn " + fromTable + " sang Bàn " + toTable + ".");
             return true;
         }
         broadcastTableStatus(fromTable, "EMPTY");
         broadcastTableStatus(toTable, "OCCUPIED");
-        log("ÄÃ£ chuyá»ƒn toÃ n bá»™ Ä‘Æ¡n tá»« BÃ n " + fromTable + " sang BÃ n " + toTable + ".");
+        log("Đã chuyển toàn bộ đơn từ Bàn " + fromTable + " sang Bàn " + toTable + ".");
         return true;
     }
 
@@ -652,7 +652,7 @@ public class CafeServerService {
 
         broadcastTableStatus(sourceTable, "EMPTY");
         broadcastTableStatus(targetTable, "OCCUPIED");
-        log("ÄÃ£ gá»™p hÃ³a Ä‘Æ¡n BÃ n " + sourceTable + " vÃ o BÃ n " + targetTable + ".");
+        log("Đã gộp hóa đơn Bàn " + sourceTable + " vào Bàn " + targetTable + ".");
         return true;
     }
 
@@ -673,7 +673,7 @@ public class CafeServerService {
         }
         tableReservations.remove(tableNumber);
         broadcastTableStatus(tableNumber, "EMPTY");
-        log("ÄÃ£ thanh toÃ¡n & giáº£i phÃ³ng BÃ n " + tableNumber + " -> Trá»‘ng.");
+        log("Đã thanh toán & giải phóng Bàn " + tableNumber + " -> Trống.");
         return true;
     }
 
@@ -689,7 +689,7 @@ public class CafeServerService {
         if (tbl > 0 && getOrdersForTable(tbl).isEmpty()) {
             broadcastTableStatus(tbl, "EMPTY");
         }
-        log("ÄÃ£ há»§y ÄÆ¡n #" + orderId + (tbl > 0 ? " (BÃ n " + tbl + ")" : "") + ".");
+        log("Đã hủy Đơn #" + orderId + (tbl > 0 ? " (Bàn " + tbl + ")" : "") + ".");
         return true;
     }
 
@@ -702,7 +702,7 @@ public class CafeServerService {
         for (Map.Entry<Integer, String> entry : tableStatuses.entrySet()) {
             broadcastTableStatus(entry.getKey(), entry.getValue());
         }
-        log("ÄÃ£ khÃ´i phá»¥c dá»¯ liá»‡u máº«u (Seed Data) toÃ n há»‡ thá»‘ng.");
+        log("Đã khôi phục dữ liệu mẫu (Seed Data) toàn hệ thống.");
     }
 
     public static void validateOrderIntegrity(MessageProtocol.NewOrderMessage orderMsg) { validateAndSanitizeOrder(orderMsg); }
@@ -830,7 +830,7 @@ public class CafeServerService {
         } catch (IOException ignored) {}
         clientPool.shutdownNow();
         dbExecutor.shutdown();
-        log("MÃ¡y chá»§ Ä‘Ã£ dá»«ng.");
+        log("Máy chủ đã dừng.");
     }
 
     private void log(String message) {

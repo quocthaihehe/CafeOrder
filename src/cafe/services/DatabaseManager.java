@@ -24,7 +24,7 @@ public class DatabaseManager {
     private static volatile boolean poolInitialized = false;
 
     /**
-     * Khá»Ÿi táº¡o káº¿t ná»‘i SQL Server ngáº§m ngay khi má»Ÿ á»©ng dá»¥ng Ä‘á»ƒ khÃ´ng bao giá» lÃ m khá»±ng UI khi báº¥m ÄÄƒng nháº­p.
+     * Khởi tạo kết nối SQL Server ngầm ngay khi mở ứng dụng để không bao giờ làm khựng UI khi bấm Đăng nhập.
      */
     public static void warmupAsync() {
         if (poolInitialized) return;
@@ -118,7 +118,7 @@ public class DatabaseManager {
     }
 
     // =========================================================================
-    // 2. STAFF AUTHENTICATION & RBAC MANAGEMENT (6 TÃ€I KHOáº¢N CHUáº¨N)
+    // 2. STAFF AUTHENTICATION & RBAC MANAGEMENT (6 TÀI KHOẢN CHUẨN)
     // =========================================================================
     private static final List<StaffModel> staffList = new ArrayList<>();
     private static final Map<String, String> staffPasswords = new HashMap<>();
@@ -126,7 +126,7 @@ public class DatabaseManager {
     public static class IngredientItem {
         public final int id;
         public String name;
-        public String category; // "Háº¡t & TrÃ ", "Sá»¯a & Kem", "TrÃ¡i cÃ¢y & Má»©t", "Topping & Syrup", "Bao bÃ¬ & KhÃ¡c"
+        public String category; // "Hạt & Trà", "Sữa & Kem", "Trái cây & Mứt", "Topping & Syrup", "Bao bì & Khác"
         public double currentStock;
         public double minThreshold;
         public String unit;
@@ -168,10 +168,10 @@ public class DatabaseManager {
 
     // System Config fields for Tab 10
     public static String brandName = "Brew & Bean Specialty Coffee";
-    public static String storeAddress = "88 Nguyá»…n Huá»‡, Quáº­n 1, TP. Há»“ ChÃ­ Minh";
-    public static String storeHotline = "1900 6886 â€¢ 0909.888.999";
+    public static String storeAddress = "88 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh";
+    public static String storeHotline = "1900 6886 • 0909.888.999";
     public static String wifiInfo = "BrewAndBean_5G / Pass: specialty2026";
-    public static String receiptFooter = "Cáº£m Æ¡n QuÃ½ khÃ¡ch â€¢ Háº¹n gáº·p láº¡i táº¡i Brew & Bean!";
+    public static String receiptFooter = "Cảm ơn Quý khách • Hẹn gặp lại tại Brew & Bean!";
     public static double defaultVatPercent = 8.0;
 
     static {
@@ -279,35 +279,35 @@ public class DatabaseManager {
         }
         List<RecipeEntry> list = new ArrayList<>();
         String cat = item.getCategory() != null ? item.getCategory() : "";
-        if (cat.contains("CÃ  phÃª")) {
-            list.add(new RecipeEntry("CÃ  phÃª Robusta rang", 25, "gram", 4200));
-            list.add(new RecipeEntry("Sá»¯a tÆ°Æ¡i / Sá»¯a Ä‘áº·c", 60, "ml", 3100));
-            list.add(new RecipeEntry("ÄÃ¡ viÃªn", 150, "gram", 450));
-            list.add(new RecipeEntry("Ly nhá»±a size M + á»ng hÃºt", 1, "bá»™", 1130));
-        } else if (cat.contains("TrÃ  sá»¯a")) {
-            list.add(new RecipeEntry("TrÃ  Ä‘en / TrÃ  Ã´ long", 15, "gram", 3500));
-            list.add(new RecipeEntry("Bá»™t kem bÃ©o & Sá»¯a tÆ°Æ¡i", 80, "ml", 4200));
-            list.add(new RecipeEntry("TrÃ¢n chÃ¢u Ä‘en", 50, "gram", 2200));
-            list.add(new RecipeEntry("ÄÆ°á»ng nÆ°á»›c", 25, "ml", 625));
-            list.add(new RecipeEntry("Ly nhá»±a size M + á»ng hÃºt", 1, "bá»™", 1130));
-        } else if (cat.contains("TrÃ ")) {
-            list.add(new RecipeEntry("TrÃ  Ã´ long", 12, "gram", 3200));
-            list.add(new RecipeEntry("ÄÃ o ngÃ¢m / Cam tÆ°Æ¡i", 65, "gram", 4800));
-            list.add(new RecipeEntry("ÄÆ°á»ng nÆ°á»›c", 25, "ml", 625));
-            list.add(new RecipeEntry("Ly nhá»±a size L + á»ng hÃºt", 1, "bá»™", 1330));
+        if (cat.contains("Cà phê")) {
+            list.add(new RecipeEntry("Cà phê Robusta rang", 25, "gram", 4200));
+            list.add(new RecipeEntry("Sữa tươi / Sữa đặc", 60, "ml", 3100));
+            list.add(new RecipeEntry("Đá viên", 150, "gram", 450));
+            list.add(new RecipeEntry("Ly nhựa size M + ống hút", 1, "bộ", 1130));
+        } else if (cat.contains("Trà sữa")) {
+            list.add(new RecipeEntry("Trà đen / Trà ô long", 15, "gram", 3500));
+            list.add(new RecipeEntry("Bột kem béo & Sữa tươi", 80, "ml", 4200));
+            list.add(new RecipeEntry("Trân châu đen", 50, "gram", 2200));
+            list.add(new RecipeEntry("Đường nước", 25, "ml", 625));
+            list.add(new RecipeEntry("Ly nhựa size M + ống hút", 1, "bộ", 1130));
+        } else if (cat.contains("Trà")) {
+            list.add(new RecipeEntry("Trà ô long", 12, "gram", 3200));
+            list.add(new RecipeEntry("Đào ngâm / Cam tươi", 65, "gram", 4800));
+            list.add(new RecipeEntry("Đường nước", 25, "ml", 625));
+            list.add(new RecipeEntry("Ly nhựa size L + ống hút", 1, "bộ", 1330));
         } else if (cat.contains("Matcha") || cat.contains("Chocolate")) {
-            list.add(new RecipeEntry("Bá»™t matcha / Bá»™t cacao", 15, "gram", 5800));
-            list.add(new RecipeEntry("Sá»¯a tÆ°Æ¡i", 140, "ml", 4200));
-            list.add(new RecipeEntry("Kem bÃ©o (whipping)", 30, "ml", 2400));
-            list.add(new RecipeEntry("Ly nhá»±a size M + á»ng hÃºt", 1, "bá»™", 1130));
-        } else if (cat.contains("ÄÃ¡ xay") || cat.contains("Soda")) {
-            list.add(new RecipeEntry("DÃ¢u tÆ°Æ¡i / XoÃ i chÃ­n", 90, "gram", 5600));
-            list.add(new RecipeEntry("Kem bÃ©o (whipping)", 40, "ml", 3100));
-            list.add(new RecipeEntry("ÄÆ°á»ng nÆ°á»›c & ÄÃ¡ viÃªn", 180, "gram", 900));
-            list.add(new RecipeEntry("Ly nhá»±a size L + á»ng hÃºt", 1, "bá»™", 1330));
+            list.add(new RecipeEntry("Bột matcha / Bột cacao", 15, "gram", 5800));
+            list.add(new RecipeEntry("Sữa tươi", 140, "ml", 4200));
+            list.add(new RecipeEntry("Kem béo (whipping)", 30, "ml", 2400));
+            list.add(new RecipeEntry("Ly nhựa size M + ống hút", 1, "bộ", 1130));
+        } else if (cat.contains("Đá xay") || cat.contains("Soda")) {
+            list.add(new RecipeEntry("Dâu tươi / Xoài chín", 90, "gram", 5600));
+            list.add(new RecipeEntry("Kem béo (whipping)", 40, "ml", 3100));
+            list.add(new RecipeEntry("Đường nước & Đá viên", 180, "gram", 900));
+            list.add(new RecipeEntry("Ly nhựa size L + ống hút", 1, "bộ", 1330));
         } else {
-            list.add(new RecipeEntry(" cá»‘t bÃ¡nh / NguyÃªn liá»‡u cháº¿ biáº¿n", 1, "pháº§n", Math.round(item.getPrice() * 0.30)));
-            list.add(new RecipeEntry("TÃºi giáº¥y mang Ä‘i / ÄÄ©a phá»¥c vá»¥", 1, "cÃ¡i", 1200));
+            list.add(new RecipeEntry("Cốt bánh / Nguyên liệu chế biến", 1, "phần", Math.round(item.getPrice() * 0.30)));
+            list.add(new RecipeEntry("Túi giấy mang đi / Đĩa phục vụ", 1, "cái", 1200));
         }
         customRecipesMap.put(item.getId(), list);
         return list;
@@ -318,7 +318,7 @@ public class DatabaseManager {
         String userTrim = username.trim();
         String userLower = userTrim.toLowerCase();
 
-        // 1. Äá»‘i chiáº¿u trá»±c tiáº¿p vá»›i danh sÃ¡ch NhÃ¢n sá»± RBAC trong bá»™ nhá»› (0ms)
+        // 1. Đối chiếu trực tiếp với danh sách Nhân sự RBAC trong bộ nhớ (0ms)
         if (userLower.equals("1") || userLower.equals("quanly")) userLower = "admin";
         else if (userLower.equals("5") || userLower.equals("nhanvien") || userLower.equals("staff")) userLower = "cashier1";
         else if (userLower.equals("phucvu")) userLower = "waiter";
@@ -327,13 +327,13 @@ public class DatabaseManager {
         for (StaffModel s : staffList) {
             if (s.getUsername().equalsIgnoreCase(userLower)) {
                 if (!"ACTIVE".equalsIgnoreCase(s.getStatus())) {
-                    return null; // TÃ i khoáº£n Ä‘Ã£ bá»‹ khÃ³a
+                    return null; // Tài khoản đã bị khóa
                 }
                 return s;
             }
         }
 
-        // 2. XÃ¡c thá»±c tÃ i khoáº£n má»Ÿ rá»™ng trong SQL Server náº¿u DB Ä‘ang online
+        // 2. Xác thực tài khoản mở rộng trong SQL Server nếu DB đang online
         if (isAvailable()) {
             String sql = "SELECT staff_id, username, full_name, role, password_hash, status FROM Staff WHERE username = ? AND status = 'ACTIVE'";
             try (Connection conn = getConnection();
@@ -354,7 +354,7 @@ public class DatabaseManager {
                     }
                 }
             } catch (SQLException e) {
-                System.err.println("[AUTH] Lá»—i truy váº¥n báº£ng Staff: " + e.getMessage());
+                System.err.println("[AUTH] Lỗi truy vấn bảng Staff: " + e.getMessage());
             }
         }
 
@@ -370,7 +370,7 @@ public class DatabaseManager {
     private static final Set<Integer> deductedOrderIds = Collections.synchronizedSet(new HashSet<>());
 
     // =========================================================================
-    // 3. LÆ¯U ÄÆ N HÃ€NG VÃ€O DATABASE (SAVE ORDER TRANSACTION)
+    // 3. LƯU ĐƠN HÀNG VÀO DATABASE (SAVE ORDER TRANSACTION)
     // =========================================================================
     public static boolean saveOrder(Order order) {
         if (!isAvailable()) {
@@ -459,13 +459,13 @@ public class DatabaseManager {
             conn.commit();
             return true;
         } catch (SQLException e) {
-            System.err.println("[DATABASE] Lá»—i lÆ°u Ä‘Æ¡n hÃ ng vÃ o SQL Server: " + e.getMessage());
+            System.err.println("[DATABASE] Lỗi lưu đơn hàng vào SQL Server: " + e.getMessage());
             return false;
         }
     }
 
     // =========================================================================
-    // 4. BOM INVENTORY DEDUCTION (TRá»ª Tá»’N KHO NGUYÃŠN Váº¬T LIá»†U THEO CÃ”NG THá»¨C RECIPES)
+    // 4. BOM INVENTORY DEDUCTION (TRỪ TỒN KHO NGUYÊN VẬT LIỆU THEO CÔNG THỨC RECIPES)
     // =========================================================================
     public static synchronized boolean deductStockForOrder(Order order) {
         if (order == null || order.getItems() == null || order.getItems().isEmpty()) {
@@ -478,7 +478,7 @@ public class DatabaseManager {
         deductedOrderIds.add(order.getOrderId());
 
 
-        // 1. Trá»« tá»“n kho trá»±c tiáº¿p trÃªn danh sÃ¡ch 25 nguyÃªn váº­t liá»‡u In-Memory Ä‘á»ƒ UI Tab 6 cáº­p nháº­t tá»©c thÃ¬
+        // 1. Trừ tồn kho trực tiếp trên danh sách 25 nguyên vật liệu In-Memory để UI Tab 6 cập nhật tức thì
         for (OrderItem item : order.getItems()) {
             int qty = Math.max(1, item.getQty());
             for (IngredientItem ing : ingredientsList) {
@@ -557,7 +557,7 @@ public class DatabaseManager {
     }
 
     // =========================================================================
-    // 5. Cáº¬P NHáº¬T TRáº NG THÃI ÄÆ N & BÃ€N
+    // 5. CẬP NHẬT TRẠNG THÁI ĐƠN & BÀN
     // =========================================================================
     public static boolean updateOrderStatusInDb(int orderId, String newStatus) {
         if (!isAvailable()) return false;
@@ -586,7 +586,7 @@ public class DatabaseManager {
     }
 
     // =========================================================================
-    // 6. THá»NG KÃŠ DASHBOARD QUáº¢N TRá»Š (COFFPOS ADMIN DASHBOARD STATS)
+    // 6. THỐNG KÊ DASHBOARD QUẢN TRỊ (COFFPOS ADMIN DASHBOARD STATS)
     // =========================================================================
     // =========================================================================
     // 5b. KHOI PHUC DON HANG DANG XU LY KHI SERVER KHOI DONG LAI (PERSISTENCE)

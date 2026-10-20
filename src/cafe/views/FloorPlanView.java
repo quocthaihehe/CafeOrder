@@ -1017,7 +1017,7 @@ VBox summaryBox = new VBox(6);
         lblNameBig.setStyle("-fx-font-size: 18px; -fx-font-weight: 800; -fx-text-fill: #112823;");
         Label lblRoleBig = new Label("Vai trò: " + lblStaffRole.getText());
         lblRoleBig.setStyle("-fx-font-size: 13px; -fx-font-weight: 600; -fx-text-fill: #B45309;");
-        Label lblShift = new Label("Ca làm việc: Ca Hành Chính / Phục Vụ Sảnh 3 Tầng\nTrạng thái kết nối KDS: ● Đang trực tuyến (127.0.0.1:5000)");
+        Label lblShift = new Label("Ca làm việc: Ca Hành Chính / Phục Vụ Sảnh 3 Tầng\nTrạng thái kết nối KDS: ● Đang trực tuyến (" + cafe.utils.NetworkConfig.getServerHost() + ":" + cafe.utils.NetworkConfig.getServerPort() + ")");
         lblShift.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #57534E;");
 
         staffCard.getChildren().addAll(lblCard1, lblNameBig, lblRoleBig, lblShift);

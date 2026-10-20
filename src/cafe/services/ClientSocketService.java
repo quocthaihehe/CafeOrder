@@ -17,8 +17,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class ClientSocketService {
-    private static final String DEFAULT_HOST = "127.0.0.1";
-    private static final int DEFAULT_PORT = 5000;
+    private static final String DEFAULT_HOST = cafe.utils.NetworkConfig.getServerHost();
+    private static final int DEFAULT_PORT = cafe.utils.NetworkConfig.getServerPort();
 
     private Socket socket;
     private PrintWriter out;

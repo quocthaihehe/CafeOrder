@@ -1296,7 +1296,7 @@ public class AdminSubViews {
         statusBox.setPadding(new Insets(14));
         statusBox.setStyle("-fx-background-color: #F8F5F0; -fx-background-radius: 10px;");
         statusBox.getChildren().addAll(
-            new Label("● Máy chủ Socket KDS: Đang hoạt động (127.0.0.1:5000)"),
+            new Label("● Máy chủ Socket KDS: Đang hoạt động (" + cafe.utils.NetworkConfig.getServerHost() + ":" + cafe.utils.NetworkConfig.getServerPort() + ")"),
             new Label("● Kết nối SQL Server Pool: Sẵn sàng (Non-blocking Warmup)"),
             new Label("● Máy in hóa đơn nhiệt: Khổ K80 (80mm Editorial Slip)"),
             new Label("● Phiên bản hệ thống: Brew & Bean Enterprise POS v4.0")

@@ -25,7 +25,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class CafeServerService {
-    private static final int DEFAULT_PORT = 5000;
+    private static final int DEFAULT_PORT = cafe.utils.NetworkConfig.getServerPort();
     private static volatile CafeServerService activeInstance;
 
     public static class ReservationInfo {

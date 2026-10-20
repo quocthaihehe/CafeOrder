@@ -932,7 +932,31 @@ public class FloorPlanView extends BorderPane {
             rbCard.setToggleGroup(tg);
             methodRow.getChildren().addAll(lblMethod, rbCash, rbQr, rbCard);
 
-            VBox summaryBox = new VBox(6);
+                        VBox qrPosBox = new VBox(6);
+            qrPosBox.setAlignment(Pos.CENTER);
+            qrPosBox.setPadding(new Insets(8, 12, 8, 12));
+            qrPosBox.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 8px; -fx-border-color: #E2DDD5; -fx-border-radius: 8px; -fx-border-width: 1px;");
+            qrPosBox.setVisible(false);
+            qrPosBox.setManaged(false);
+
+            try {
+                java.io.InputStream is = getClass().getResourceAsStream("/cafe/resources/images/vietqr_mb.png");
+                if (is != null) {
+                    javafx.scene.image.ImageView ivQr = new javafx.scene.image.ImageView(new javafx.scene.image.Image(is));
+                    ivQr.setFitWidth(130);
+                    ivQr.setPreserveRatio(true);
+                    ivQr.setSmooth(true);
+                    Label lblQrInfo = new Label("MB Bank • STK: 0909 888 999 • " + CurrencyFormatter.formatVND(currentOrder.getTotalAmount()));
+                    lblQrInfo.setStyle("-fx-font-family: 'Segoe UI', 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #112823;");
+                    qrPosBox.getChildren().addAll(ivQr, lblQrInfo);
+                }
+            } catch (Exception ignored) {}
+
+            rbQr.setOnAction(e -> { qrPosBox.setVisible(true); qrPosBox.setManaged(true); });
+            rbCash.setOnAction(e -> { qrPosBox.setVisible(false); qrPosBox.setManaged(false); });
+            rbCard.setOnAction(e -> { qrPosBox.setVisible(false); qrPosBox.setManaged(false); });
+
+VBox summaryBox = new VBox(6);
             summaryBox.setPadding(new Insets(12, 16, 12, 16));
             summaryBox.setStyle("-fx-background-color: #F8F5F0; -fx-background-radius: 10px;");
             summaryBox.getChildren().addAll(

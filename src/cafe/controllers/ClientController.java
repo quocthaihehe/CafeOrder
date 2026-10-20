@@ -2,8 +2,12 @@ package cafe.controllers;
 
 import cafe.models.*;
 import cafe.services.ClientSocketService;
+import cafe.utils.CurrencyFormatter;
+import cafe.views.CartModalDialog;
 import cafe.views.ClientView;
 import cafe.views.ItemDetailDialog;
+import cafe.views.OrderSuccessDialog;
+import cafe.views.PaymentDialog;
 import javafx.stage.Stage;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,12 +21,29 @@ public class ClientController {
     private int tableNumber;
     private String currentCategory = "Tất cả";
     private String currentSearchKeyword = "";
+    private final javafx.animation.PauseTransition searchDebounce = new javafx.animation.PauseTransition(javafx.util.Duration.millis(160));
+
+    // Stored transaction state for OrderSuccess confirmation slip (Editorial Receipt Slip)
+    private String lastPaymentMethod = "TIỀN MẶT";
+    private double lastOrderSubtotal = 0.0;
+    private double lastOrderDiscount = 0.0;
+    private String lastVoucherCode = null;
+    private double lastOrderTotal = 0.0;
+    private int lastOrderQuantity = 0;
+    private List<OrderItem> lastOrderItems = new ArrayList<>();
+    private CartModalDialog activeCartDialog = null;
+    private final Runnable onBackToFloorPlan;
 
     public ClientController(Stage primaryStage, ClientView view, ClientSocketService socketService, int tableNumber) {
+        this(primaryStage, view, socketService, tableNumber, null);
+    }
+
+    public ClientController(Stage primaryStage, ClientView view, ClientSocketService socketService, int tableNumber, Runnable onBackToFloorPlan) {
         this.primaryStage = primaryStage;
         this.view = view;
         this.socketService = socketService;
         this.tableNumber = tableNumber;
+        this.onBackToFloorPlan = onBackToFloorPlan;
         this.cartModel = new CartModel();
 
         init();
@@ -31,46 +52,145 @@ public class ClientController {
     private void init() {
         view.setTableNumber(tableNumber);
         view.setConnectionState(socketService.isConnected());
+        view.updateCartBadge(cartModel.getTotalQuantity());
+
+        if (onBackToFloorPlan != null) {
+            view.getFloorPlanButton().setOnAction(e -> onBackToFloorPlan.run());
+        }
 
         // Category & Search bindings
         view.renderCategories(MenuRepository.getCategories(), currentCategory, this::onCategorySelected);
 
         view.getSearchField().textProperty().addListener((obs, oldVal, newVal) -> {
-            currentSearchKeyword = newVal != null ? newVal.trim().toLowerCase() : "";
-            refreshMenuCatalog();
+            searchDebounce.setOnFinished(e -> {
+                currentSearchKeyword = newVal != null ? newVal.trim().toLowerCase() : "";
+                refreshMenuCatalog();
+            });
+            searchDebounce.playFromStart();
         });
 
-        // Submit order button
-        view.getSubmitOrderButton().setOnAction(e -> submitOrder());
+        // Floating Cart Button click -> Opens CartModalDialog
+        view.getCartButton().setOnAction(e -> openCartModal());
 
         // Socket Service Callbacks
         socketService.setOnConnectionStateChanged(connected -> {
             view.setConnectionState(connected);
             if (!connected) {
-                view.showToast("⚠️ Mất kết nối tới máy chủ pha chế!");
+                view.showToast("Mất kết nối tới máy chủ pha chế!");
             }
         });
 
         socketService.setOnOrderAckReceived(ack -> {
+            int confirmedOrderId = ack.orderId;
+            String translatedStatus = MessageProtocol.translateStatus(ack.status);
+
+            List<OrderItem> snapshotItems = !lastOrderItems.isEmpty()
+                ? new ArrayList<>(lastOrderItems)
+                : new ArrayList<>(cartModel.getItems());
+            int snapshotQty = lastOrderQuantity > 0 ? lastOrderQuantity : cartModel.getTotalQuantity();
+            double snapshotSubtotal = lastOrderSubtotal > 0 ? lastOrderSubtotal : cartModel.getSubtotalAmount();
+            double snapshotDiscount = lastOrderDiscount > 0 ? lastOrderDiscount : cartModel.getDiscountAmount();
+            String snapshotVoucher = lastVoucherCode != null ? lastVoucherCode
+                : (cartModel.getAppliedVoucher() != null ? cartModel.getAppliedVoucher().getCode() : null);
+            double finalTotal = lastOrderTotal > 0 ? lastOrderTotal : cartModel.getTotalAmount();
+            String finalMethod = lastPaymentMethod;
+
             cartModel.clear();
-            refreshCartView();
-            view.updateActiveOrderStatus(ack.orderId, MessageProtocol.translateStatus(ack.status));
-            view.showToast("✅ Đã đặt đơn #" + ack.orderId + " thành công! Quầy đang chuẩn bị.");
+            view.updateCartBadge(0);
+            view.updateActiveOrderStatus(confirmedOrderId, translatedStatus);
+
+            if (activeCartDialog != null && activeCartDialog.isShowing()) {
+                activeCartDialog.close();
+            }
+
+            OrderSuccessDialog.ReceiptData receiptData = new OrderSuccessDialog.ReceiptData(
+                confirmedOrderId,
+                tableNumber,
+                java.time.LocalDateTime.now(),
+                snapshotItems,
+                snapshotQty,
+                snapshotSubtotal,
+                snapshotDiscount,
+                snapshotVoucher,
+                finalTotal,
+                finalMethod,
+                "ĐÃ THANH TOÁN",
+                "Kiosk Tự Phục Vụ #01"
+            );
+
+            // Hiển thị Phiếu Thanh Toán (Editorial Receipt Slip)
+            OrderSuccessDialog successDialog = new OrderSuccessDialog(
+                primaryStage,
+                receiptData,
+                () -> view.showToast("Đơn #" + confirmedOrderId + " đang được pha chế!"),
+                () -> {
+                    view.highlightActiveOrderBox();
+                    view.showToast("⏱ Đang theo dõi Đơn #" + confirmedOrderId + " • Trạng thái: " + translatedStatus);
+                }
+            );
+            successDialog.show();
         });
 
         socketService.setOnStatusUpdateReceived(update -> {
             String translated = MessageProtocol.translateStatus(update.status);
             view.updateActiveOrderStatus(update.orderId, translated);
-            view.showToast("🔔 Đơn #" + update.orderId + " đã cập nhật: " + translated + "!");
+            view.showToast("Đơn #" + update.orderId + " đã cập nhật: " + translated + "!");
         });
 
         socketService.setOnErrorOccurred(errMsg -> {
-            view.showToast("❌ " + errMsg);
+            view.showToast(errMsg);
         });
 
-        // Render initial data
+        // Render initial catalog
         refreshMenuCatalog();
-        refreshCartView();
+    }
+
+    private void openCartModal() {
+        activeCartDialog = new CartModalDialog(
+            primaryStage,
+            tableNumber,
+            cartModel,
+            this::onCartQtyChanged,
+            this::onCartItemDeleted,
+            this::applyVoucherCodeFromDialog,
+            this::openPaymentFlow,
+            () -> view.updateCartBadge(cartModel.getTotalQuantity())
+        );
+        activeCartDialog.show();
+    }
+
+    private void applyVoucherCodeFromDialog(String code) {
+        if (code == null || code.trim().isEmpty()) {
+            if (activeCartDialog != null) {
+                activeCartDialog.setVoucherFeedback("Vui lòng nhập mã giảm giá!", false);
+            }
+            return;
+        }
+
+        String normalizedCode = code.trim().toUpperCase();
+        Voucher v = MenuRepository.getVoucher(normalizedCode);
+        if (v == null) {
+            if (activeCartDialog != null) {
+                activeCartDialog.setVoucherFeedback("Mã " + normalizedCode + " không hợp lệ!", false);
+            }
+            return;
+        }
+
+        if (cartModel.getSubtotalAmount() < v.getMinOrderAmount()) {
+            if (activeCartDialog != null) {
+                activeCartDialog.setVoucherFeedback("Đơn tối thiểu " + CurrencyFormatter.format(v.getMinOrderAmount()) + " mới được dùng mã!", false);
+            }
+            return;
+        }
+
+        boolean applied = cartModel.applyVoucher(v);
+        if (applied) {
+            if (activeCartDialog != null) {
+                activeCartDialog.refreshView();
+                activeCartDialog.setVoucherFeedback("Đã áp dụng: " + v.getDescription(), true);
+            }
+            view.showToast("Áp dụng thành công voucher " + normalizedCode + "!");
+        }
     }
 
     private void onCategorySelected(String category) {
@@ -94,52 +214,116 @@ public class ClientController {
             }
         }
 
-        view.renderMenuItems(filtered, this::openItemCustomization);
+        view.renderMenuItems(filtered, this::openItemCustomization, this::onQuickAdd);
+    }
+
+    private void onQuickAdd(MenuItem item) {
+        String nameLower = item.getName() != null ? item.getName().toLowerCase() : "";
+        boolean isHotOnly = nameLower.contains("nóng") || nameLower.equals("espresso") || nameLower.contains("cà phê trứng");
+        OrderItem oi = new OrderItem(
+            item.getId(),
+            item.getName(),
+            1,
+            item.getPrice(),
+            item.isAllowSize() ? "M" : "",
+            0.0,
+            100,
+            isHotOnly ? 0 : 100,
+            isHotOnly ? "HOT" : "COLD",
+            new ArrayList<>(),
+            ""
+        );
+        cartModel.addItem(oi);
+        view.updateCartBadge(cartModel.getTotalQuantity());
+        view.showToast("Đã thêm nhanh 1x " + item.getName());
+
+        if (activeCartDialog != null && activeCartDialog.isShowing()) {
+            activeCartDialog.refreshView();
+        }
     }
 
     private void openItemCustomization(MenuItem item) {
-        ItemDetailDialog dialog = new ItemDetailDialog(primaryStage, item, (qty, note) -> {
-            cartModel.addItem(item, qty, note);
-            refreshCartView();
-            view.showToast("Đã thêm: " + qty + "x " + item.getName());
+        ItemDetailDialog dialog = new ItemDetailDialog(primaryStage, item, orderItem -> {
+            cartModel.addItem(orderItem);
+            view.updateCartBadge(cartModel.getTotalQuantity());
+            view.showToast("Đã thêm: " + orderItem.getQty() + "x " + orderItem.getName());
+
+            if (activeCartDialog != null && activeCartDialog.isShowing()) {
+                activeCartDialog.refreshView();
+            }
         });
         dialog.show();
     }
 
-    private void refreshCartView() {
-        view.renderCart(
-            cartModel.getItems(),
-            cartModel.getTotalAmount(),
-            cartModel.getTotalQuantity(),
-            this::onCartQtyChanged,
-            this::onCartItemDeleted
-        );
-    }
-
     private void onCartQtyChanged(OrderItem item, int delta) {
         cartModel.updateQuantity(item, delta);
-        refreshCartView();
+        view.updateCartBadge(cartModel.getTotalQuantity());
     }
 
     private void onCartItemDeleted(OrderItem item) {
         cartModel.removeItem(item);
-        refreshCartView();
+        view.updateCartBadge(cartModel.getTotalQuantity());
     }
 
-    private void submitOrder() {
+    private void openPaymentFlow() {
         if (cartModel.isEmpty()) {
-            view.showToast("⚠️ Giỏ hàng đang trống!");
+            view.showToast("Giỏ hàng đang trống! Vui lòng chọn món trước.");
             return;
         }
 
         if (!socketService.isConnected()) {
-            view.showToast("❌ Chưa kết nối được với quầy pha chế!");
+            view.showToast("Chưa kết nối được với quầy pha chế!");
             return;
         }
 
-        boolean sent = socketService.sendOrder(tableNumber, new ArrayList<>(cartModel.getItems()));
+        PaymentDialog paymentDialog = new PaymentDialog(primaryStage, tableNumber, cartModel, selectedMethod -> {
+            this.lastPaymentMethod = selectedMethod;
+            this.lastOrderItems = new ArrayList<>(cartModel.getItems());
+            this.lastOrderQuantity = cartModel.getTotalQuantity();
+            this.lastOrderSubtotal = cartModel.getSubtotalAmount();
+            this.lastOrderDiscount = cartModel.getDiscountAmount();
+            this.lastVoucherCode = cartModel.getAppliedVoucher() != null ? cartModel.getAppliedVoucher().getCode() : null;
+            this.lastOrderTotal = cartModel.getTotalAmount();
+            submitOrder(selectedMethod);
+        });
+        paymentDialog.show();
+    }
+
+    private void submitOrder(String paymentMethod) {
+        String customNote = cartModel.getOrderNote() != null ? cartModel.getOrderNote().trim() : "";
+        String fullNote = customNote.isEmpty()
+            ? "Thanh toán: " + paymentMethod
+            : customNote + " • TT: " + paymentMethod;
+
+        boolean sent = socketService.sendOrder(
+            tableNumber,
+            cartModel.getOrderType(),
+            cartModel.getDiscountAmount(),
+            cartModel.getAppliedVoucher() != null ? cartModel.getAppliedVoucher().getCode() : null,
+            fullNote,
+            new ArrayList<>(cartModel.getItems())
+        );
+
         if (sent) {
-            view.showToast("⏳ Đang gửi đơn tới quầy pha chế...");
+            view.showToast("Đang gửi đơn tới quầy pha chế...");
         }
+    }
+
+    public void setTableNumber(int newTable) {
+        this.tableNumber = newTable;
+        view.setTableNumber(newTable);
+        if (newTable <= 0) {
+            cartModel.setOrderType("TAKEAWAY");
+        } else {
+            cartModel.setOrderType("DINE_IN");
+        }
+    }
+
+    public int getTableNumber() {
+        return tableNumber;
+    }
+
+    public void refreshCatalog() {
+        refreshMenuCatalog();
     }
 }

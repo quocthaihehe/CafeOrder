@@ -2,10 +2,13 @@ package cafe;
 
 import cafe.controllers.LoginController;
 import cafe.services.ClientSocketService;
+import cafe.utils.FontLoader;
+import cafe.utils.WindowChromeHelper;
 import cafe.views.LoginView;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 
 public class ClientMain {
 
@@ -19,26 +22,55 @@ public class ClientMain {
 
         @Override
         public void start(Stage primaryStage) {
+            // Giai đoạn 1: Nạp font chữ nhận diện thương hiệu (Playfair Display & Inter)
+            FontLoader.loadFonts();
+
+            // Giai đoạn 2: Loại bỏ thanh Title Bar mặc định của OS (StageStyle.UNDECORATED)
+            primaryStage.initStyle(StageStyle.UNDECORATED);
+
             LoginView loginView = new LoginView();
             new LoginController(primaryStage, loginView, socketService);
 
-            Scene scene = new Scene(loginView, 540, 520);
-            try {
-                scene.getStylesheets().add(getClass().getResource("/cafe/views/client.css").toExternalForm());
-            } catch (Exception ignored) {}
+            // Tạo Scene hoàn chỉnh kèm CustomHeader kéo thả và cụm nút điều khiển cửa sổ
+            Scene scene = WindowChromeHelper.createWindowScene(
+                primaryStage,
+                loginView,
+                "Đăng Nhập • Brew & Bean CAFE",
+                740,
+                700,
+                true,
+                () -> {
+                    socketService.disconnect();
+                    System.exit(0);
+                }
+            );
 
-            primaryStage.setTitle("Đăng Nhập Bàn • L'Amour Artisan Cafe");
+            primaryStage.setTitle("Đăng Nhập • Brew & Bean CAFE");
             primaryStage.setScene(scene);
-            primaryStage.setMinWidth(480);
-            primaryStage.setMinHeight(480);
+            primaryStage.setMinWidth(720);
+            primaryStage.setMinHeight(650);
             primaryStage.centerOnScreen();
+
+            // Lắng nghe phóng to form (Maximize) để chuyển sang login_hero2
+            primaryStage.maximizedProperty().addListener((obs, wasMax, isNowMax) -> {
+                loginView.setMaximizedMode(isNowMax);
+            });
 
             primaryStage.setOnCloseRequest(e -> {
                 socketService.disconnect();
                 System.exit(0);
             });
 
+            primaryStage.setMaximized(true);
             primaryStage.show();
+            WindowChromeHelper.applyMaximized(primaryStage);
+
+            // Khởi động ngầm kết nối Socket, bộ nhớ đệm hình ảnh 69 món và kết nối DB ngay tại màn hình Login
+            // để khi bấm Đăng nhập (Khách / Nhân viên / Quản lý) sẽ chuyển cảnh tức thì 0ms
+            socketService.warmupConnectAsync();
+            cafe.utils.ImageManager.warmupCacheAsync();
+            cafe.services.DatabaseManager.warmupAsync();
         }
     }
 }
+

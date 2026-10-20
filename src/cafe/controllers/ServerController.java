@@ -17,6 +17,7 @@ public class ServerController {
     private final List<String> filterList = Arrays.asList("Tất cả đơn", "Đang chờ", "Đang pha chế", "Đã xong");
     private String currentFilter = "Tất cả đơn";
     private String searchKeyword = "";
+    private final javafx.animation.PauseTransition searchDebounce = new javafx.animation.PauseTransition(javafx.util.Duration.millis(160));
 
     public ServerController(ServerKDSView view, CafeServerService serverService) {
         this.view = view;
@@ -29,10 +30,13 @@ public class ServerController {
         // Render initial filters
         view.renderFilters(filterList, currentFilter, this::onFilterChanged);
 
-        // Search listener
+        // Search listener with debounce
         view.getSearchField().textProperty().addListener((obs, oldVal, newVal) -> {
-            searchKeyword = newVal != null ? newVal.trim().toLowerCase() : "";
-            refreshTicketBoard();
+            searchDebounce.setOnFinished(e -> {
+                searchKeyword = newVal != null ? newVal.trim().toLowerCase() : "";
+                refreshTicketBoard();
+            });
+            searchDebounce.playFromStart();
         });
 
         // Clear done orders button
@@ -41,15 +45,41 @@ public class ServerController {
             refreshTicketBoard();
         });
 
+        // Preload existing active orders from CafeServerService
+        for (Order existing : serverService.getActiveOrders().values()) {
+            String st = existing.getStatus() != null ? existing.getStatus().toUpperCase() : "QUEUED";
+            if (!"PAID".equals(st) && !"CANCELLED".equals(st)) {
+                orderList.add(existing);
+            }
+        }
+        orderList.sort((a, b) -> Long.compare(b.getTimestamp(), a.getTimestamp()));
+
         // Server service callbacks
         serverService.setOnOrderReceived(newOrder -> {
+            orderList.removeIf(o -> o.getOrderId() == newOrder.getOrderId());
             orderList.add(0, newOrder); // newest on top
+            refreshTicketBoard();
+        });
+
+        serverService.setOnOrderStatusChanged((orderId, newStatus) -> {
+            for (Order o : orderList) {
+                if (o.getOrderId() == orderId) {
+                    o.setStatus(newStatus);
+                }
+            }
             refreshTicketBoard();
         });
 
         serverService.setOnServerLog(logMsg -> {
             view.setLatestLog(logMsg);
         });
+
+        // Auto-refresh KDS elapsed wait time SLA badges every 15 seconds
+        javafx.animation.Timeline slaTimer = new javafx.animation.Timeline(
+            new javafx.animation.KeyFrame(javafx.util.Duration.seconds(15), e -> refreshTicketBoard())
+        );
+        slaTimer.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        slaTimer.play();
 
         refreshTicketBoard();
     }
@@ -68,7 +98,39 @@ public class ServerController {
         }
     }
 
+    // ========================================================================
+    // BỘ LỌC TRẠM PHA CHẾ (KDS STATION): ALL | ESPRESSO | TEA | BAKERY
+    // ========================================================================
+    private static volatile String stationFilter = "ALL";
+    private static ServerController activeInstance;
+
+    public static void setStationFilter(String station) {
+        stationFilter = station != null ? station : "ALL";
+        if (activeInstance != null) {
+            activeInstance.refreshTicketBoard();
+        }
+    }
+
+    private static String stationOfCategory(String category) {
+        String c = category != null ? category.toLowerCase() : "";
+        if (c.contains("bánh") || c.contains("ăn") || c.contains("snack")) return "BAKERY";
+        if (c.contains("cà phê") || c.contains("espresso")) return "ESPRESSO";
+        return "TEA";
+    }
+
+    private boolean orderMatchesStation(Order o) {
+        if ("ALL".equals(stationFilter)) return true;
+        if (o.getItems() == null) return false;
+        for (cafe.models.OrderItem it : o.getItems()) {
+            cafe.models.MenuItem mi = cafe.models.MenuRepository.findByName(it.getName());
+            String station = mi != null ? stationOfCategory(mi.getCategory()) : "ESPRESSO";
+            if (station.equals(stationFilter)) return true;
+        }
+        return false;
+    }
+
     private void refreshTicketBoard() {
+        activeInstance = this;
         List<Order> filtered = new ArrayList<>();
         int countQueued = 0;
         int countPreparing = 0;
@@ -76,6 +138,7 @@ public class ServerController {
 
         for (Order o : orderList) {
             String st = o.getStatus() != null ? o.getStatus().toUpperCase() : "QUEUED";
+            if (!orderMatchesStation(o)) continue;
             if ("QUEUED".equals(st)) countQueued++;
             else if ("PREPARING".equals(st)) countPreparing++;
             else if ("DONE".equals(st)) countDone++;

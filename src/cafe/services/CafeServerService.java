@@ -14,6 +14,8 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.List;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,6 +53,7 @@ public class CafeServerService {
     private final Map<Integer, Set<String>> tableSubscribers = new ConcurrentHashMap<>();
     
     private final Map<Integer, Order> activeOrders = new ConcurrentHashMap<>();
+    public final Map<String, Integer> processedIdempotencyKeys = new ConcurrentHashMap<>();
     private final Map<Integer, String> tableStatuses = new ConcurrentHashMap<>();
     private final Map<Integer, ReservationInfo> tableReservations = new ConcurrentHashMap<>();
     private volatile boolean isRunning = false;
@@ -68,73 +71,87 @@ public class CafeServerService {
     }
 
     private void seedInitialActiveOrders() {
+        List<Order> dbOrders = DatabaseManager.loadActiveOrdersFromDb();
+        if (dbOrders != null && !dbOrders.isEmpty()) {
+            for (Order o : dbOrders) {
+                activeOrders.put(o.getOrderId(), o);
+                if (o.getTable() > 0) {
+                    tableStatuses.put(o.getTable(), "OCCUPIED");
+                }
+                if (o.getOrderId() >= orderIdCounter.get()) {
+                    orderIdCounter.set(o.getOrderId());
+                }
+            }
+            log("Đã khôi phục " + dbOrders.size() + " đơn hàng đang xử lý từ SQL Server.");
+            return;
+        }
         long now = System.currentTimeMillis();
-        // Bàn 01 (Đang phục vụ - 14 phút trước)
-        addSeedOrder(1001, 1, "DINE_IN", "PREPARING", 0, null, "Ít đá 1 ly", now - 14 * 60_000L,
-            new cafe.models.OrderItem("Cà phê Sữa Đá", 2, "Size M • Đá 70%", 35000),
-            new cafe.models.OrderItem("Bánh Sừng Bò Hạnh Nhân", 1, "Hâm nóng", 42000)
+        // BÃ n 01 (Äang phá»¥c vá»¥ - 14 phÃºt trÆ°á»›c)
+        addSeedOrder(1001, 1, "DINE_IN", "PREPARING", 0, null, "Ãt Ä‘Ã¡ 1 ly", now - 14 * 60_000L,
+            new cafe.models.OrderItem("CÃ  phÃª Sá»¯a ÄÃ¡", 2, "Size M â€¢ ÄÃ¡ 70%", 35000),
+            new cafe.models.OrderItem("BÃ¡nh Sá»«ng BÃ² Háº¡nh NhÃ¢n", 1, "HÃ¢m nÃ³ng", 42000)
         );
-        // Bàn 03 (Đang phục vụ - 25 phút trước)
-        addSeedOrder(1002, 3, "DINE_IN", "DONE", 15000, "GIAM15K", "Khách VIP", now - 25 * 60_000L,
-            new cafe.models.OrderItem("Cold Brew Cam Sả", 2, "Size L • 70% đường", 55000),
-            new cafe.models.OrderItem("Matcha Latte Kem Phô Mai", 1, "Size M • Đá 50%", 59000),
-            new cafe.models.OrderItem("Tiramisu Cổ Điển", 1, "", 55000)
+        // BÃ n 03 (Äang phá»¥c vá»¥ - 25 phÃºt trÆ°á»›c)
+        addSeedOrder(1002, 3, "DINE_IN", "DONE", 15000, "GIAM15K", "KhÃ¡ch VIP", now - 25 * 60_000L,
+            new cafe.models.OrderItem("Cold Brew Cam Sáº£", 2, "Size L â€¢ 70% Ä‘Æ°á»ng", 55000),
+            new cafe.models.OrderItem("Matcha Latte Kem PhÃ´ Mai", 1, "Size M â€¢ ÄÃ¡ 50%", 59000),
+            new cafe.models.OrderItem("Tiramisu Cá»• Äiá»ƒn", 1, "", 55000)
         );
-        // Bàn 06 (Đang phục vụ - 8 phút trước)
+        // BÃ n 06 (Äang phá»¥c vá»¥ - 8 phÃºt trÆ°á»›c)
         addSeedOrder(1003, 6, "DINE_IN", "QUEUED", 0, null, "", now - 8 * 60_000L,
-            new cafe.models.OrderItem("Trà Đào Cam Sả", 2, "Size L • +Đào miếng", 49000),
-            new cafe.models.OrderItem("Bạc Xỉu Đá Sài Gòn", 1, "Size M", 35000)
+            new cafe.models.OrderItem("TrÃ  ÄÃ o Cam Sáº£", 2, "Size L â€¢ +ÄÃ o miáº¿ng", 49000),
+            new cafe.models.OrderItem("Báº¡c Xá»‰u ÄÃ¡ SÃ i GÃ²n", 1, "Size M", 35000)
         );
-        // Bàn 09 (Đang phục vụ - 19 phút trước)
-        addSeedOrder(1004, 9, "DINE_IN", "PREPARING", 0, null, "Mang nước lọc kèm", now - 19 * 60_000L,
-            new cafe.models.OrderItem("Caramel Macchiato", 2, "Size M • Nóng", 55000),
-            new cafe.models.OrderItem("Trà Ô Long Kem Cheese", 2, "Size L • 50% đường", 52000),
-            new cafe.models.OrderItem("Croissant Bơ Pháp", 2, "Nướng giòn", 38000)
+        // BÃ n 09 (Äang phá»¥c vá»¥ - 19 phÃºt trÆ°á»›c)
+        addSeedOrder(1004, 9, "DINE_IN", "PREPARING", 0, null, "Mang nÆ°á»›c lá»c kÃ¨m", now - 19 * 60_000L,
+            new cafe.models.OrderItem("Caramel Macchiato", 2, "Size M â€¢ NÃ³ng", 55000),
+            new cafe.models.OrderItem("TrÃ  Ã” Long Kem Cheese", 2, "Size L â€¢ 50% Ä‘Æ°á»ng", 52000),
+            new cafe.models.OrderItem("Croissant BÆ¡ PhÃ¡p", 2, "NÆ°á»›ng giÃ²n", 38000)
         );
-        // Bàn 12 (Đang phục vụ - 32 phút trước)
+        // BÃ n 12 (Äang phá»¥c vá»¥ - 32 phÃºt trÆ°á»›c)
         addSeedOrder(1005, 12, "DINE_IN", "DONE", 0, null, "", now - 32 * 60_000L,
-            new cafe.models.OrderItem("Espresso Đá", 1, "Size M", 32000),
-            new cafe.models.OrderItem("Trà Sen Vàng Kem Macchiato", 2, "Size L • +Hạt sen", 55000)
+            new cafe.models.OrderItem("Espresso ÄÃ¡", 1, "Size M", 32000),
+            new cafe.models.OrderItem("TrÃ  Sen VÃ ng Kem Macchiato", 2, "Size L â€¢ +Háº¡t sen", 55000)
         );
-        // Tầng 2 & Tầng 3
+        // Táº§ng 2 & Táº§ng 3
         addSeedOrder(1006, 201, "DINE_IN", "DONE", 0, null, "", now - 28 * 60_000L,
-            new cafe.models.OrderItem("Americano Đá", 2, "Size M • Không đường", 39000),
-            new cafe.models.OrderItem("Bánh Mousse Chanh Dây", 1, "", 45000)
+            new cafe.models.OrderItem("Americano ÄÃ¡", 2, "Size M â€¢ KhÃ´ng Ä‘Æ°á»ng", 39000),
+            new cafe.models.OrderItem("BÃ¡nh Mousse Chanh DÃ¢y", 1, "", 45000)
         );
-        addSeedOrder(1007, 205, "DINE_IN", "PREPARING", 0, null, "Họp nhóm", now - 12 * 60_000L,
-            new cafe.models.OrderItem("Cà phê Muối Huế", 3, "Size M", 42000),
-            new cafe.models.OrderItem("Trà Vải Hoa Hồng", 2, "Size L", 49000)
+        addSeedOrder(1007, 205, "DINE_IN", "PREPARING", 0, null, "Há»p nhÃ³m", now - 12 * 60_000L,
+            new cafe.models.OrderItem("CÃ  phÃª Muá»‘i Huáº¿", 3, "Size M", 42000),
+            new cafe.models.OrderItem("TrÃ  Váº£i Hoa Há»“ng", 2, "Size L", 49000)
         );
         addSeedOrder(1008, 209, "DINE_IN", "DONE", 0, null, "", now - 40 * 60_000L,
-            new cafe.models.OrderItem("Latte Hạnh Nhân", 2, "Size M • Nóng", 55000)
+            new cafe.models.OrderItem("Latte Háº¡nh NhÃ¢n", 2, "Size M â€¢ NÃ³ng", 55000)
         );
         addSeedOrder(1009, 214, "DINE_IN", "QUEUED", 0, null, "", now - 5 * 60_000L,
-            new cafe.models.OrderItem("Sinh Tố Bơ Sầu Riêng", 2, "Size L", 62000)
+            new cafe.models.OrderItem("Sinh Tá»‘ BÆ¡ Sáº§u RiÃªng", 2, "Size L", 62000)
         );
-        addSeedOrder(1010, 302, "DINE_IN", "PREPARING", 0, null, "Ban công", now - 16 * 60_000L,
-            new cafe.models.OrderItem("Cold Brew Quất Mật Ong", 2, "Size L", 55000),
-            new cafe.models.OrderItem("Bánh Phô Mai Nướng Basque", 2, "", 58000)
+        addSeedOrder(1010, 302, "DINE_IN", "PREPARING", 0, null, "Ban cÃ´ng", now - 16 * 60_000L,
+            new cafe.models.OrderItem("Cold Brew Quáº¥t Máº­t Ong", 2, "Size L", 55000),
+            new cafe.models.OrderItem("BÃ¡nh PhÃ´ Mai NÆ°á»›ng Basque", 2, "", 58000)
         );
         addSeedOrder(1011, 305, "DINE_IN", "DONE", 0, null, "", now - 35 * 60_000L,
-            new cafe.models.OrderItem("Trà Hoa Đậu Biếc Macchiato", 2, "Size M", 49000)
+            new cafe.models.OrderItem("TrÃ  Hoa Äáº­u Biáº¿c Macchiato", 2, "Size M", 49000)
         );
         addSeedOrder(1012, 309, "DINE_IN", "PREPARING", 0, null, "", now - 11 * 60_000L,
-            new cafe.models.OrderItem("Cappuccino Ý", 2, "Size M • Nóng", 49000)
+            new cafe.models.OrderItem("Cappuccino Ã", 2, "Size M â€¢ NÃ³ng", 49000)
         );
         addSeedOrder(1013, 311, "DINE_IN", "DONE", 0, null, "", now - 21 * 60_000L,
-            new cafe.models.OrderItem("Matcha Đá Xay", 3, "Size L • +Kem tươi", 59000)
+            new cafe.models.OrderItem("Matcha ÄÃ¡ Xay", 3, "Size L â€¢ +Kem tÆ°Æ¡i", 59000)
         );
 
-        // Đơn mang về mẫu
-        addSeedOrder(1014, 0, "TAKEAWAY", "DONE", 0, null, "Lấy ngay tại quầy", now - 18 * 60_000L,
-            new cafe.models.OrderItem("Cà phê Sữa Đá", 2, "Size L", 39000)
+        // ÄÆ¡n mang vá» máº«u
+        addSeedOrder(1014, 0, "TAKEAWAY", "DONE", 0, null, "Láº¥y ngay táº¡i quáº§y", now - 18 * 60_000L,
+            new cafe.models.OrderItem("CÃ  phÃª Sá»¯a ÄÃ¡", 2, "Size L", 39000)
         );
 
-        // Đặt trước mặc định cho Bàn 05 & Bàn 10
+        // Äáº·t trÆ°á»›c máº·c Ä‘á»‹nh cho BÃ n 05 & BÃ n 10
         tableStatuses.put(5, "RESERVED");
-        tableReservations.put(5, new ReservationInfo(5, "Nguyễn Hoàng Nam", "0908.345.678", "19:30", 2, "Ngồi gần cửa sổ"));
+        tableReservations.put(5, new ReservationInfo(5, "Nguyá»…n HoÃ ng Nam", "0908.345.678", "19:30", 2, "Ngá»“i gáº§n cá»­a sá»•"));
         tableStatuses.put(10, "RESERVED");
-        tableReservations.put(10, new ReservationInfo(10, "Lê Bảo Ngọc", "0912.888.999", "20:00", 6, "Sinh nhật gia đình"));
+        tableReservations.put(10, new ReservationInfo(10, "LÃª Báº£o Ngá»c", "0912.888.999", "20:00", 6, "Sinh nháº­t gia Ä‘Ã¬nh"));
     }
 
     private void addSeedOrder(int orderId, int table, String type, String status, double discount, String voucher, String note, long ts, cafe.models.OrderItem... items) {
@@ -223,7 +240,7 @@ public class CafeServerService {
         Thread serverThread = new Thread(() -> {
             try {
                 serverSocket = new ServerSocket(port);
-                log("Máy chủ KDS pha chế & Quản trị CoffeePOS đã mở cổng " + port + ". Đang sẵn sàng đón nhận đơn.");
+                log("MÃ¡y chá»§ KDS pha cháº¿ & Quáº£n trá»‹ CoffeePOS Ä‘Ã£ má»Ÿ cá»•ng " + port + ". Äang sáºµn sÃ ng Ä‘Ã³n nháº­n Ä‘Æ¡n.");
 
                 while (isRunning) {
                     Socket clientSocket = serverSocket.accept();
@@ -233,7 +250,7 @@ public class CafeServerService {
                 }
             } catch (IOException e) {
                 if (isRunning) {
-                    log("Lỗi Server Socket: " + e.getMessage());
+                    log("Lá»—i Server Socket: " + e.getMessage());
                 }
             } finally {
                 stop();
@@ -273,10 +290,10 @@ public class CafeServerService {
                         session.currentTable = registeredTable;
                         if (hello.deviceType != null) session.deviceType = hello.deviceType;
 
-                        // Đăng ký bảng định tuyến bàn
+                        // ÄÄƒng kÃ½ báº£ng Ä‘á»‹nh tuyáº¿n bÃ n
                         bindTableSubscriber(registeredTable, sessionId);
 
-                        log("Thiết bị [" + session.deviceType + " #" + sessionId + "] gắn với Bàn " + registeredTable + " đã kết nối.");
+                        log("Thiáº¿t bá»‹ [" + session.deviceType + " #" + sessionId + "] gáº¯n vá»›i BÃ n " + registeredTable + " Ä‘Ã£ káº¿t ná»‘i.");
                         final int tConnect = registeredTable;
                         dispatch(() -> {
                             for (BiConsumer<Integer, Boolean> l : tableConnectionListeners) l.accept(tConnect, true);
@@ -290,7 +307,7 @@ public class CafeServerService {
                         session.currentTable = newTable;
                         unbindTableSubscriber(oldTable, sessionId);
                         bindTableSubscriber(newTable, sessionId);
-                        log("Thiết bị #" + sessionId + " chuyển trọng tâm phục vụ: Bàn " + oldTable + " -> Bàn " + newTable);
+                        log("Thiáº¿t bá»‹ #" + sessionId + " chuyá»ƒn trá»ng tÃ¢m phá»¥c vá»¥: BÃ n " + oldTable + " -> BÃ n " + newTable);
                         break;
 
                     case PING:
@@ -299,7 +316,30 @@ public class CafeServerService {
 
                     case NEW_ORDER:
                         MessageProtocol.NewOrderMessage orderMsg = MessageProtocol.fromJson(line, MessageProtocol.NewOrderMessage.class);
+                        if (orderMsg == null || orderMsg.items == null || orderMsg.items.isEmpty()) {
+                            break;
+                        }
+
+                        // P0-1: Chống tạo đơn trùng lặp (Idempotency Key Check)
+                        if (orderMsg.idempotencyKey != null && !orderMsg.idempotencyKey.trim().isEmpty()) {
+                            Integer existingId = processedIdempotencyKeys.get(orderMsg.idempotencyKey.trim());
+                            if (existingId != null) {
+                                Order existingOrder = activeOrders.get(existingId);
+                                String curStatus = existingOrder != null ? existingOrder.getStatus() : "QUEUED";
+                                MessageProtocol.OrderAckMessage dupAck = new MessageProtocol.OrderAckMessage(existingId, curStatus, activeOrders.size());
+                                session.send(MessageProtocol.toJson(dupAck));
+                                log("Bỏ qua gói tin gửi lặp (IdempotencyKey: " + orderMsg.idempotencyKey + ") cho Đơn #" + existingId);
+                                break;
+                            }
+                        }
+
+                        // P0-2: Xác thực tính toàn vẹn giá và voucher phía Server
+                        validateAndSanitizeOrder(orderMsg);
+
                         int newOrderId = orderIdCounter.incrementAndGet();
+                        if (orderMsg.idempotencyKey != null && !orderMsg.idempotencyKey.trim().isEmpty()) {
+                            processedIdempotencyKeys.put(orderMsg.idempotencyKey.trim(), newOrderId);
+                        }
 
                         Order newOrder = new Order(
                             newOrderId,
@@ -314,27 +354,27 @@ public class CafeServerService {
                             System.currentTimeMillis()
                         );
                         activeOrders.put(newOrderId, newOrder);
-                        log("Nhận Đơn hàng #" + newOrderId + " (" + newOrder.getOrderTypeLabel() + ") - Bàn " + orderMsg.table + " (" + newOrder.getTotalQuantity() + " món).");
+                        log("Nháº­n ÄÆ¡n hÃ ng #" + newOrderId + " (" + newOrder.getOrderTypeLabel() + ") - BÃ n " + orderMsg.table + " (" + newOrder.getTotalQuantity() + " mÃ³n).");
 
-                        // 1. Phản hồi ORDER_ACK siêu tốc (<1ms) ngay lập tức về Kiosk
+                        // 1. Pháº£n há»“i ORDER_ACK siÃªu tá»‘c (<1ms) ngay láº­p tá»©c vá» Kiosk
                         MessageProtocol.OrderAckMessage ack = new MessageProtocol.OrderAckMessage(newOrderId, "QUEUED", activeOrders.size());
                         session.send(MessageProtocol.toJson(ack));
 
-                        // 2. Bắn sự kiện tức thì lên giao diện KDS Bar và Dashboard Admin
+                        // 2. Báº¯n sá»± kiá»‡n tá»©c thÃ¬ lÃªn giao diá»‡n KDS Bar vÃ  Dashboard Admin
                         dispatch(() -> {
                             for (Consumer<Order> l : orderReceivedListeners) l.accept(newOrder);
                         });
 
-                        // 3. Broadcast trạng thái bàn sang OCCUPIED cho tất cả các máy trạm sơ đồ bàn
+                        // 3. Broadcast tráº¡ng thÃ¡i bÃ n sang OCCUPIED cho táº¥t cáº£ cÃ¡c mÃ¡y tráº¡m sÆ¡ Ä‘á»“ bÃ n
                         broadcastTableStatus(orderMsg.table, "OCCUPIED");
 
-                        // 4. Bất đồng bộ lưu bền vững vào SQL Server qua worker riêng, không chặn socket
+                        // 4. Báº¥t Ä‘á»“ng bá»™ lÆ°u bá»n vá»¯ng vÃ o SQL Server qua worker riÃªng, khÃ´ng cháº·n socket
                         final Order orderToSave = newOrder;
                         dbExecutor.submit(() -> {
                             try {
                                 DatabaseManager.saveOrder(orderToSave);
                             } catch (Exception ex) {
-                                log("Lỗi lưu đơn vào DB: " + ex.getMessage());
+                                log("Lá»—i lÆ°u Ä‘Æ¡n vÃ o DB: " + ex.getMessage());
                             }
                         });
                         break;
@@ -344,15 +384,15 @@ public class CafeServerService {
                 }
             }
         } catch (SocketException ignored) {
-            // Client ngắt kết nối
+            // Client ngáº¯t káº¿t ná»‘i
         } catch (IOException e) {
-            log("Lỗi I/O client [" + sessionId + "]: " + e.getMessage());
+            log("Lá»—i I/O client [" + sessionId + "]: " + e.getMessage());
         } finally {
             if (session != null) {
                 int disconnectedTable = session.currentTable;
                 activeSessions.remove(sessionId);
                 unbindTableSubscriber(disconnectedTable, sessionId);
-                log("Thiết bị #" + sessionId + " (Bàn " + disconnectedTable + ") đã rời mạng.");
+                log("Thiáº¿t bá»‹ #" + sessionId + " (BÃ n " + disconnectedTable + ") Ä‘Ã£ rá»i máº¡ng.");
                 if (disconnectedTable != -1) {
                     dispatch(() -> {
                         for (BiConsumer<Integer, Boolean> l : tableConnectionListeners) l.accept(disconnectedTable, false);
@@ -383,9 +423,9 @@ public class CafeServerService {
         Order order = activeOrders.get(orderId);
         if (order != null) {
             order.setStatus(newStatus);
-            log("Cập nhật Đơn #" + orderId + " (Bàn " + order.getTable() + ") -> " + MessageProtocol.translateStatus(newStatus));
+            log("Cáº­p nháº­t ÄÆ¡n #" + orderId + " (BÃ n " + order.getTable() + ") -> " + MessageProtocol.translateStatus(newStatus));
 
-            // Bắn tín hiệu về tất cả Client đang theo dõi bàn đó
+            // Báº¯n tÃ­n hiá»‡u vá» táº¥t cáº£ Client Ä‘ang theo dÃµi bÃ n Ä‘Ã³
             MessageProtocol.OrderStatusUpdateMessage updateMsg = new MessageProtocol.OrderStatusUpdateMessage(orderId, order.getTable(), newStatus);
             String updateJson = MessageProtocol.toJson(updateMsg);
 
@@ -395,22 +435,22 @@ public class CafeServerService {
                     ClientSession s = activeSessions.get(sid);
                     if (s != null) s.send(updateJson);
                 }
-                log("Đã thông báo trạng thái mới về Bàn " + order.getTable());
+                log("ÄÃ£ thÃ´ng bÃ¡o tráº¡ng thÃ¡i má»›i vá» BÃ n " + order.getTable());
             }
 
-            // Kích hoạt callback UI
+            // KÃ­ch hoáº¡t callback UI
             dispatch(() -> {
                 for (BiConsumer<Integer, String> l : orderStatusChangedListeners) l.accept(orderId, newStatus);
             });
 
-            // Nếu Barista bấm Hoàn tất (DONE) -> Tự động kích hoạt trừ tồn kho nguyên vật liệu (BOM)
+            // Náº¿u Barista báº¥m HoÃ n táº¥t (DONE) -> Tá»± Ä‘á»™ng kÃ­ch hoáº¡t trá»« tá»“n kho nguyÃªn váº­t liá»‡u (BOM)
             if ("DONE".equalsIgnoreCase(newStatus)) {
                 dbExecutor.submit(() -> {
                     try {
                         DatabaseManager.updateOrderStatusInDb(orderId, "DONE");
                         DatabaseManager.deductStockForOrder(order);
                     } catch (Exception ex) {
-                        System.err.println("[SERVER] Lỗi trừ kho định lượng: " + ex.getMessage());
+                        System.err.println("[SERVER] Lá»—i trá»« kho Ä‘á»‹nh lÆ°á»£ng: " + ex.getMessage());
                     }
                 });
             } else {
@@ -452,13 +492,13 @@ public class CafeServerService {
         ReservationInfo info = new ReservationInfo(tableNumber, customerName, phone, time, guests, note);
         tableReservations.put(tableNumber, info);
         broadcastTableStatus(tableNumber, "RESERVED");
-        log("Đã đặt trước Bàn " + tableNumber + " cho khách " + customerName + " (" + time + ").");
+        log("ÄÃ£ Ä‘áº·t trÆ°á»›c BÃ n " + tableNumber + " cho khÃ¡ch " + customerName + " (" + time + ").");
     }
 
     public void cancelReservation(int tableNumber) {
         tableReservations.remove(tableNumber);
         broadcastTableStatus(tableNumber, "EMPTY");
-        log("Đã hủy đặt trước Bàn " + tableNumber + " -> Trống.");
+        log("ÄÃ£ há»§y Ä‘áº·t trÆ°á»›c BÃ n " + tableNumber + " -> Trá»‘ng.");
     }
 
     public java.util.List<Order> getOrdersForTable(int tableNumber) {
@@ -529,12 +569,12 @@ public class CafeServerService {
             tableReservations.put(toTable, new ReservationInfo(toTable, res.customerName, res.phone, res.reservationTime, res.guestCount, res.note));
             broadcastTableStatus(fromTable, "EMPTY");
             broadcastTableStatus(toTable, "RESERVED");
-            log("Đã chuyển lịch đặt bàn từ Bàn " + fromTable + " sang Bàn " + toTable + ".");
+            log("ÄÃ£ chuyá»ƒn lá»‹ch Ä‘áº·t bÃ n tá»« BÃ n " + fromTable + " sang BÃ n " + toTable + ".");
             return true;
         }
         broadcastTableStatus(fromTable, "EMPTY");
         broadcastTableStatus(toTable, "OCCUPIED");
-        log("Đã chuyển toàn bộ đơn từ Bàn " + fromTable + " sang Bàn " + toTable + ".");
+        log("ÄÃ£ chuyá»ƒn toÃ n bá»™ Ä‘Æ¡n tá»« BÃ n " + fromTable + " sang BÃ n " + toTable + ".");
         return true;
     }
 
@@ -572,7 +612,7 @@ public class CafeServerService {
 
         broadcastTableStatus(sourceTable, "EMPTY");
         broadcastTableStatus(targetTable, "OCCUPIED");
-        log("Đã gộp hóa đơn Bàn " + sourceTable + " vào Bàn " + targetTable + ".");
+        log("ÄÃ£ gá»™p hÃ³a Ä‘Æ¡n BÃ n " + sourceTable + " vÃ o BÃ n " + targetTable + ".");
         return true;
     }
 
@@ -593,7 +633,7 @@ public class CafeServerService {
         }
         tableReservations.remove(tableNumber);
         broadcastTableStatus(tableNumber, "EMPTY");
-        log("Đã thanh toán & giải phóng Bàn " + tableNumber + " -> Trống.");
+        log("ÄÃ£ thanh toÃ¡n & giáº£i phÃ³ng BÃ n " + tableNumber + " -> Trá»‘ng.");
         return true;
     }
 
@@ -609,7 +649,7 @@ public class CafeServerService {
         if (tbl > 0 && getOrdersForTable(tbl).isEmpty()) {
             broadcastTableStatus(tbl, "EMPTY");
         }
-        log("Đã hủy Đơn #" + orderId + (tbl > 0 ? " (Bàn " + tbl + ")" : "") + ".");
+        log("ÄÃ£ há»§y ÄÆ¡n #" + orderId + (tbl > 0 ? " (BÃ n " + tbl + ")" : "") + ".");
         return true;
     }
 
@@ -622,7 +662,59 @@ public class CafeServerService {
         for (Map.Entry<Integer, String> entry : tableStatuses.entrySet()) {
             broadcastTableStatus(entry.getKey(), entry.getValue());
         }
-        log("Đã khôi phục dữ liệu mẫu (Seed Data) toàn hệ thống.");
+        log("ÄÃ£ khÃ´i phá»¥c dá»¯ liá»‡u máº«u (Seed Data) toÃ n há»‡ thá»‘ng.");
+    }
+
+    public static void validateOrderIntegrity(MessageProtocol.NewOrderMessage orderMsg) { validateAndSanitizeOrder(orderMsg); }
+    public static void validateAndSanitizeOrder(MessageProtocol.NewOrderMessage orderMsg) {
+        if (orderMsg == null || orderMsg.items == null) return;
+        List<cafe.models.MenuItem> catalog = cafe.models.MenuRepository.getAllItems();
+        Map<Integer, cafe.models.MenuItem> catalogMap = new HashMap<>();
+        Map<String, cafe.models.MenuItem> nameMap = new HashMap<>();
+        for (cafe.models.MenuItem mi : catalog) {
+            catalogMap.put(mi.getId(), mi);
+            nameMap.put(mi.getName().toLowerCase().trim(), mi);
+        }
+
+        double calculatedSubtotal = 0.0;
+        for (cafe.models.OrderItem item : orderMsg.items) {
+            if (item == null) continue;
+            if (item.getQty() <= 0) {
+                item.setQty(1);
+            }
+            cafe.models.MenuItem matched = null;
+            if (item.getProductId() > 0) {
+                matched = catalogMap.get(item.getProductId());
+            }
+            if (matched == null && item.getName() != null) {
+                matched = nameMap.get(item.getName().toLowerCase().trim());
+            }
+
+            if (matched != null) {
+                item.setProductId(matched.getId());
+                item.setBasePrice(matched.getPrice());
+                if ("S".equalsIgnoreCase(item.getSizeCode())) {
+                    item.setSizeDelta(-5000);
+                } else if ("L".equalsIgnoreCase(item.getSizeCode())) {
+                    item.setSizeDelta(7000);
+                } else {
+                    item.setSizeDelta(0);
+                }
+                item.recalculateUnitPrice();
+            }
+            calculatedSubtotal += item.getSubtotal();
+        }
+
+        if (orderMsg.voucherCode != null && !orderMsg.voucherCode.trim().isEmpty()) {
+            cafe.models.Voucher v = cafe.models.MenuRepository.getVoucher(orderMsg.voucherCode.trim());
+            if (v != null && calculatedSubtotal >= v.getMinOrderAmount()) {
+                orderMsg.discountAmount = v.calculateDiscount(calculatedSubtotal);
+            } else {
+                orderMsg.discountAmount = 0.0;
+            }
+        } else {
+            orderMsg.discountAmount = 0.0;
+        }
     }
 
     public Map<Integer, Order> getActiveOrders() {
@@ -652,7 +744,7 @@ public class CafeServerService {
         } catch (IOException ignored) {}
         clientPool.shutdownNow();
         dbExecutor.shutdown();
-        log("Máy chủ đã dừng.");
+        log("MÃ¡y chá»§ Ä‘Ã£ dá»«ng.");
     }
 
     private void log(String message) {

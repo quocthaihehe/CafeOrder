@@ -58,6 +58,8 @@ public class CafeServerService {
     private final Map<Integer, String> tableStatuses = new ConcurrentHashMap<>();
     private final Map<Integer, ReservationInfo> tableReservations = new ConcurrentHashMap<>();
     private volatile boolean isRunning = false;
+    private final java.util.Queue<Order> dbRetryQueue = new java.util.concurrent.ConcurrentLinkedQueue<>();
+    public java.util.Queue<Order> getDbRetryQueue() { return dbRetryQueue; }
 
     public CafeServerService() {
         activeInstance = this;
@@ -82,9 +84,18 @@ public class CafeServerService {
                 if (o.getOrderId() >= orderIdCounter.get()) {
                     orderIdCounter.set(o.getOrderId());
                 }
+                if (o.getRequestId() != null && !o.getRequestId().trim().isEmpty()) {
+                    processedIdempotencyKeys.put(o.getRequestId().trim(), o.getOrderId());
+                }
+                if ("DONE".equalsIgnoreCase(o.getStatus()) || "PAID".equalsIgnoreCase(o.getStatus())) {
+                    o.setStockDeducted(true);
+                }
             }
             log("Đã khôi phục " + dbOrders.size() + " đơn hàng đang xử lý từ SQL Server.");
             return;
+        }
+        if (!DatabaseManager.isAvailable()) {
+            log("[SYSTEM NOTICE] SQL Server khong kha dung -> He thong dang hoat dong o che do IN-MEMORY FALLBACK (Du lieu chi luu tren RAM).");
         }
         long now = System.currentTimeMillis();
         // BÃ n 01 (Äang phá»¥c vá»¥ - 14 phÃºt trÆ°á»›c)
@@ -332,7 +343,8 @@ public class CafeServerService {
                                 if (existingId != null) {
                                     Order existingOrder = activeOrders.get(existingId);
                                     String curStatus = existingOrder != null ? existingOrder.getStatus() : "QUEUED";
-                                    MessageProtocol.OrderAckMessage dupAck = new MessageProtocol.OrderAckMessage(existingId, curStatus, activeOrders.size());
+                                    boolean isDb = DatabaseManager.isAvailable();
+                                    MessageProtocol.OrderAckMessage dupAck = new MessageProtocol.OrderAckMessage(existingId, curStatus, activeOrders.size(), isDb, isDb ? "DATABASE" : "IN_MEMORY");
                                     session.send(MessageProtocol.toJson(dupAck));
                                     log("Bỏ qua gói tin gửi lặp đồng thời (IdempotencyKey: " + idempKey + ") cho Đơn #" + existingId);
                                     break;
@@ -371,7 +383,9 @@ public class CafeServerService {
                         log("Nháº­n ÄÆ¡n hÃ ng #" + newOrderId + " (" + newOrder.getOrderTypeLabel() + ") - BÃ n " + orderMsg.table + " (" + newOrder.getTotalQuantity() + " mÃ³n).");
 
                         // 1. Pháº£n há»“i ORDER_ACK siÃªu tá»‘c (<1ms) ngay láº­p tá»©c vá» Kiosk
-                        MessageProtocol.OrderAckMessage ack = new MessageProtocol.OrderAckMessage(newOrderId, "QUEUED", activeOrders.size());
+                        boolean isDbReady = DatabaseManager.isAvailable();
+                        String storageMode = isDbReady ? "DATABASE" : "IN_MEMORY";
+                        MessageProtocol.OrderAckMessage ack = new MessageProtocol.OrderAckMessage(newOrderId, "QUEUED", activeOrders.size(), isDbReady, storageMode);
                         session.send(MessageProtocol.toJson(ack));
 
                         // 2. Báº¯n sá»± kiá»‡n tá»©c thÃ¬ lÃªn giao diá»‡n KDS Bar vÃ  Dashboard Admin
@@ -386,9 +400,16 @@ public class CafeServerService {
                         final Order orderToSave = newOrder;
                         dbExecutor.submit(() -> {
                             try {
-                                DatabaseManager.saveOrder(orderToSave);
+                                boolean saved = DatabaseManager.saveOrder(orderToSave);
+                                if (saved) {
+                                    log("[PERSISTENCE SUCCESS] Đơn hàng #" + orderToSave.getOrderId() + " đã lưu an toàn vào SQL Server.");
+                                } else {
+                                    log("[PERSISTENCE WARNING] Không thể lưu đơn #" + orderToSave.getOrderId() + " vào Database. Đã đưa vào In-Memory Retry Queue.");
+                                    dbRetryQueue.offer(orderToSave);
+                                }
                             } catch (Exception ex) {
-                                log("Lá»—i lÆ°u Ä‘Æ¡n vÃ o DB: " + ex.getMessage());
+                                log("[PERSISTENCE ERROR] Lỗi ngoại lệ khi lưu đơn #" + orderToSave.getOrderId() + ": " + ex.getMessage());
+                                dbRetryQueue.offer(orderToSave);
                             }
                         });
                         break;
@@ -708,6 +729,8 @@ public class CafeServerService {
             }
             if (item.getQty() <= 0) {
                 item.setQty(1);
+            } else if (item.getQty() > 99) {
+                item.setQty(99);
             }
             cafe.models.MenuItem matched = null;
             if (item.getProductId() > 0) {
@@ -731,6 +754,35 @@ public class CafeServerService {
                 } else {
                     item.setSizeDelta(0);
                 }
+
+                // Kiểm tra và chuẩn hóa giá Topping từ MenuRepository, loại bỏ Topping giả mạo hoặc giá sai
+                if (item.getToppings() != null && !item.getToppings().isEmpty()) {
+                    List<cafe.models.ToppingItem> validToppings = new java.util.ArrayList<>();
+                    List<cafe.models.ToppingItem> allowedToppings = cafe.models.MenuRepository.getToppingsForItem(matched);
+                    Map<Integer, cafe.models.ToppingItem> allowedMap = new HashMap<>();
+                    Map<String, cafe.models.ToppingItem> allowedNameMap = new HashMap<>();
+                    if (allowedToppings != null) {
+                        for (cafe.models.ToppingItem t : allowedToppings) {
+                            allowedMap.put(t.getToppingId(), t);
+                            allowedNameMap.put(t.getName().toLowerCase().trim(), t);
+                        }
+                    }
+                    for (cafe.models.ToppingItem clientTop : item.getToppings()) {
+                        if (clientTop == null) continue;
+                        cafe.models.ToppingItem genuineTop = null;
+                        if (clientTop.getToppingId() > 0) {
+                            genuineTop = allowedMap.get(clientTop.getToppingId());
+                        }
+                        if (genuineTop == null && clientTop.getName() != null) {
+                            genuineTop = allowedNameMap.get(clientTop.getName().toLowerCase().trim());
+                        }
+                        if (genuineTop != null) {
+                            validToppings.add(new cafe.models.ToppingItem(genuineTop.getToppingId(), genuineTop.getName(), genuineTop.getPrice()));
+                        }
+                    }
+                    item.setToppings(validToppings);
+                }
+
                 item.recalculateUnitPrice();
             } else {
                 it.remove();

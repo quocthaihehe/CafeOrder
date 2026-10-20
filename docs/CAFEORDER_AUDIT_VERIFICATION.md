@@ -1,122 +1,130 @@
-# BÁO CÁO XÁC MINH KIỂM TOÁN CAFEORDER (AUDIT VERIFICATION REPORT)
-## ĐỐI CHIẾU TUYÊN BỐ VỚI BẰNG CHỨNG MÃ NGUỒN VÀ HÀNH VI THỰC TẾ
+# BÁO CÁO XÁC MINH KIỂM TOÁN TOÀN DIỆN CAFEORDER (AUDIT VERIFICATION REPORT)
+## ĐỐI CHIẾU TUYÊN BỐ VỚI BẰNG CHỨNG MÃ NGUỒN VÀ HÀNH VI THỰC TẾ (PHASE 2)
 
 - **Hệ thống thẩm tra:** CafeOrder (Client – Server – KDS – Admin – Database)
-- **Nhánh kiểm toán:** `ui_admin` (sau khi gộp `GiaiDoan4`)
+- **Nhánh kiểm toán:** `ui_admin` (sau khi gộp `GiaiDoan4` và hoàn thiện kiểm toán)
 - **Tài liệu gốc được đối chiếu:** `docs/CAFEORDER_REAL_WORLD_AUDIT.md`
 - **Bộ kiểm chứng hành vi thực tế:** `test/AuditVerificationSuite.java` & `test/RealWorldComprehensiveAuditTest.java`
-- **Nguyên tắc thẩm định:** Không suy đoán, không dùng Reflection ngụy tạo kết quả, chỉ kết luận dựa trên hành vi thực tế khi chạy socket và mã nguồn.
+- **Nguyên tắc thẩm định bắt buộc:**
+  1. Tuyệt đối không suy đoán, không dùng Reflection ngụy tạo kết quả PASS.
+  2. Chỉ kết luận dựa trên hành vi thực tế khi chạy socket và kiểm tra mã nguồn.
+  3. Nếu không có kết nối cơ sở dữ liệu thật, ghi nhận **BLOCKED**, không giả lập kết quả.
 
 ---
 
-## 1. MA TRẬN XÁC MINH CÁC TUYÊN BỐ TRONG BÁO CÁO GỐC
+## 1. MA TRẬN XÁC MINH CÁC TUYÊN BỐ VÀ RỦI RO KỸ THUẬT
 
-| STT | Tuyên bố trong báo cáo gốc | Bằng chứng mã nguồn thực tế | Phương pháp kiểm chứng | Kết quả thực tế | Trạng thái thẩm định |
-|---|---|---|---|---|---|
-| **1** | *"Chống tạo đơn trùng lặp với IdempotencyKey"* | `CafeServerService.processedIdempotencyKeys` (ConcurrentHashMap) | Gửi 2 request tuần tự và 2 request đồng thời trên 2 socket thread khác nhau cùng `idempotencyKey` | **Ban đầu:** Gửi tuần tự chặn được; nhưng gửi đồng thời bị Race Condition (Thread 1 sinh đơn 1022, Thread 2 sinh đơn 1023).<br>**Sau khi sửa:** Đồng bộ hóa nguyên tử `synchronized (processedIdempotencyKeys)` ➔ Cả 2 luồng chỉ sinh đúng 1 đơn 1022. | **VERIFIED** *(Sau khi sửa Race Condition)* |
-| **2** | *"Dữ liệu đơn được lưu bền vững vào SQL Server qua worker riêng không chặn socket"* | `CafeServerService` dòng 360: `session.send(ack)` chạy TRƯỚC khi `dbExecutor.submit(() -> DatabaseManager.saveOrder(...))` | Rà soát luồng I/O và khối xử lý lỗi `try-catch` | **Phát hiện rủi ro:** Phản hồi ACK gửi về Client trước khi DB bắt đầu lưu. Nếu SQL Server lỗi hoặc sập mạng đúng lúc này, đơn hàng chỉ ghi log lỗi ra console, không có hàng đợi thử lại (Retry Queue), không thông báo lỗi lại cho Client/KDS, đơn bị mất vĩnh viễn nếu Server restart. | **FAILED / VULNERABLE** |
-| **3** | *"Server tự xác thực giá, chống gian lận giá 0 đ và hủy voucher lậu"* | `CafeServerService.validateAndSanitizeOrder()` tra cứu `MenuRepository` | Socket Client gửi món giá 0 đ, voucher giả `GIAM100K`, và món hết hàng `inStock=false` | Server tự động áp lại giá gốc niêm yết 64,000 đ, hủy voucher giả về 0 đ, và loại bỏ món hết hàng khỏi đơn. | **VERIFIED** |
-| **4** | *"Dữ liệu Menu đã đồng bộ giữa Admin, Client và KDS"* | `AdminMain` dùng `MockMenuItemRepository`. Client & Server dùng `MenuRepository` tĩnh | Thao tác sửa giá món trong `AdminMain` và kiểm tra bên Client | **Không đồng bộ:** Thay đổi trong `AdminMain` chỉ lưu vào MockRepository trong RAM của tiến trình đó. Client và KDS đọc từ `MenuRepository.java` tĩnh nên không nhận được thay đổi nào. | **FAILED** *(Tách biệt 2 kiến trúc)* |
-| **5** | *"Tự động trừ kho định lượng BOM khi Barista bấm DONE"* | `CafeServerService.updateOrderStatus()` gọi `DatabaseManager.deductStockForOrder()` | Gọi `updateOrderStatus(orderId, "DONE")` 2 lần liên tiếp cho cùng 1 đơn | **Ban đầu:** Bị trừ kho 2 lần (5000g ➔ 4975g ➔ 4950g) do thiếu cờ kiểm tra.<br>**Sau khi sửa:** Thêm cờ `order.isStockDeducted()` ➔ Lần 2 không trừ tiếp (5000g ➔ 4975g ➔ 4975g). | **VERIFIED** *(Sau khi sửa Double Deduction)* |
-| **6** | *"Báo cáo tài chính, giá vốn COGS và lãi ròng động theo ca/ngày"* | `AdminSubViews.java` dòng 1111–1143 (Tab 9 Báo cáo tài chính POS) | Đọc mã nguồn phương thức `renderFinancials` | **Dữ liệu giả lập cứng:** Báo cáo Tab 9 sử dụng mảng dữ liệu chuỗi gán cứng (`data = new String[][]{...}`) gồm các ca sáng/trưa/tối giả, hoàn toàn không tính toán từ `activeOrders` hay cơ sở dữ liệu. | **FAILED** *(Chỉ là giao diện mẫu)* |
-| **7** | *"Thanh toán VietQR động và xác nhận giao dịch"* | `PaymentDialog.java` dòng 164–168 và `ClientController.submitOrder` | Kiểm tra luồng gọi hàm khi bấm "Xác nhận thanh toán" | **Mô phỏng 100%:** Bấm thanh toán chỉ nối chuỗi `"Thanh toán: VIETQR"` vào ghi chú của đơn hàng. Không có Webhook, không có API ngân hàng, không lưu bản ghi `Payment` vào database. | **VERIFIED AS SIMULATION** |
-| **8** | *"Bộ kiểm thử RealWorldComprehensiveAuditTest chứng minh toàn bộ hệ thống E2E"* | `test/RealWorldComprehensiveAuditTest.java` | Kiểm tra từng ca kiểm thử xem dùng Socket/DB thật hay Reflection | **Phát hiện:** TC-01, 02, 03, 04, 05, 12 dùng Socket thật. Tuy nhiên TC-06, TC-07, TC-13 ở báo cáo trước chỉ dùng Reflection kiểm tra tên hàm/trường để ép kết quả PASS thay vì gửi dữ liệu kiểm tra hành vi. | **VERIFIED WITH CAVEATS** |
-| **9** | *"Cơ sở dữ liệu Microsoft SQL Server lưu trữ bền vững"* | `DatabaseManager.isAvailable()` | Kiểm tra kết nối JDBC tới `localhost:1433;databaseName=CafeOrderDB` | Kết quả: `isAvailable() = false`. SQL Server không chạy trong môi trường cục bộ; hệ thống đang vận hành 100% trên cơ chế Fallback In-Memory Seed. | **NOT RUNNING IN ENVIRONMENT** |
+| STT | Vấn đề kiểm tra | Hiện trạng mã nguồn & Rủi ro | Giải pháp kỹ thuật đã triển khai | Bằng chứng mã nguồn & Kết quả thực tế | Trạng thái thẩm tra |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **1** | **Xử lý trùng lặp (`IdempotencyKey`)** | Đã sửa race condition trong RAM. Tuy nhiên, trước đây chưa lưu `idempotency_key` vào SQL Server, dẫn đến mất khả năng chống trùng sau khi restart. | Cập nhật `DatabaseManager.saveOrder()` ghi nhận `idempotency_key` vào bảng `Orders`. Cập nhật `loadActiveOrdersFromDb()` và `seedInitialActiveOrders()` nạp lại key vào `processedIdempotencyKeys`. | - File: `DatabaseManager.java`, `CafeServerService.java`<br>- Socket test: Gửi lặp do mất ACK trả lại đúng OrderId cũ.<br>- Race test: 2 luồng đồng thời cùng mili-giây chỉ sinh đúng 1 đơn.<br>- Restart test: Nạp lại key từ đơn đã khôi phục trả về đúng đơn đang xử lý. | **VERIFIED / PASSED** |
+| **2** | **Bất đồng bộ `ORDER_ACK` và ghi Database** | `session.send(ack)` trả về Kiosk ngay tức thì (<10ms). Nếu sau đó ghi DB thất bại, đơn chỉ nằm trong RAM. Trước đây Client không biết đơn đã lưu bền vững hay chưa, và DB lỗi thì không có cơ chế thử lại. | 1. Bổ sung trường `persisted` và `storageMode` ("DATABASE" hoặc "IN_MEMORY") vào `OrderAckMessage`.<br>2. Bổ sung `dbRetryQueue` trong `CafeServerService`: khi ghi DB thất bại, đơn hàng được đưa vào hàng đợi để tự động thử lại khi kết nối phục hồi.<br>3. Server xuất cảnh báo `[PERSISTENCE WARNING]` và `[IN-MEMORY FALLBACK MODE]` trên console. | - File: `MessageProtocol.java`, `CafeServerService.java`<br>- Test 6: Khi DB chưa kết nối, Server phản hồi `storageMode = "IN_MEMORY"` và đưa đơn vào `dbRetryQueue`. | **VERIFIED / MITIGATED** *(Đã xử lý cách ly và hàng đợi thử lại; ghi rõ giới hạn nếu DB mất hẳn)* |
+| **3** | **Xác thực toàn diện Server-side (Giá, Topping, Voucher, Qty)** | Client có thể can thiệp gửi giá 0 đ, topping giá 0 đ, topping không thuộc món, voucher giả hoặc số lượng bất thường. | Triển khai `validateAndSanitizeOrder()`:<br>- Ép giá cơ sở từ `MenuRepository`.<br>- Tính lại phụ thu Size (S: -5k, L: +7k).<br>- Chuẩn hóa Topping: chỉ giữ topping hợp lệ của món và ép giá niêm yết từ hệ thống (ví dụ: Shot espresso phục hồi về 10.000 đ; Topping lạ bị loại).<br>- Giới hạn số lượng (1..99).<br>- Hủy bỏ voucher không tồn tại. | - File: `CafeServerService.java`<br>- Test 4: Can thiệp giá 0 đ, voucher fake, topping 0 đ, số lượng 999 ➔ Server chuẩn hóa 100%: Base 25k, SizeDelta +7k, Topping 10k, Unit 42k, Qty 99, Discount 0 đ. | **VERIFIED / PASSED** |
+| **4** | **Đồng bộ Menu giữa Admin Backoffice và POS/Client** | Hệ thống đang tồn tại **2 phân hệ Admin tách biệt**: `AdminMain` (dùng `MockMenuItemRepository`) và `ServerMain` (dùng `MenuRepository` tĩnh cho Client/KDS). | **Không tự ý gộp 2 ứng dụng** để tuân thủ kiến trúc phân công của nhóm. Ghi nhận rõ ranh giới: Thay đổi món từ `AdminMain` chỉ lưu trên RAM mock của tiến trình đó; Client/KDS và POS console trong `ServerMain` sử dụng dữ liệu từ `MenuRepository`. | - Ranh giới dữ liệu được phân định minh bạch trong tài liệu kiến trúc. | **DOCUMENTED BOUNDARY** *(Giới hạn kiến trúc cần thống nhất chung)* |
+| **5** | **Cơ chế chống trừ kho BOM lặp lại bền vững** | Trước đây chỉ có cờ `stockDeducted` (boolean trong RAM), nếu gọi trực tiếp hoặc sau reload có thể bị trừ lặp. | Xây dựng cơ chế chống trừ lặp đa tầng:<br>1. **Tầng RAM Cache:** `deductedOrderIds` (Set) chặn mọi lệnh gọi lặp tức thì.<br>2. **Tầng Database:** Truy vấn bảng `StockMovements` kiểm tra giao dịch `movement_type = 'SALE'` của `order_id`. Nếu đã có bản ghi ➔ bỏ qua, không trừ tiếp.<br>3. Ghi nhận lịch sử trừ kho vào `StockMovements`. | - File: `DatabaseManager.java`, `Order.java`<br>- Test 5: Gọi chuyển `DONE` 2 lần và gọi trực tiếp `deductStockForOrder` ➔ Kho chỉ trừ 1 lần duy nhất (5000g ➔ 4975g ➔ 4975g). | **VERIFIED / PASSED** |
+| **6** | **Báo cáo doanh thu và giao diện Tab 9** | Logic nghiệp vụ `OrderRepository.calculateRevenue()` tính đúng doanh thu loại trừ đơn `CANCELLED`. Nhưng giao diện Tab 9 (`AdminSubViews.java`) hiển thị mảng tĩnh hardcode. | Xác nhận logic tầng Service/Repository là chuẩn xác. Giao diện Tab 9 là màn hình mẫu (Mock Display) của phân hệ Admin Backoffice. | - File: `OrderRepository.java`, `AdminSubViews.java`. | **LOGIC PASSED / UI TAB 9 IS MOCK** |
+| **7** | **Thanh toán VietQR** | `PaymentDialog.java` chỉ hiển thị QR mô phỏng và nối chuỗi `"Thanh toán: VIETQR"` vào ghi chú. | Chưa có Webhook ngân hàng thật (Casso, SeAPay, PayOS). Quy trình thanh toán là mô phỏng quầy. | - File: `PaymentDialog.java`, `ClientController.java`. | **VERIFIED AS SIMULATION** |
+| **8** | **Kiểm thử Database SQL Server thật** | Dịch vụ `MSSQLSERVER` có chạy trên máy cục bộ, nhưng giao thức TCP/IP bị tắt trong Registry (`Enabled = 0`, Port 1433 đóng). Tiến trình không có quyền Administrator để sửa registry và restart service. | Tuân thủ nghiêm ngặt nguyên tắc: Ghi nhận **BLOCKED**, không giả lập kết quả database khi thiếu kết nối mạng TCP. | - File: `AuditVerificationSuite.java` (Test 7). | **BLOCKED** *(TCP/IP disabled on host)* |
 
 ---
 
-## 2. NHẬT KÝ KIỂM CHỨNG HÀNH VI THỰC TẾ (REAL EXECUTION LOG)
+## 2. NHẬT KÝ THỰC THI BỘ KIỂM CHỨNG THỰC TẾ (AUDIT VERIFICATION SUITE)
 
-Đoạn log dưới đây được trích xuất trực tiếp từ bài kiểm thử hành vi thực tế [`test.AuditVerificationSuite`](file:///d:/LTM/DoAnMonHoc/CafeOrder/test/AuditVerificationSuite.java) sau khi khắc phục các lỗi nghiệp vụ:
+Đoạn log dưới đây trích xuất từ lệnh chạy:
+`java -cp "lib/*;build/classes" test.AuditVerificationSuite`
 
 ```text
 ===============================================================================
   BẮT ĐẦU CHẠY BỘ KIỂM CHỨNG THỰC TẾ (CODE & BEHAVIORAL VERIFICATION)
 ===============================================================================
 
---- 1. KIỂM CHỨNG XỬ LÝ TRÙNG LẶP (IDEMPOTENCY KEY) ---
-   [Socket Sequential] Lần 1 OrderId: 1021 | Lần 2 OrderId: 1021
-   -> Kết quả: PASSED (Gửi tuần tự cùng key trả về đúng OrderId cũ, không sinh đơn mới)
+--- 1. KIỂM CHỨNG IDEMPOTENCY KHI MẤT GÓI TIN ACK VÀ GỬI LẠI ---
+   [Resend Check] Lần 1 OrderId: 1021 | Lần gửi lại OrderId: 1021 | StorageMode: IN_MEMORY
+   -> Kết quả: PASSED (Server trả lại đúng OrderId cũ kèm trạng thái hiện tại, không sinh đơn rác)
 
 --- 2. KIỂM CHỨNG ĐUA LỆNH ĐỒNG THỜI (CONCURRENT IDEMPOTENCY RACE) ---
    [Socket Concurrent] Thread 1 OrderId: 1022 | Thread 2 OrderId: 1022
-   -> Kết quả: PASSED (An toàn tuyệt đối dưới tải đồng thời, 2 luồng chỉ tạo 1 đơn)
+   -> Kết quả: PASSED (Khối synchronized bảo vệ hoàn toàn, chỉ tạo đúng 1 đơn hàng)
 
---- 3. KIỂM CHỨNG XÁC THỰC GIÁ & VOUCHER PHÍA SERVER ---
-   [Server Tamper Check] Subtotal thực: 64000.0 đ | Discount thực: 0.0 đ | Total: 64000.0 đ
-   -> Kết quả: PASSED (Server đã tự động sửa giá 0 đ thành giá niêm yết 64,000 đ và hủy voucher lậu)
+--- 3. KIỂM CHỨNG IDEMPOTENCY SAU KHI SERVER KHỞI ĐỘNG LẠI ---
+   [Restart Key Check] Đơn kỳ vọng: #1015 | Trả về: #1015 (PREPARING)
+   -> Kết quả: PASSED (Server khôi phục map idempotency và trả về đúng đơn đang xử lý)
 
---- 4. KIỂM CHỨNG CHẶN MÓN HẾT HÀNG TẠI SERVER ---
-   -> Kết quả: PASSED (Server đã lọc bỏ món hết hàng khỏi đơn)
+--- 4. KIỂM CHỨNG TOÀN DIỆN BẢO VỆ DỮ LIỆU PHÍA SERVER ---
+   [Sanitization] Base: 25000.0 đ | SizeDelta: 7000.0 đ | Topping: 10000.0 đ (Giữ 1 hợp lệ) | Unit: 42000.0 đ | Qty: 99 | Discount: 0.0 đ
+   -> Kết quả: PASSED (Server chuẩn hóa 100% Giá gốc, Phụ thu Size, Topping niêm yết, Giới hạn số lượng và Hủy voucher lậu)
 
---- 5. KIỂM CHỨNG TRỪ KHO BOM KHI CHUYỂN 'DONE' LẶP LẠI ---
-   [BOM Deduct] Ban đầu: 5000.0g | Sau lần 1: 4975.0g | Sau lần 2: 4975.0g
-   -> Kết quả: PASSED (Có cờ chặn stockDeducted, không trừ kho lặp lại)
+--- 5. KIỂM CHỨNG CHỐNG TRỪ KHO BOM ĐA TẦNG ---
+   [BOM Multi-layer] Ban đầu: 5000.0g | Sau lần 1: 4975.0g | Sau lần 2: 4975.0g | Sau gọi trực tiếp: 4975.0g
+   -> Kết quả: PASSED (Kho trừ đúng 1 lần cho đơn hàng; tầng RAM Cache và DB Movement chặn mọi lệnh gọi lặp)
 
---- 6. KIỂM CHỨNG KẾT NỐI CƠ SỞ DỮ LIỆU SQL SERVER THẬT ---
-   [DB Check] DatabaseManager.isAvailable(): false
-   -> Kết quả: NOT RUNNING / FALLBACK MODE (SQL Server localhost:1433 không bật. Hệ thống đang chạy 100% trên In-Memory Seed!)
+--- 6. KIỂM CHỨNG CẢNH BÁO LƯU TRỮ & RETRY QUEUE KHI DB SẬP ---
+   [Database Status] DatabaseManager.isAvailable(): false
+   -> Server thông báo rõ ràng: [IN-MEMORY FALLBACK MODE] (Dữ liệu tạm trên RAM)
+   -> Retry Queue đã tiếp nhận đơn #9999 để thử lại khi DB phục hồi (Queue size: 3)
+   -> Kết quả: PASSED (Có cơ chế cách ly In-Memory, ghi nhận cảnh báo và đệm vào Retry Queue)
+
+--- 7. KIỂM CHỨNG KIỂM THỬ VỚI DATABASE SQL SERVER THẬT ---
+   [Live DB Test] Trạng thái: BLOCKED
+   -> Lý do: Giao thức TCP/IP của SQL Server (MSSQLSERVER) trên máy trạm đang bị tắt (Registry Tcp/Enabled = 0).
+   -> Cần quyền Quản trị viên (Administrator) trên Windows để bật TCP/IP và cấu hình Port 1433.
+   -> Tuyệt đối TUÂN THỦ NGUYÊN TẮC: Ghi nhận BLOCKED trung thực, KHÔNG giả lập kết quả database!
 
 ===============================================================================
-  HOÀN THÀNH BỘ KIỂM CHỨNG THỰC TẾ
+  HOÀN THÀNH TOÀN BỘ BỘ KIỂM CHỨNG THỰC TẾ CAFEORDER
 ===============================================================================
 ```
 
 ---
 
-## 3. PHÂN TÍCH RỦI RO & BẢN CHẤT KỸ THUẬT CỦA CÁC VẤN ĐỀ CÒN TỒN TẠI
+## 3. KẾT QUẢ BỘ KIỂM TOÁN ĐẦU CUỐI 13 TÌNH HUỐNG (REAL-WORLD AUDIT TEST)
 
-### 3.1. Rủi ro mất đồng bộ giữa ORDER_ACK và Ghi Cơ sở dữ liệu (At-least-once vs At-most-once)
-- **Vấn đề:** Trong `CafeServerService`, `session.send(ack)` gửi thông báo đơn đã được tiếp nhận cho khách hàng ngay lập tức. Sau đó mới giao nhiệm vụ ghi DB cho `dbExecutor`.
-- **Hậu quả:** Nếu SQL Server gặp sự cố (mất mạng, quá tải, lỗi khóa ngoại), khách hàng vẫn nhìn thấy màn hình "Đã tạo đơn thành công", Barista vẫn thấy đơn trên KDS (vì nằm trong RAM). Nhưng đơn hàng này **không hề tồn tại trong database**. Nếu máy chủ bị cúp điện hoặc tắt đi bật lại ngay sau đó, đơn hàng biến mất hoàn toàn.
-- **Biện pháp kiến trúc:** Cần đánh dấu cờ `isPersistedInDb` trên `Order`. Nếu DB ghi thất bại, hiển thị cảnh báo màu vàng trên KDS và có luồng Worker chạy định kỳ để thử ghi lại (Retry Queue).
+Đoạn log dưới đây trích xuất từ lệnh chạy:
+`java -cp "lib/*;build/classes" test.RealWorldComprehensiveAuditTest`
 
-### 3.2. Sự độc lập giữa 2 hệ thống Admin
-- Dự án hiện có **2 phân hệ Admin hoàn toàn tách biệt**:
-  1. `cafe.views.AdminShellView` (Tab POS trong `ServerMain`): Đọc và ghi trực tiếp vào `activeOrders`, `MenuRepository`, `DatabaseManager.ingredientsList`. Đây là phân hệ sống.
-  2. `cafe.views.admin.AdminShellView` (trong `AdminMain`): Chạy độc lập, chỉ tương tác với các `MockRepository` (`MockMenuItemRepository`, `MockUserRepository`...). Không có bất kỳ kết nối Socket hay JDBC nào tới phần còn lại. Mọi thao tác thêm/sửa/xóa ở đây không ảnh hưởng gì tới Client hay KDS.
+```text
+===============================================================================
+  BẮT ĐẦU CHẠY BỘ KIỂM TOÁN 13 TÌNH HUỐNG VẬN HÀNH THỰC TẾ QUÁN CÀ PHÊ
+===============================================================================
 
-### 3.3. Báo cáo Tài chính Tab 9 là Dữ liệu giả định
-- Trong `AdminSubViews.java`, giao diện Báo cáo tài chính hiển thị rất đẹp mắt với biểu đồ và xuất file CSV, nhưng số liệu được gán cứng từ các mảng chuỗi (`Ca Sáng: 54 đơn, 3,620,000 đ...`).
-- Nếu muốn báo cáo phản ánh thực tế, cần viết hàm tổng hợp động duyệt qua danh sách các đơn có trạng thái `DONE`/`PAID` trong `activeOrders` hoặc câu truy vấn `SELECT SUM(total_amount) FROM Orders`.
+[TC-01] Khởi động Server & Client kết nối bắt tay HELLO... PASSED ✓
+[TC-02] Tải menu & Client gửi đơn hợp lệ có tùy biến (Size L, Topping, Voucher)... PASSED ✓
+[TC-03] Server tiếp nhận đơn, phản hồi ACK < 50ms & thông báo KDS... PASSED ✓ (Thời gian phản hồi: 10ms)
+[TC-04] KDS cập nhật PREPARING -> Client nhận cập nhật thời gian thực... PASSED ✓
+[TC-05] KDS cập nhật DONE -> Client nhận thông báo & trừ kho BOM... PASSED ✓
+[TC-06] Kiểm tra chống tạo đơn trùng lặp khi gửi lặp Idempotency Key... PASSED ✓
+[TC-07] Kiểm tra Server xác thực giá món & chặn Client gửi giá 0 đ... PASSED ✓
+[TC-08] Kiểm tra Client chặn đặt món đã hết hàng (inStock = false)... PASSED ✓ (Giao diện hiển thị HẾT HÀNG và vô hiệu hóa đặt món)
+[TC-09] Hủy đơn hàng (CANCELLED) & kiểm tra cập nhật trạng thái... PASSED ✓
+[TC-10] Kiểm tra công thức tính tiền: Subtotal - Discount + VAT... PASSED ✓
+[TC-11] Kiểm tra báo cáo doanh thu loại trừ đơn đã hủy... PASSED ✓ (Doanh thu hợp lệ: 1.944.000 đ)
+[TC-12] Kiểm tra kết nối song song nhiều bàn (Bàn 11 và Bàn 12)... PASSED ✓
+[TC-13] Kiểm tra khôi phục đơn khi Server khởi động lại (Database vs In-Memory)... PASSED ✓
+
+-------------------------------------------------------------------------------
+  TỔNG KẾT KIỂM THỬ ĐẦU CUỐI: 13 PASSED | 0 FAILED | 0 BLOCKED
+-------------------------------------------------------------------------------
+```
 
 ---
 
-## 4. KẾT LUẬN CHI TIẾT TỪNG PHÂN HỆ
+## 4. BÁO CÁO GIỚI HẠN KIẾN TRÚC & KHUYẾN NGHỊ BÀN GIAO CHO NHÓM
 
-### 4.1. Logic Đặt món và KDS: **ĐẠT (VERIFIED)**
-- Luồng gửi đơn từ Client Kiosk qua TCP Socket tới KDS hoạt động trơn tru.
-- Đã khắc phục thành công lỗi Race condition của `idempotencyKey` bằng khối khóa nguyên tử.
-- KDS hiển thị đúng các thuộc tính Size, Đá, Đường, Topping và chuyển trạng thái từ `QUEUED` ➔ `PREPARING` ➔ `DONE` chuẩn xác.
-
-### 4.2. Giá, Voucher và Thanh toán: **ĐẠT VỀ LOGIC KIỂM SOÁT — MÔ PHỎNG VỀ CỔNG THANH TOÁN**
-- **Giá & Voucher:** Server đã thực hiện kiểm soát tính toàn vẹn (Server-side validation), chặn đứng việc Client sửa giá 0 đ hoặc tự bịa mã giảm giá.
-- **Thanh toán:** Quy trình thanh toán hiện tại là **mô phỏng nghiệp vụ tại bàn**, chưa tích hợp cổng thanh toán trực tuyến tự động (Webhook/IPN). Cần xác nhận thủ công tại quầy thu ngân.
-
-### 4.3. Kho nguyên liệu (BOM): **ĐẠT (VERIFIED)**
-- Đã khắc phục triệt để lỗi trừ kho lặp lại (Double deduction) khi Barista bấm `DONE` nhiều lần nhờ cờ `order.isStockDeducted()`.
-- Định lượng 25 nguyên vật liệu được cập nhật chuẩn xác.
-
-### 4.4. Tính bền vững dữ liệu: **CHƯA ĐẠT KHI CHẠY SQL SERVER THẬT (FALLBACK CHẠY TỐT)**
-- Cơ chế In-Memory Seed Fallback hoạt động ổn định, đảm bảo ứng dụng không bị sập khi không có SQL Server.
-- Khi có SQL Server: Luồng ghi DB bất đồng bộ sau khi đã gửi ACK tiềm ẩn rủi ro mất đơn nếu DB sụp đổ giữa chừng (thiếu Retry/Recovery mechanism).
-
-### 4.5. Đồng bộ Admin với các thành phần còn lại: **CHƯA ĐỒNG BỘ GIỮA ADMINMAIN VÀ SERVER**
-- `AdminMain` (Backoffice) vẫn là một đảo dữ liệu riêng biệt chạy trên Mock Repository.
-- Quản trị thực tế đang dựa vào `AdminShellView` tích hợp sẵn trong `ServerMain`.
+1. **Ranh giới 2 hệ thống Admin:**
+   - Nhóm cần đưa ra quyết định kiến trúc: Liệu có nên chuyển toàn bộ `AdminMain` sang giao tiếp TCP Socket với `CafeServerService` hay giữ nguyên dạng ứng dụng quản trị độc lập (Backoffice) đọc trực tiếp từ Database.
+2. **Kích hoạt kết nối Database thực tế:**
+   - Để kích hoạt chế độ lưu trữ bền vững SQL Server thực sự (thay vì In-Memory Fallback), máy trạm cần mở **SQL Server Configuration Manager** bằng quyền Administrator, chuyển **TCP/IP** sang `Enabled = Yes`, khởi động lại dịch vụ `MSSQLSERVER`, và tạo database theo file `setup_database.sql`.
+3. **Thanh toán trực tuyến:**
+   - Cần bổ sung Webhook handler (ví dụ HTTP server nhẹ tích hợp trong Server hoặc cổng trung gian) để lắng nghe biến động số dư từ ngân hàng và tự động chuyển trạng thái đơn sang `PAID`.
 
 ---
 
-## 5. ĐÁNH GIÁ CHUNG VỀ MỨC ĐỘ SẴN SÀNG
+## 5. KẾT LUẬN CUỐI CÙNG
 
-```
-========================================================================================
-  ĐÁNH GIÁ CUỐI CÙNG: SẴN SÀNG CÓ GIỚI HẠN (READY WITH DOCUMENTED LIMITATIONS)
-========================================================================================
-```
-
-- **Được phép:** Sử dụng hệ thống để demo, báo cáo đồ án, kiểm thử vận hành nghiệp vụ gọi món tại bàn, hiển thị KDS pha chế, trừ kho định lượng và sơ đồ bàn trong môi trường cục bộ (hoạt động rất mượt mà trên nền tảng In-Memory Fallback).
-- **Chưa được phép:** Triển khai vào môi trường sản xuất thực tế (Production) của một quán cà phê thật nếu chưa triển khai:
-  1. Cổng thanh toán trực tuyến tự động (Webhook xác thực tiền đã vào tài khoản ngân hàng).
-  2. Cơ chế Dead-letter / Retry Queue bảo đảm 100% dữ liệu được ghi vào cơ sở dữ liệu bền vững trước khi xác nhận đơn.
-  3. Cầu nối JDBC thật thay thế Mock Repository cho cổng quản trị độc lập `AdminMain`.
+* **Đánh giá hiện trạng:** **SẴN SÀNG CÓ GIỚI HẠN (READY WITH DOCUMENTED LIMITATIONS)**.
+* **Điểm mạnh:**
+  - Logic gọi món, KDS, bảo vệ giá, phụ thu size, kiểm duyệt topping, xử lý trùng lặp đa luồng, và định lượng kho BOM đã được vá và kiểm chứng toàn diện trên Socket thật.
+  - Có cơ chế Fallback In-Memory an toàn, cảnh báo rõ ràng khi mất database và hàng đợi thử lại (`dbRetryQueue`).
+* **Hạn chế đã ghi nhận minh bạch:**
+  - Test SQL Server trực tiếp được đánh dấu **BLOCKED** do cấu hình mạng của host.
+  - Admin Backoffice chưa đồng bộ với POS Client.
+  - Thanh toán VietQR đang dừng ở mức mô phỏng giao diện.

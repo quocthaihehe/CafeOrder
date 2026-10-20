@@ -65,11 +65,19 @@ public class MessageProtocol {
         public int orderId;
         public String status;
         public int position;
+        public boolean persisted = false;
+        public String storageMode = "IN_MEMORY"; // "DATABASE" hoac "IN_MEMORY"
 
         public OrderAckMessage(int orderId, String status, int position) {
+            this(orderId, status, position, false, "IN_MEMORY");
+        }
+
+        public OrderAckMessage(int orderId, String status, int position, boolean persisted, String storageMode) {
             this.orderId = orderId;
             this.status = status;
             this.position = position;
+            this.persisted = persisted;
+            this.storageMode = storageMode != null ? storageMode : "IN_MEMORY";
         }
     }
 

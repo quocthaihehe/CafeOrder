@@ -366,6 +366,9 @@ public class DatabaseManager {
         return storedHash.equals(inputPassword);
     }
 
+    // Cache cac don da hoan tat tru kho dinh luong de chong tru trung lap tren RAM
+    private static final Set<Integer> deductedOrderIds = Collections.synchronizedSet(new HashSet<>());
+
     // =========================================================================
     // 3. LÆ¯U ÄÆ N HÃ€NG VÃ€O DATABASE (SAVE ORDER TRANSACTION)
     // =========================================================================
@@ -374,8 +377,8 @@ public class DatabaseManager {
             return false;
         }
 
-        String sqlOrder = "INSERT INTO Orders (table_id, order_type, status, total_amount, discount_amount, vat_amount, voucher_id, note) " +
-                          "VALUES (?, ?, ?, ?, ?, ?, NULL, ?);";
+        String sqlOrder = "INSERT INTO Orders (table_id, order_type, status, total_amount, discount_amount, vat_amount, voucher_id, note, idempotency_key) " +
+                          "VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?);";
         String sqlDetail = "INSERT INTO OrderDetails (order_id, product_id, quantity, unit_price, size_code, sugar_percent, ice_percent, temperature, customer_note) " +
                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);";
         String sqlTopping = "INSERT INTO OrderDetailToppings (detail_id, topping_id, quantity, unit_price) VALUES (?, ?, ?, ?);";
@@ -393,6 +396,7 @@ public class DatabaseManager {
                 ps.setDouble(5, order.getDiscountAmount());
                 ps.setDouble(6, order.getVatAmount());
                 ps.setString(7, order.getNote());
+                ps.setString(8, order.getRequestId());
                 ps.executeUpdate();
 
                 try (ResultSet rs = ps.getGeneratedKeys()) {
@@ -467,6 +471,12 @@ public class DatabaseManager {
         if (order == null || order.getItems() == null || order.getItems().isEmpty()) {
             return false;
         }
+        // Chống trừ trùng lặp cấp độ RAM
+        if (deductedOrderIds.contains(order.getOrderId())) {
+            return true;
+        }
+        deductedOrderIds.add(order.getOrderId());
+
 
         // 1. Trá»« tá»“n kho trá»±c tiáº¿p trÃªn danh sÃ¡ch 25 nguyÃªn váº­t liá»‡u In-Memory Ä‘á»ƒ UI Tab 6 cáº­p nháº­t tá»©c thÃ¬
         for (OrderItem item : order.getItems()) {
@@ -488,6 +498,18 @@ public class DatabaseManager {
         if (!isAvailable()) {
             return true;
         }
+
+        // Chống trừ kho lặp lại cấp độ Database: kiểm tra xem đơn hàng đã từng trừ kho chưa
+        String sqlCheckMovement = "SELECT COUNT(*) FROM StockMovements WHERE order_id = ? AND movement_type = 'SALE';";
+        try (Connection connCheck = getConnection();
+             PreparedStatement psCheck = connCheck.prepareStatement(sqlCheckMovement)) {
+            psCheck.setInt(1, order.getOrderId());
+            try (ResultSet rsCheck = psCheck.executeQuery()) {
+                if (rsCheck.next() && rsCheck.getInt(1) > 0) {
+                    return true;
+                }
+            }
+        } catch (Exception ignored) {}
 
         String sqlFindRecipe = "SELECT r.ingredient_id, r.quantity_needed, i.name, i.unit, i.current_stock, i.min_alert_threshold " +
                                "FROM Recipes r " +
@@ -514,6 +536,13 @@ public class DatabaseManager {
                                 psDeduct.setDouble(1, totalConsumed);
                                 psDeduct.setInt(2, ingredientId);
                                 psDeduct.executeUpdate();
+                                String sqlRecordMovement = "INSERT INTO StockMovements (ingredient_id, movement_type, quantity, order_id) VALUES (?, 'SALE', ?, ?);";
+                                try (PreparedStatement psMove = conn.prepareStatement(sqlRecordMovement)) {
+                                    psMove.setInt(1, ingredientId);
+                                    psMove.setDouble(2, totalConsumed);
+                                    psMove.setInt(3, order.getOrderId());
+                                    psMove.executeUpdate();
+                                }
                             }
                         }
                     }
@@ -566,7 +595,7 @@ public class DatabaseManager {
         List<Order> list = new ArrayList<>();
         if (!isAvailable()) return list;
 
-        String sqlOrders = "SELECT order_id, table_id, order_type, status, total_amount, discount_amount, vat_amount, note, created_at " +
+        String sqlOrders = "SELECT order_id, table_id, order_type, status, total_amount, discount_amount, vat_amount, note, created_at, idempotency_key " +
                            "FROM Orders WHERE status IN ('QUEUED', 'PREPARING') ORDER BY order_id ASC;";
         String sqlDetails = "SELECT product_id, quantity, unit_price, size_code, sugar_percent, ice_percent, temperature, customer_note " +
                             "FROM OrderDetails WHERE order_id = ?;";
@@ -612,7 +641,8 @@ public class DatabaseManager {
                     }
                 }
 
-                Order o = new Order(oId, tbl, oType, items, status, discount, vat, null, note, ts);
+                String idempKey = rs.getString("idempotency_key");
+                Order o = new Order(oId, tbl, oType, items, status, discount, vat, null, note, ts, "Bàn " + tbl, idempKey);
                 list.add(o);
             }
         } catch (Exception e) {

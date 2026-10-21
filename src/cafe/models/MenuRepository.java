@@ -144,17 +144,17 @@ public class MenuRepository {
         // 1. CÀ PHÊ (16 món ban đầu + món mới)
         menuItems.add(new MenuItem(1, "Cà phê Đen Phin", 25000, "Cà phê", "Robusta Đắk Lắk rang mộc đậm đà, hậu vị đắng thanh dịu nhẹ.", "☕", true, true, false, false, 4));
         menuItems.add(new MenuItem(2, "Cà phê Sữa Đá", 29000, "Cà phê", "Cà phê phin truyền thống phối hợp sữa đặc béo ngậy hảo hạng.", "☕", true, true, true, false, 4));
-        menuItems.add(new MenuItem(3, "Bạc Xỉu Kem Béo", 32000, "Cà phê", "Ba tầng nghệ thuật với sữa tươi béo thơm và chút nhấn cà phê.", "🥛", true, true, true, false, 5));
-        menuItems.add(new MenuItem(4, "Cà phê Muối Cố Đô", 35000, "Cà phê", "Lớp kem muối mặn mòi sánh mịn phủ trên nền cà phê đậm đà.", "🧂", true, false, true, false, 5));
+        menuItems.add(new MenuItem(3, "Bạc Xỉu Kem Béo", 32000, "Cà phê", "Ba tầng nghệ thuật với sữa tươi béo thơm và chút nhấn cà phê.", "🥛", true, true, false, false, 5));
+        menuItems.add(new MenuItem(4, "Cà phê Muối Cố Đô", 35000, "Cà phê", "Lớp kem muối mặn mòi sánh mịn phủ trên nền cà phê đậm đà.", "🧂", true, false, false, false, 5));
         menuItems.add(new MenuItem(5, "Cold Brew Cam Vàng", 42000, "Cà phê", "Cà phê ủ lạnh 18h thơm nồng hoa quả kết hợp tép cam mọng nước.", "🍊", true, false, false, false, 3));
         menuItems.add(new MenuItem(6, "Caramel Macchiato", 45000, "Cà phê", "Espresso thơm lừng hòa quyện sữa nóng và sốt caramel óng ánh.", "🍮", true, true, false, false, 5));
         menuItems.add(new MenuItem(17, "Espresso", 30000, "Cà phê", "Một shot espresso nguyên chất, crema dày, vị đậm.", "☕", false, true, false, false, 3));
         menuItems.add(new MenuItem(18, "Americano", 35000, "Cà phê", "Espresso pha loãng với nước, êm và sạch vị.", "☕", true, true, false, false, 3));
-        menuItems.add(new MenuItem(19, "Latte", 42000, "Cà phê", "Espresso hòa sữa tươi đánh nóng, bề mặt foam mịn.", "☕", true, true, true, false, 5));
+        menuItems.add(new MenuItem(19, "Latte", 42000, "Cà phê", "Espresso hòa sữa tươi đánh nóng, bề mặt foam mịn.", "☕", true, true, false, false, 5));
         menuItems.add(new MenuItem(20, "Cappuccino", 42000, "Cà phê", "Tỉ lệ espresso, sữa, foam cân bằng, rắc bột cacao.", "☕", true, true, false, false, 5));
         menuItems.add(new MenuItem(21, "Mocha", 48000, "Cà phê", "Espresso, sốt chocolate và sữa tươi, phủ kem tươi.", "🍫", true, true, false, false, 5));
         menuItems.add(new MenuItem(22, "Flat White", 45000, "Cà phê", "Hai shot espresso với sữa microfoam, vị cà phê rõ.", "☕", true, true, false, false, 5));
-        menuItems.add(new MenuItem(23, "Cà phê Dừa", 45000, "Cà phê", "Cà phê đá xay cùng nước cốt dừa béo mát.", "🥥", true, false, true, false, 5));
+        menuItems.add(new MenuItem(23, "Cà phê Dừa", 45000, "Cà phê", "Cà phê đá xay cùng nước cốt dừa béo mát.", "🥥", true, false, false, false, 5));
         menuItems.add(new MenuItem(24, "Cà phê Trứng", 48000, "Cà phê", "Lớp kem trứng đánh bông trên nền cà phê phin.", "🥚", true, true, false, false, 6));
         menuItems.add(new MenuItem(25, "Cold Brew Truyền Thống", 40000, "Cà phê", "Cà phê ủ lạnh 18 giờ, ít chua, hậu vị ngọt.", "🧊", true, false, false, false, 2));
 
@@ -163,14 +163,14 @@ public class MenuRepository {
         menuItems.add(new MenuItem(8, "Trà Vải Hoa Hồng", 42000, "Trà & Trái cây", "Hương hoa hồng dịu mát phối hợp trái vải giòn tan thơm mát mùa hè.", "🌹", true, false, false, false, 4));
         menuItems.add(new MenuItem(9, "Trà Sen Vàng Kem Cheese", 45000, "Trà & Trái cây", "Hạt sen bùi thơm, trân châu ngọc trai và lớp kem cheese béo mặn.", "🪷", true, false, false, false, 5));
         menuItems.add(new MenuItem(10, "Trà Ô Long Mãng Cầu", 42000, "Trà & Trái cây", "Vị chua ngọt bùng nổ từ mãng cầu xiêm tươi cùng nền trà ô long thanh vị.", "🍹", true, false, false, false, 4));
-        menuItems.add(new MenuItem(26, "Trà Chanh Dây Nhiệt Đới", 39000, "Trà & Trái cây", "Trà lài thanh khiết hòa cùng cốt chanh dây vàng tươi chua ngọt sảng khoái.", "🍋", true, false, true, false, 4));
+        menuItems.add(new MenuItem(26, "Trà Chanh Dây Nhiệt Đới", 39000, "Trà & Trái cây", "Trà lài thanh khiết hòa cùng cốt chanh dây vàng tươi chua ngọt sảng khoái.", "🍋", true, false, false, false, 4));
         menuItems.add(new MenuItem(27, "Trà Tắc Xí Muội", 29000, "Trà & Trái cây", "Trà thanh, quất tươi và xí muội chua mặn nhẹ.", "🍊", true, false, false, false, 4));
         menuItems.add(new MenuItem(28, "Trà Ổi Hồng", 42000, "Trà & Trái cây", "Trà ô long thanh vị kết hợp nước ép ổi hồng thơm ngát và thạch giòn sần sật.", "🍐", true, false, false, true, 4));
         menuItems.add(new MenuItem(29, "Trà Hibiscus Dâu", 42000, "Trà & Trái cây", "Trà hoa atiso đỏ với dâu tươi, chua dịu, màu đẹp.", "🍓", true, false, false, true, 4));
         menuItems.add(new MenuItem(30, "Trà Xoài Nhiệt Đới", 42000, "Trà & Trái cây", "Trà xanh, xoài chín và hạt chia.", "🥭", true, false, false, true, 4));
 
         // 3. ĐÁ XAY & SINH TỐ
-        menuItems.add(new MenuItem(11, "Matcha Đá Xay Uji", 49000, "Đá xay & Sinh tố", "Bột trà xanh Uji Kyoto chuẩn Nhật Bản xay cùng sữa và kem tươi.", "🍵", true, false, false, false, 5));
+        menuItems.add(new MenuItem(11, "Matcha Đá Xay Uji", 49000, "Đá xay & Sinh tố", "Bột trà xanh Uji Kyoto chuẩn Nhật Bản xay cùng sữa và kem tươi.", "🍵", true, false, true, false, 5));
         menuItems.add(new MenuItem(12, "Cookie & Cream Đá Xay", 48000, "Đá xay & Sinh tố", "Oreo giòn rụm kết hợp sốt sôcôla Bỉ ngọt ngào và kem whipping bông tuyết.", "🍪", true, false, false, false, 5));
         menuItems.add(new MenuItem(13, "Sinh Tố Bơ Dừa Non", 45000, "Đá xay & Sinh tố", "Bơ sáp Đắk Lắk dẻo thơm hòa quyện nước cốt dừa béo bùi thanh mát.", "🥑", true, false, false, false, 5));
         menuItems.add(new MenuItem(31, "Chocolate Chip Đá Xay", 49000, "Đá xay & Sinh tố", "Chocolate đậm xay cùng chip giòn, phủ kem tươi.", "🍫", true, false, false, false, 5));
@@ -182,8 +182,8 @@ public class MenuRepository {
         // 4. TRÀ SỮA
         menuItems.add(new MenuItem(36, "Trà Sữa Truyền Thống", 35000, "Trà sữa", "Trà đen đậm vị, sữa béo, vị quen thuộc.", "🧋", true, true, true, false, 4));
         menuItems.add(new MenuItem(37, "Trà Sữa Thái Xanh", 38000, "Trà sữa", "Trà Thái xanh thơm, ngọt béo.", "🧋", true, false, false, false, 4));
-        menuItems.add(new MenuItem(38, "Hồng Trà Sữa", 38000, "Trà sữa", "Hồng trà thượng hạng ủ đậm hương vị kết hợp sữa tươi thanh béo.", "🧋", true, true, true, false, 4));
-        menuItems.add(new MenuItem(39, "Trà Sữa Ô Long Macchiato", 45000, "Trà sữa", "Trà ô long đậm vị phủ lớp kem béo mặn macchiato mềm mịn óng ả.", "🧋", true, true, true, false, 4));
+        menuItems.add(new MenuItem(38, "Hồng Trà Sữa", 38000, "Trà sữa", "Hồng trà thượng hạng ủ đậm hương vị kết hợp sữa tươi thanh béo.", "🧋", true, true, false, false, 4));
+        menuItems.add(new MenuItem(39, "Trà Sữa Ô Long Macchiato", 45000, "Trà sữa", "Trà ô long đậm vị phủ lớp kem béo mặn macchiato mềm mịn óng ả.", "🧋", true, true, false, false, 4));
         menuItems.add(new MenuItem(40, "Trà Sữa Kem Cheese", 45000, "Trà sữa", "Trà sữa truyền thống béo ngậy phối hợp lớp kem phô mai cheese béo mặn tuyệt hảo.", "🧀", true, true, false, true, 4));
         menuItems.add(new MenuItem(41, "Trà Sữa Matcha", 45000, "Trà sữa", "Matcha, sữa tươi và chút kem sữa.", "🍵", true, true, false, true, 4));
         menuItems.add(new MenuItem(42, "Trà Sữa Khoai Môn", 42000, "Trà sữa", "Khoai môn nghiền thơm bùi, trà sữa béo.", "🍠", true, false, false, true, 4));
@@ -208,25 +208,25 @@ public class MenuRepository {
         // 7. BÁNH NGỌT
         menuItems.add(new MenuItem(14, "Croissant Bơ Pháp", 32000, "Bánh ngọt", "Bánh sừng bò ngàn lớp nướng vàng giòn rụm, nồng nàn hương bơ Pháp.", "🥐", false, false, false, false, 2));
         menuItems.add(new MenuItem(15, "Tiramisu Cacao Ý", 38000, "Bánh ngọt", "Bánh bông lan cà phê phủ phô mai mascarpone mềm tan cùng bột cacao.", "🍰", false, false, false, false, 2));
-        menuItems.add(new MenuItem(16, "Cheesecake Nướng Basque", 45000, "Bánh ngọt", "Lớp mặt cháy caramel đặc trưng, lõi phô mai tan chảy béo ngậy.", "🧀", false, false, false, false, 2));
+        menuItems.add(new MenuItem(16, "Cheesecake Nướng Basque", 45000, "Bánh ngọt", "Lớp mặt cháy caramel đặc trưng, lõi phô mai tan chảy béo ngậy.", "🧀", false, false, true, false, 2));
         menuItems.add(new MenuItem(56, "Muffin Chocolate", 28000, "Bánh ngọt", "Muffin mềm, nhân chocolate chip.", "🧁", false, false, false, false, 2));
-        menuItems.add(new MenuItem(57, "Bông Lan Trứng Muối", 35000, "Bánh ngọt", "Bông lan mềm, sốt trứng muối và ruốc.", "🍰", false, false, true, false, 2));
+        menuItems.add(new MenuItem(57, "Bông Lan Trứng Muối", 35000, "Bánh ngọt", "Bông lan mềm, sốt trứng muối và ruốc.", "🍰", false, false, false, false, 2));
         menuItems.add(new MenuItem(58, "Bánh Flan Caramel", 25000, "Bánh ngọt", "Flan trứng mịn, caramel đắng nhẹ.", "🍮", false, false, false, false, 2));
         menuItems.add(new MenuItem(59, "Mochi Kem", 30000, "Bánh ngọt", "Vỏ mochi dẻo, nhân kem lạnh, chọn vị.", "🍡", false, false, false, true, 2));
         menuItems.add(new MenuItem(60, "Macaron", 32000, "Bánh ngọt", "Bánh Macaron Pháp vỏ giòn xốp, nhân kem ganache ngọt dịu nhiều hương vị.", "🧁", false, false, false, true, 2));
         menuItems.add(new MenuItem(61, "Red Velvet Slice", 42000, "Bánh ngọt", "Bánh nhung đỏ, phủ kem cheese.", "🍰", false, false, false, false, 2));
 
         // 8. MÓN ĂN NHẸ
-        menuItems.add(new MenuItem(62, "Bánh Mì Que Pate", 20000, "Món ăn nhẹ", "Bánh mì que giòn, pate và bơ.", "🥖", false, false, true, false, 4));
+        menuItems.add(new MenuItem(62, "Bánh Mì Que Pate", 20000, "Món ăn nhẹ", "Bánh mì que giòn, pate và bơ.", "🥖", false, false, false, false, 4));
         menuItems.add(new MenuItem(63, "Sandwich Gà Phô Mai", 45000, "Món ăn nhẹ", "Gà xé, phô mai, rau tươi, nướng nóng.", "🥪", false, false, false, false, 7));
-        menuItems.add(new MenuItem(64, "Khoai Tây Chiên", 35000, "Món ăn nhẹ", "Khoai chiên giòn, kèm sốt tương cà.", "🍟", false, false, true, false, 7));
+        menuItems.add(new MenuItem(64, "Khoai Tây Chiên", 35000, "Món ăn nhẹ", "Khoai chiên giòn, kèm sốt tương cà.", "🍟", false, false, false, false, 7));
         menuItems.add(new MenuItem(65, "Gà Viên Chiên", 40000, "Món ăn nhẹ", "Gà viên chiên vàng, sốt mayonnaise.", "🍗", false, false, false, false, 7));
-        menuItems.add(new MenuItem(66, "Bánh Mì Thịt", 35000, "Món ăn nhẹ", "Bánh mì vỏ giòn nóng hổi, nhân thịt nguội, chả lụa, pate, dưa góp và sốt đậm đà.", "🥖", false, false, true, false, 5));
-        menuItems.add(new MenuItem(67, "Bánh Tráng Trộn", 28000, "Món ăn nhẹ", "Bánh tráng dẻo trộn bò khô, trứng cút, xoài xanh, rau răm và sốt tắc chua ngọt.", "🥗", false, false, true, false, 5));
+        menuItems.add(new MenuItem(66, "Bánh Mì Thịt", 35000, "Món ăn nhẹ", "Bánh mì vỏ giòn nóng hổi, nhân thịt nguội, chả lụa, pate, dưa góp và sốt đậm đà.", "🥖", false, false, false, false, 5));
+        menuItems.add(new MenuItem(67, "Bánh Tráng Trộn", 28000, "Món ăn nhẹ", "Bánh tráng dẻo trộn bò khô, trứng cút, xoài xanh, rau răm và sốt tắc chua ngọt.", "🥗", false, false, false, false, 5));
         MenuItem item68 = new MenuItem(68, "Khô Gà Lá Chanh MixiFood (Độ Mixi)", 35000, "Món ăn nhẹ", "Ăn một miếng là lươn lẹo cả ngày! Khô gà giòn rụm cay cay chuẩn vị Tộc Trưởng Độ Mixi, nhâm nhi cùng cà phê là hết nước chấm.", "🍗", false, false, true, true, 3);
         item68.setImagePath("mon_an_nhe/mon-an-nhe_kho-ga-anh-do-mixi.png");
         menuItems.add(item68);
-        menuItems.add(new MenuItem(69, "Xiên Bẩn Lộn Xộn", 45000, "Món ăn nhẹ", "Combo cá viên, bò viên, tôm viên, xúc xích, hồ lô chiên giòn chấm tương ớt.", "🍢", false, false, true, true, 6));
+        menuItems.add(new MenuItem(69, "Xiên Bẩn Lộn Xộn", 45000, "Món ăn nhẹ", "Combo cá viên, bò viên, tôm viên, xúc xích, hồ lô chiên giòn chấm tương ớt.", "🍢", false, false, false, true, 6));
     }
 
     private static void initVouchers() {

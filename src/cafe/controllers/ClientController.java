@@ -225,7 +225,41 @@ public class ClientController {
             }
         }
 
+        // Đảm bảo món Bán chạy nhất (isBestseller) luôn luôn đứng ở vị trí số 1 của mỗi danh mục
+        filtered.sort((a, b) -> {
+            if (!currentCategory.equalsIgnoreCase("Tất cả")) {
+                if (a.isBestseller() != b.isBestseller()) {
+                    return a.isBestseller() ? -1 : 1;
+                }
+                return Integer.compare(a.getId(), b.getId());
+            } else {
+                int catA = getCategoryPriority(a.getCategory());
+                int catB = getCategoryPriority(b.getCategory());
+                if (catA != catB) {
+                    return Integer.compare(catA, catB);
+                }
+                if (a.isBestseller() != b.isBestseller()) {
+                    return a.isBestseller() ? -1 : 1;
+                }
+                return Integer.compare(a.getId(), b.getId());
+            }
+        });
+
         view.renderMenuItems(filtered, this::openItemCustomization, this::onQuickAdd);
+    }
+
+    private int getCategoryPriority(String category) {
+        if (category == null) return 99;
+        String lower = category.toLowerCase();
+        if (lower.contains("cà phê")) return 1;
+        if (lower.contains("trà &") || lower.contains("trái cây")) return 2;
+        if (lower.contains("đá xay")) return 3;
+        if (lower.contains("trà sữa")) return 4;
+        if (lower.contains("nước ép") || lower.contains("soda")) return 5;
+        if (lower.contains("matcha") || lower.contains("chocolate")) return 6;
+        if (lower.contains("bánh ngọt")) return 7;
+        if (lower.contains("món ăn nhẹ")) return 8;
+        return 50;
     }
 
     private void onQuickAdd(MenuItem item) {

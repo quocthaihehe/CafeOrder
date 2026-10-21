@@ -41,7 +41,19 @@ public class ItemCard extends VBox {
         setPadding(new Insets(6));
         setMinWidth(150);
         setMaxWidth(Double.MAX_VALUE);
-        setStyle("-fx-background-color: #FBF9F5; -fx-background-radius: 6px; -fx-border-color: #DED7CD; -fx-border-radius: 6px; -fx-border-width: 1px; -fx-cursor: hand;");
+                if (item.isBestseller()) {
+            setStyle(
+                "-fx-background-color: #FFFDF9; " +
+                "-fx-background-radius: 8px; " +
+                "-fx-border-color: linear-gradient(to bottom right, #EF4444 0%, #F59E0B 50%, #EF4444 100%); " +
+                "-fx-border-radius: 8px; " +
+                "-fx-border-width: 2px; " +
+                "-fx-effect: dropshadow(gaussian, rgba(239, 68, 68, 0.32), 12, 0.22, 0, 3); " +
+                "-fx-cursor: hand;"
+            );
+        } else {
+            setStyle("-fx-background-color: #FBF9F5; -fx-background-radius: 6px; -fx-border-color: #DED7CD; -fx-border-radius: 6px; -fx-border-width: 1px; -fx-cursor: hand;");
+        }
 
         // Micro-lift card hover animation
         AnimationHelper.applyCardHover(this);
@@ -67,6 +79,33 @@ public class ItemCard extends VBox {
             StackPane.setMargin(badgeSoldOut, new Insets(6, 6, 0, 0));
             imageWrapper.getChildren().add(badgeSoldOut);
             setOpacity(0.62);
+        }
+
+        // Khung viền & Huy hiệu Lửa Bán Chạy
+        if (item.isBestseller()) {
+            Label badgeHot = new Label("🔥 BÁN CHẠY");
+            badgeHot.setStyle(
+                "-fx-background-color: linear-gradient(to right, #DC2626, #EA580C); " +
+                "-fx-text-fill: #FFFFFF; " +
+                "-fx-font-family: 'Segoe UI', 'Inter', sans-serif; " +
+                "-fx-font-size: 10px; " +
+                "-fx-font-weight: 900; " +
+                "-fx-padding: 3 8 3 8; " +
+                "-fx-background-radius: 6px; " +
+                "-fx-effect: dropshadow(gaussian, rgba(220, 38, 38, 0.45), 6, 0.3, 0, 2);"
+            );
+            StackPane.setAlignment(badgeHot, Pos.TOP_LEFT);
+            StackPane.setMargin(badgeHot, new Insets(6, 0, 0, 6));
+            imageWrapper.getChildren().add(badgeHot);
+
+            javafx.animation.ScaleTransition pulse = new javafx.animation.ScaleTransition(javafx.util.Duration.millis(900), badgeHot);
+            pulse.setFromX(1.0);
+            pulse.setFromY(1.0);
+            pulse.setToX(1.07);
+            pulse.setToY(1.07);
+            pulse.setAutoReverse(true);
+            pulse.setCycleCount(javafx.animation.Animation.INDEFINITE);
+            pulse.play();
         }
 
         // 2. Product Name (13px Bold #112823)

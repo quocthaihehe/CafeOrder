@@ -111,9 +111,17 @@ public class ProductImagePane extends Pane {
             imageView.setFitWidth(targetW);
             imageView.setFitHeight(targetH);
 
-            // Căn giữa cho Dialog, neo tỷ lệ vàng 0.35 cho thẻ lưới (Card Grid) để bắt trọn cả miệng ly lẫn đĩa lót
+            // Căn giữa cho Dialog, neo tỷ lệ vàng 0.35 cho thẻ lưới (Card Grid), hoặc 0.55 cho ảnh dọc (Portrait)
             double x = (w - targetW) / 2.0;
-            double y = (fixedWidth > 0) ? (h - targetH) / 2.0 : ((targetH > h) ? (h - targetH) * 0.35 : (h - targetH) / 2.0);
+            double y;
+            if (fixedWidth > 0) {
+                y = (h - targetH) / 2.0;
+            } else if (imgH > imgW * 1.3) {
+                // Với ảnh chụp dạng dọc 9:16 như Khô gà anh Độ Mixi, neo tại 0.55 để hiển thị trọn vẹn đĩa và hũ khô gà
+                y = (h - targetH) * 0.55;
+            } else {
+                y = (targetH > h) ? (h - targetH) * 0.35 : (h - targetH) / 2.0;
+            }
             imageView.relocate(x, y);
         }
     }

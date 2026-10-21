@@ -9,6 +9,7 @@ import javafx.scene.shape.Rectangle;
 import java.io.File;
 import java.net.URL;
 import java.text.Normalizer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -102,20 +103,28 @@ public class ImageManager {
         String nameSlug = toSlug(item.getName());
         String catUnderscore = catSlug.replace('-', '_');
 
-        String[] candidateResourceNames = {
-            catUnderscore + "/" + catSlug + "_" + nameSlug + ".png",
-            catUnderscore + "/" + catSlug + "_-" + nameSlug + ".png",
-            catSlug + "_" + nameSlug + ".png",
-            catSlug + "_-" + nameSlug + ".png",
-            catSlug + "/" + catSlug + "_" + nameSlug + ".png",
-            catUnderscore + "/" + nameSlug + ".png",
-            catSlug + "/" + nameSlug + ".png",
-            nameSlug + ".png",
-            catUnderscore + "/" + catSlug + "_" + nameSlug + ".jpg",
-            catSlug + "_" + nameSlug + ".jpg",
-            "item_" + item.getId() + ".png",
-            item.getId() + ".png"
-        };
+        List<String> candidateList = new ArrayList<>();
+        if (item.getImagePath() != null && !item.getImagePath().trim().isEmpty()) {
+            candidateList.add(item.getImagePath().trim());
+        }
+        if (item.getId() == 68 || nameSlug.contains("kho-ga") || nameSlug.contains("mixi")) {
+            candidateList.add("mon_an_nhe/mon-an-nhe_kho-ga-anh-do-mixi.png");
+            candidateList.add("mon-an-nhe_kho-ga-anh-do-mixi.png");
+        }
+        candidateList.add(catUnderscore + "/" + catSlug + "_" + nameSlug + ".png");
+        candidateList.add(catUnderscore + "/" + catSlug + "_-" + nameSlug + ".png");
+        candidateList.add(catSlug + "_" + nameSlug + ".png");
+        candidateList.add(catSlug + "_-" + nameSlug + ".png");
+        candidateList.add(catSlug + "/" + catSlug + "_" + nameSlug + ".png");
+        candidateList.add(catUnderscore + "/" + nameSlug + ".png");
+        candidateList.add(catSlug + "/" + nameSlug + ".png");
+        candidateList.add(nameSlug + ".png");
+        candidateList.add(catUnderscore + "/" + catSlug + "_" + nameSlug + ".jpg");
+        candidateList.add(catSlug + "_" + nameSlug + ".jpg");
+        candidateList.add("item_" + item.getId() + ".png");
+        candidateList.add(item.getId() + ".png");
+
+        String[] candidateResourceNames = candidateList.toArray(new String[0]);
 
         // 1. Ưu tiên kiểm tra file trên đĩa trước (nhanh và luôn mới nhất) hoặc trong Classpath
         String[] localDirs = {

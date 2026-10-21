@@ -148,6 +148,16 @@ public class ClientController {
             view.showToast("Đơn #" + update.orderId + " đã cập nhật: " + translated + "!");
         });
 
+        socketService.setOnStockStatusReceived(stockMsg -> {
+            MenuItem repoItem = cafe.models.MenuRepository.findById(stockMsg.itemId);
+            if (repoItem != null) {
+                repoItem.setInStock(stockMsg.inStock);
+            }
+            view.updateItemStockStatus(stockMsg.itemId, stockMsg.inStock);
+            String statusText = stockMsg.inStock ? "đã mở bán lại" : "tạm hết nguyên liệu";
+            view.showToast("Món \"" + stockMsg.itemName + "\" hiện " + statusText + "!");
+        });
+
         socketService.setOnErrorOccurred(errMsg -> {
             view.showToast(errMsg);
         });
@@ -314,6 +324,17 @@ public class ClientController {
         if (cartModel.isEmpty()) {
             view.showToast("Giỏ hàng đang trống! Vui lòng chọn món trước.");
             return;
+        }
+
+        // Bảo vệ giỏ hàng: Chặn thanh toán nếu có món tạm hết (86-ed)
+        for (OrderItem oi : cartModel.getItems()) {
+            MenuItem mi = oi.getProductId() > 0
+                ? cafe.models.MenuRepository.findById(oi.getProductId())
+                : cafe.models.MenuRepository.findByName(oi.getName());
+            if (mi != null && !mi.isInStock()) {
+                view.showToast("Món \"" + oi.getName() + "\" hiện đã tạm hết! Vui lòng xóa khỏi giỏ để tiếp tục.");
+                return;
+            }
         }
 
         if (!socketService.isConnected()) {

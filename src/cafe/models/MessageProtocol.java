@@ -120,6 +120,19 @@ public class MessageProtocol {
         }
     }
 
+    public static class StockStatusBroadcastMessage {
+        public String type = MessageType.STOCK_STATUS_BROADCAST.name();
+        public int itemId;
+        public boolean inStock;
+        public String itemName;
+
+        public StockStatusBroadcastMessage(int itemId, boolean inStock, String itemName) {
+            this.itemId = itemId;
+            this.inStock = inStock;
+            this.itemName = itemName;
+        }
+    }
+
     public static class PingMessage {
         public String type = MessageType.PING.name();
         public long timestamp = System.currentTimeMillis();

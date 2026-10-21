@@ -692,6 +692,15 @@ public class CafeServerService {
         dbExecutor.submit(() -> DatabaseManager.updateTableStatusInDb(tableNumber, status));
     }
 
+    public void broadcastStockStatus(int itemId, boolean inStock, String itemName) {
+        MessageProtocol.StockStatusBroadcastMessage msg = new MessageProtocol.StockStatusBroadcastMessage(itemId, inStock, itemName);
+        String json = MessageProtocol.toJson(msg);
+        for (ClientSession session : activeSessions.values()) {
+            session.send(json);
+        }
+        log("Broadcast Stock Status (86-ing): itemId=" + itemId + ", inStock=" + inStock + ", name=" + itemName);
+    }
+
     public String getTableStatus(int tableNumber) {
         return tableStatuses.getOrDefault(tableNumber, "EMPTY");
     }

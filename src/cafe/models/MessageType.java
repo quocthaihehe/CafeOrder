@@ -10,6 +10,7 @@ public enum MessageType {
     ORDER_DONE,
     TABLE_FOCUS_CHANGE,
     TABLE_STATUS_BROADCAST,
+    STOCK_STATUS_BROADCAST,
     PING,
     PONG,
     SYNC_CATALOG,

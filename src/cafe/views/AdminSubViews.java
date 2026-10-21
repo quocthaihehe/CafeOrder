@@ -79,7 +79,8 @@ public class AdminSubViews {
         ComboBox<String> cboCat = new ComboBox<>();
         cboCat.getItems().addAll(MenuRepository.getCategories());
         cboCat.getSelectionModel().selectFirst();
-        cboCat.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #DFD8CE; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-size: 12px;");
+        cboCat.setPrefHeight(36);
+        cboCat.setStyle(COMBO_STYLE);
 
         Button btnAddDish = new Button("+ Thêm món mới");
         btnAddDish.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 36px; -fx-padding: 7 16 7 16; -fx-cursor: hand;");
@@ -216,7 +217,7 @@ public class AdminSubViews {
             cboIng.getSelectionModel().selectFirst();
             cboIng.setPrefWidth(175);
             cboIng.setPrefHeight(36);
-            cboIng.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px;");
+            cboIng.setStyle(COMBO_STYLE);
 
             TextField txtQty = new TextField("20");
             txtQty.setPrefWidth(60);
@@ -307,6 +308,7 @@ public class AdminSubViews {
                 btnStockToggle.setOnAction(ev -> {
                     ev.consume();
                     item.setInStock(!inStock);
+                    CafeServerService.getInstance().broadcastStockStatus(item.getId(), item.isInStock(), item.getName());
                     refreshLeftRows[0].run();
                     if (onMenuUpdated != null) onMenuUpdated.run();
                     if (toastCallback != null) {
@@ -498,13 +500,21 @@ public class AdminSubViews {
         HBox tableHeader = new HBox(10);
         tableHeader.setPadding(new Insets(8, 12, 8, 12));
         tableHeader.setStyle("-fx-background-color: #F4EFE6; -fx-background-radius: 8px;");
+        Label hName = createColHeader("TÊN NGUYÊN VẬT LIỆU", 195);
+        HBox.setHgrow(hName, Priority.ALWAYS);
+        hName.setMaxWidth(Double.MAX_VALUE);
+
+        Label hSup = createColHeader("NHÀ CUNG CẤP", 145);
+        HBox.setHgrow(hSup, Priority.ALWAYS);
+        hSup.setMaxWidth(Double.MAX_VALUE);
+
         tableHeader.getChildren().addAll(
             createColHeader("MÃ", 45),
-            createColHeader("TÊN NGUYÊN VẬT LIỆU", 195),
+            hName,
             createColHeader("NHÓM VẬT TƯ", 125),
             createColHeader("TỒN KHO HIỆN TẠI", 145),
             createColHeader("ĐỊNH MỨC TỐI THIỂU", 125),
-            createColHeader("NHÀ CUNG CẤP", 145),
+            hSup,
             createColHeader("TRẠNG THÁI", 110),
             createColHeader("NHẬP NHANH", 110)
         );
@@ -549,6 +559,8 @@ public class AdminSubViews {
 
                 Label lName = new Label(ing.name);
                 lName.setPrefWidth(195);
+                lName.setMaxWidth(Double.MAX_VALUE);
+                HBox.setHgrow(lName, Priority.ALWAYS);
                 lName.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #112823;");
 
                 Label lCat = new Label(ing.category);
@@ -565,6 +577,8 @@ public class AdminSubViews {
 
                 Label lSup = new Label(ing.supplier);
                 lSup.setPrefWidth(145);
+                lSup.setMaxWidth(Double.MAX_VALUE);
+                HBox.setHgrow(lSup, Priority.ALWAYS);
                 lSup.setStyle("-fx-font-size: 12px; -fx-text-fill: #57534E;");
 
                 Label badge = new Label(ing.isLowStock() ? "⚠ Sắp hết" : "● Đủ dùng");
@@ -738,9 +752,13 @@ public class AdminSubViews {
         HBox tableHeader = new HBox(10);
         tableHeader.setPadding(new Insets(8, 14, 8, 14));
         tableHeader.setStyle("-fx-background-color: #F4EFE6; -fx-background-radius: 8px;");
+        Label hType = createColHeader("LOẠI GIẢM GIÁ / MÔ TẢ ĐIỀU KIỆN", 140);
+        HBox.setHgrow(hType, Priority.ALWAYS);
+        hType.setMaxWidth(Double.MAX_VALUE);
+
         tableHeader.getChildren().addAll(
             createColHeader("MÃ VOUCHER", 140),
-            createColHeader("LOẠI GIẢM GIÁ", 130),
+            hType,
             createColHeader("MỨC GIẢM", 120),
             createColHeader("ĐƠN TỐI THIỂU", 135),
             createColHeader("LƯỢT DÙNG", 100),
@@ -768,8 +786,10 @@ public class AdminSubViews {
                 lCode.setStyle("-fx-font-size: 13.5px; -fx-font-weight: 800; -fx-text-fill: #112823;");
 
                 boolean isPct = "PERCENT".equalsIgnoreCase(v.getDiscountType());
-                Label lType = new Label(isPct ? "Giảm theo %" : "Giảm tiền mặt");
-                lType.setPrefWidth(130);
+                Label lType = new Label(isPct ? "Giảm theo % (Toàn menu)" : "Giảm tiền mặt trực tiếp");
+                lType.setPrefWidth(140);
+                lType.setMaxWidth(Double.MAX_VALUE);
+                HBox.setHgrow(lType, Priority.ALWAYS);
                 lType.setStyle("-fx-font-size: 12px; -fx-text-fill: #57534E;");
 
                 Label lVal = new Label(isPct ? String.format("-%.0f%%", v.getDiscountValue()) : "-" + CurrencyFormatter.formatVND(v.getDiscountValue()));
@@ -919,12 +939,20 @@ public class AdminSubViews {
         HBox tableHeader = new HBox(10);
         tableHeader.setPadding(new Insets(8, 14, 8, 14));
         tableHeader.setStyle("-fx-background-color: #F4EFE6; -fx-background-radius: 8px;");
+        Label hStaffName = createColHeader("HỌ VÀ TÊN NHÂN SỰ", 200);
+        HBox.setHgrow(hStaffName, Priority.ALWAYS);
+        hStaffName.setMaxWidth(Double.MAX_VALUE);
+
+        Label hAccessDesc = createColHeader("PHÂN HỆ ĐƯỢC PHÉP VÀO", 215);
+        HBox.setHgrow(hAccessDesc, Priority.ALWAYS);
+        hAccessDesc.setMaxWidth(Double.MAX_VALUE);
+
         tableHeader.getChildren().addAll(
             createColHeader("MÃ NV", 65),
-            createColHeader("HỌ VÀ TÊN NHÂN SỰ", 200),
+            hStaffName,
             createColHeader("TÀI KHOẢN LOGIN", 145),
             createColHeader("VAI TRÒ PHÂN QUYỀN (RBAC)", 190),
-            createColHeader("PHÂN HỆ ĐƯỢC PHÉP VÀO", 215),
+            hAccessDesc,
             createColHeader("TRẠNG THÁI", 130)
         );
 
@@ -948,6 +976,8 @@ public class AdminSubViews {
 
                 Label lName = new Label(s.getFullName());
                 lName.setPrefWidth(200);
+                lName.setMaxWidth(Double.MAX_VALUE);
+                HBox.setHgrow(lName, Priority.ALWAYS);
                 lName.setStyle("-fx-font-size: 13.5px; -fx-font-weight: 800; -fx-text-fill: #112823;");
 
                 Label lUser = new Label(s.getUsername());
@@ -958,7 +988,7 @@ public class AdminSubViews {
                 cboRole.getItems().addAll("OWNER", "MANAGER", "CASHIER", "WAITER", "BARISTA");
                 cboRole.setValue(s.getRole());
                 cboRole.setPrefWidth(190);
-                cboRole.setStyle("-fx-font-size: 12px; -fx-font-weight: 700;");
+                cboRole.setStyle(COMBO_STYLE);
                 cboRole.setOnAction(ev -> {
                     DatabaseManager.updateStaffRole(s.getStaffId(), cboRole.getValue());
                     renderStaff[0].run();
@@ -968,6 +998,8 @@ public class AdminSubViews {
                 String accessDesc = s.isManager() ? "Toàn quyền 10 phân hệ Admin & POS" : "Staff POS (Sơ đồ bàn, Thực đơn, Thu ngân)";
                 Label lAccess = new Label(accessDesc);
                 lAccess.setPrefWidth(215);
+                lAccess.setMaxWidth(Double.MAX_VALUE);
+                HBox.setHgrow(lAccess, Priority.ALWAYS);
                 lAccess.setStyle("-fx-font-size: 12px; -fx-text-fill: #57534E;");
 
                 boolean active = "ACTIVE".equalsIgnoreCase(s.getStatus());
@@ -1099,10 +1131,18 @@ public class AdminSubViews {
         HBox ledgerHeader = new HBox(10);
         ledgerHeader.setPadding(new Insets(8, 14, 8, 14));
         ledgerHeader.setStyle("-fx-background-color: #F4EFE6; -fx-background-radius: 8px;");
+        Label hPeriod = createColHeader("KỲ HẠCH TOÁN", 160);
+        HBox.setHgrow(hPeriod, Priority.ALWAYS);
+        hPeriod.setMaxWidth(Double.MAX_VALUE);
+
+        Label hGross = createColHeader("DOANH THU GỘP", 165);
+        HBox.setHgrow(hGross, Priority.ALWAYS);
+        hGross.setMaxWidth(Double.MAX_VALUE);
+
         ledgerHeader.getChildren().addAll(
-            createColHeader("KỲ HẠCH TOÁN", 160),
+            hPeriod,
             createColHeader("SỐ ĐƠN HÀNG", 120),
-            createColHeader("DOANH THU GỘP", 165),
+            hGross,
             createColHeader("GIÁ VỐN (BOM COGS)", 165),
             createColHeader("KHUYẾN MÃI & VẬN HÀNH", 165),
             createColHeader("LỢI NHUẬN RÒNG", 165),
@@ -1180,10 +1220,18 @@ public class AdminSubViews {
                 row.setPadding(new Insets(10, 14, 10, 14));
                 row.setStyle("-fx-background-color: #FAF8F5; -fx-background-radius: 8px; -fx-border-color: #EFEAE2; -fx-border-radius: 8px;");
 
+                Label lPeriod = createCellLabel(r[0], 160, "#112823", true);
+                HBox.setHgrow(lPeriod, Priority.ALWAYS);
+                lPeriod.setMaxWidth(Double.MAX_VALUE);
+
+                Label lGross = createCellLabel(CurrencyFormatter.formatVND(gross), 165, "#112823", true);
+                HBox.setHgrow(lGross, Priority.ALWAYS);
+                lGross.setMaxWidth(Double.MAX_VALUE);
+
                 row.getChildren().addAll(
-                    createCellLabel(r[0], 160, "#112823", true),
+                    lPeriod,
                     createCellLabel(r[1], 120, "#57534E", false),
-                    createCellLabel(CurrencyFormatter.formatVND(gross), 165, "#112823", true),
+                    lGross,
                     createCellLabel(CurrencyFormatter.formatVND(cogs), 165, "#B45309", false),
                     createCellLabel(CurrencyFormatter.formatVND(opex), 165, "#57534E", false),
                     createCellLabel(CurrencyFormatter.formatVND(net), 165, "#15803D", true),
@@ -1342,6 +1390,7 @@ public class AdminSubViews {
         }
 
         twoCols.getChildren().addAll(leftCol, rightCol);
+        styleInputs(leftCol);
         root.getChildren().addAll(lblTitle, twoCols);
         return root;
     }
@@ -1385,13 +1434,21 @@ public class AdminSubViews {
     }
 
     public static final String INPUT_STYLE =
-        "-fx-background-color: #FAF8F5; -fx-border-color: #E2DDD5; -fx-border-radius: 8px; -fx-background-radius: 8px; " +
+        "-fx-background-color: #FAF8F5; -fx-border-color: #DFD8CE; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-border-width: 1px; " +
         "-fx-padding: 8 12 8 12; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-text-fill: #112823;";
+
+    public static final String COMBO_STYLE =
+        "-fx-background-color: #FAF8F5; -fx-background-radius: 8px; -fx-border-color: #DFD8CE; -fx-border-radius: 8px; -fx-border-width: 1px; " +
+        "-fx-padding: 4 8 4 10; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-text-fill: #112823; -fx-cursor: hand;";
 
     /** Áp dụng style phẳng chuẩn cho mọi TextField / PasswordField / ComboBox chưa được style. */
     public static <T extends javafx.scene.Parent> T styleInputs(T parent) {
         for (javafx.scene.Node n : parent.getChildrenUnmodifiable()) {
-            if (n instanceof TextInputControl || n instanceof ComboBox) {
+            if (n instanceof ComboBox) {
+                if (n.getStyle() == null || n.getStyle().isEmpty() || !n.getStyle().contains("-fx-background-color")) {
+                    n.setStyle(COMBO_STYLE);
+                }
+            } else if (n instanceof TextInputControl) {
                 if (n.getStyle() == null || n.getStyle().isEmpty()) {
                     n.setStyle(INPUT_STYLE);
                 }

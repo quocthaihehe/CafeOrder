@@ -806,20 +806,21 @@ public class AdminShellView extends BorderPane {
 
     private Label createStatusBadge(String status) {
         Label badge = new Label();
-        badge.setPrefWidth(120);
+        badge.setMinWidth(115);
+        badge.setPrefWidth(125);
         String st = status != null ? status.toUpperCase() : "PENDING";
         if (st.contains("PREPARING") || st.contains("ĐANG PHA")) {
             badge.setText("● Đang pha chế");
-            badge.setStyle("-fx-background-color: #FEF3C7; -fx-text-fill: #B45309; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 4 10 4 10; -fx-alignment: center;");
+            badge.setStyle("-fx-background-color: #FEF3C7; -fx-text-fill: #B45309; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 4 8 4 8; -fx-alignment: center;");
         } else if (st.contains("READY") || st.contains("DONE") || st.contains("PAID") || st.contains("HOÀN")) {
-            badge.setText("● Hoàn tất / Đã thu");
-            badge.setStyle("-fx-background-color: #DCFCE7; -fx-text-fill: #15803D; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 4 10 4 10; -fx-alignment: center;");
+            badge.setText("● Đã hoàn tất");
+            badge.setStyle("-fx-background-color: #DCFCE7; -fx-text-fill: #15803D; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 4 8 4 8; -fx-alignment: center;");
         } else if (st.contains("CANCEL")) {
             badge.setText("✕ Đã hủy");
-            badge.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 4 10 4 10; -fx-alignment: center;");
+            badge.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 4 8 4 8; -fx-alignment: center;");
         } else {
             badge.setText("● Chờ pha chế");
-            badge.setStyle("-fx-background-color: #E0F2FE; -fx-text-fill: #0369A1; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 4 10 4 10; -fx-alignment: center;");
+            badge.setStyle("-fx-background-color: #E0F2FE; -fx-text-fill: #0369A1; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 4 8 4 8; -fx-alignment: center;");
         }
         return badge;
     }
@@ -852,6 +853,25 @@ public class AdminShellView extends BorderPane {
         for (int i = 201; i <= 210; i++) cboTable.getItems().add("Tầng 2 - Bàn " + i);
         for (int i = 301; i <= 308; i++) cboTable.getItems().add("Tầng 3 - Bàn " + i);
         cboTable.getSelectionModel().select(1); // Bàn 01 mặc định
+        cboTable.setPrefHeight(36);
+        cboTable.setStyle(
+            "-fx-background-color: #FAF8F5; -fx-background-radius: 8px; -fx-border-color: #DFD8CE; -fx-border-radius: 8px; " +
+            "-fx-border-width: 1px; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; " +
+            "-fx-text-fill: #112823; -fx-cursor: hand; -fx-padding: 4 8 4 10;"
+        );
+        cboTable.setCellFactory(lv -> new ListCell<String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("-fx-background-color: #FAF8F5;");
+                } else {
+                    setText(item);
+                    setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-text-fill: #112823; -fx-padding: 6 12 6 12;");
+                }
+            }
+        });
 
         cboTable.setOnAction(e -> {
             String val = cboTable.getValue();
@@ -941,14 +961,18 @@ public class AdminShellView extends BorderPane {
         HBox tblHead = new HBox(10);
         tblHead.setPadding(new Insets(8, 12, 8, 12));
         tblHead.setStyle("-fx-background-color: #F4EFE6; -fx-background-radius: 8px;");
+        Label hItems = createColHeader("CHI TIẾT CÁC MÓN TRONG ĐƠN", 280);
+        HBox.setHgrow(hItems, Priority.ALWAYS);
+        hItems.setMaxWidth(Double.MAX_VALUE);
+
         tblHead.getChildren().addAll(
             createColHeader("MÃ ĐƠN", 85),
             createColHeader("THỜI GIAN", 85),
             createColHeader("BÀN / HÌNH THỨC", 145),
-            createColHeader("CHI TIẾT CÁC MÓN TRONG ĐƠN", 290),
+            hItems,
             createColHeader("TỔNG TIỀN", 125),
             createColHeader("TRẠNG THÁI", 125),
-            createColHeader("THAO TÁC XỬ LÝ", 230)
+            createColHeader("THAO TÁC XỬ LÝ", 240)
         );
 
         ScrollPane scroll = new ScrollPane(rowsBox);
@@ -995,7 +1019,8 @@ public class AdminShellView extends BorderPane {
                 lTbl.setStyle("-fx-font-size: 12.5px; -fx-font-weight: 700; -fx-text-fill: #1C1917;");
 
                 Label lItems = new Label(o.getItemsSummaryText());
-                lItems.setPrefWidth(290);
+                lItems.setPrefWidth(280);
+                lItems.setMaxWidth(Double.MAX_VALUE);
                 HBox.setHgrow(lItems, Priority.ALWAYS);
                 lItems.setStyle("-fx-font-size: 12px; -fx-text-fill: #57534E;");
 
@@ -1005,23 +1030,23 @@ public class AdminShellView extends BorderPane {
 
                 Label badge = createStatusBadge(st);
 
-                HBox actions = new HBox(6);
-                actions.setPrefWidth(230);
+                HBox actions = new HBox(4);
+                actions.setPrefWidth(240);
                 actions.setAlignment(Pos.CENTER_LEFT);
 
-                Button btnPrint = new Button("🖨 In phiếu");
-                btnPrint.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;");
-                btnPrint.setOnMouseEntered(e -> btnPrint.setStyle("-fx-background-color: #EAE4DA; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;"));
-                btnPrint.setOnMouseExited(e -> btnPrint.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;"));
+                Button btnPrint = new Button("🖨 In vé");
+                btnPrint.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 8 4 8; -fx-cursor: hand;");
+                btnPrint.setOnMouseEntered(e -> btnPrint.setStyle("-fx-background-color: #EAE4DA; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 8 4 8; -fx-cursor: hand;"));
+                btnPrint.setOnMouseExited(e -> btnPrint.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 8 4 8; -fx-cursor: hand;"));
                 btnPrint.setOnAction(ev -> {
                     Stage stg = parentStage != null ? parentStage : null;
                     OrderSuccessDialog.showReceiptForOrder(stg, o, "Tiền mặt / VietQR");
                 });
 
-                Button btnDone = new Button("✓ Hoàn tất");
-                btnDone.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;");
-                btnDone.setOnMouseEntered(e -> btnDone.setStyle("-fx-background-color: #DCFCE7; -fx-text-fill: #15803D; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;"));
-                btnDone.setOnMouseExited(e -> btnDone.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;"));
+                Button btnDone = new Button("✓ Xong");
+                btnDone.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 8 4 8; -fx-cursor: hand;");
+                btnDone.setOnMouseEntered(e -> btnDone.setStyle("-fx-background-color: #DCFCE7; -fx-text-fill: #15803D; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 8 4 8; -fx-cursor: hand;"));
+                btnDone.setOnMouseExited(e -> btnDone.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 8 4 8; -fx-cursor: hand;"));
                 btnDone.setOnAction(ev -> {
                     serverService.updateOrderStatus(o.getOrderId(), "READY");
                     renderRows[0].run();
@@ -1029,9 +1054,9 @@ public class AdminShellView extends BorderPane {
                 });
 
                 Button btnCancel = new Button("✕ Hủy");
-                btnCancel.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #57534E; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;");
-                btnCancel.setOnMouseEntered(e -> btnCancel.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;"));
-                btnCancel.setOnMouseExited(e -> btnCancel.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #57534E; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;"));
+                btnCancel.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #57534E; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 8 4 8; -fx-cursor: hand;");
+                btnCancel.setOnMouseEntered(e -> btnCancel.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 8 4 8; -fx-cursor: hand;"));
+                btnCancel.setOnMouseExited(e -> btnCancel.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #57534E; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 8 4 8; -fx-cursor: hand;"));
                 btnCancel.setOnAction(ev -> {
                     serverService.cancelOrder(o.getOrderId());
                     renderRows[0].run();

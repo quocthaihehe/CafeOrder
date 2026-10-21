@@ -22,16 +22,28 @@ public class ItemCard extends VBox {
     private final MenuItem item;
     private final Consumer<MenuItem> onSelect;
     private final Consumer<MenuItem> onQuickAdd;
+    private final Consumer<String> toastNotifier;
 
     public ItemCard(MenuItem item, Consumer<MenuItem> onSelect) {
-        this(item, onSelect, null);
+        this(item, onSelect, null, null);
     }
 
     public ItemCard(MenuItem item, Consumer<MenuItem> onSelect, Consumer<MenuItem> onQuickAdd) {
+        this(item, onSelect, onQuickAdd, null);
+    }
+
+    public ItemCard(MenuItem item, Consumer<MenuItem> onSelect, Consumer<MenuItem> onQuickAdd, Consumer<String> toastNotifier) {
         this.item = item;
         this.onSelect = onSelect;
         this.onQuickAdd = onQuickAdd;
+        this.toastNotifier = toastNotifier;
 
+        initUI();
+    }
+
+    public void updateStockStatus(boolean inStock) {
+        item.setInStock(inStock);
+        getChildren().clear();
         initUI();
     }
 
@@ -41,7 +53,20 @@ public class ItemCard extends VBox {
         setPadding(new Insets(6));
         setMinWidth(150);
         setMaxWidth(Double.MAX_VALUE);
-                if (item.isBestseller()) {
+
+        boolean available = item.isInStock();
+
+        if (!available) {
+            setStyle(
+                "-fx-background-color: #F7F5F2; " +
+                "-fx-background-radius: 8px; " +
+                "-fx-border-color: #D1D5DB; " +
+                "-fx-border-radius: 8px; " +
+                "-fx-border-width: 1.5px; " +
+                "-fx-cursor: hand;"
+            );
+            setOpacity(0.65);
+        } else if (item.isBestseller()) {
             setStyle(
                 "-fx-background-color: #FFFDF9; " +
                 "-fx-background-radius: 8px; " +
@@ -51,14 +76,18 @@ public class ItemCard extends VBox {
                 "-fx-effect: dropshadow(gaussian, rgba(239, 68, 68, 0.32), 12, 0.22, 0, 3); " +
                 "-fx-cursor: hand;"
             );
+            setOpacity(1.0);
         } else {
             setStyle("-fx-background-color: #FBF9F5; -fx-background-radius: 6px; -fx-border-color: #DED7CD; -fx-border-radius: 6px; -fx-border-width: 1px; -fx-cursor: hand;");
+            setOpacity(1.0);
         }
 
         // Micro-lift card hover animation
-        AnimationHelper.applyCardHover(this);
+        if (available) {
+            AnimationHelper.applyCardHover(this);
+        }
 
-        // 1. Product Image with 5px corner radius
+        // 1. Product Image with 8px corner radius
         StackPane imageWrapper = new StackPane();
         imageWrapper.setMinWidth(0);
         imageWrapper.setPrefWidth(Region.USE_COMPUTED_SIZE);
@@ -70,19 +99,21 @@ public class ItemCard extends VBox {
         ProductImagePane imagePane = new ProductImagePane(item, 175, 8);
         imageWrapper.getChildren().add(imagePane);
 
-        boolean available = item.isInStock();
-
         if (!available) {
-            Label badgeSoldOut = new Label("TẠM HẾT");
-            badgeSoldOut.setStyle("-fx-background-color: rgba(185, 28, 28, 0.90); -fx-text-fill: #FFFFFF; -fx-font-size: 10px; -fx-font-weight: 800; -fx-padding: 3 8 3 8; -fx-background-radius: 6px;");
+            Label badgeSoldOut = new Label("🚫 TẠM HẾT");
+            badgeSoldOut.setStyle(
+                "-fx-background-color: #4B5563; " +
+                "-fx-text-fill: #FFFFFF; " +
+                "-fx-font-family: 'Inter', sans-serif; " +
+                "-fx-font-size: 10px; " +
+                "-fx-font-weight: 800; " +
+                "-fx-padding: 3 8 3 8; " +
+                "-fx-background-radius: 6px;"
+            );
             StackPane.setAlignment(badgeSoldOut, Pos.TOP_RIGHT);
             StackPane.setMargin(badgeSoldOut, new Insets(6, 6, 0, 0));
             imageWrapper.getChildren().add(badgeSoldOut);
-            setOpacity(0.62);
-        }
-
-        // Khung viền & Huy hiệu Lửa Bán Chạy
-        if (item.isBestseller()) {
+        } else if (item.isBestseller()) {
             Label badgeHot = new Label("🔥 BÁN CHẠY");
             badgeHot.setStyle(
                 "-fx-background-color: linear-gradient(to right, #DC2626, #EA580C); " +
@@ -108,19 +139,19 @@ public class ItemCard extends VBox {
             pulse.play();
         }
 
-        // 2. Product Name (13px Bold #112823)
+        // 2. Product Name (13px Bold)
         Label lblName = new Label(item.getName());
-        lblName.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #112823;");
+        lblName.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: " + (available ? "#112823" : "#6B7280") + ";");
         lblName.setWrapText(true);
         lblName.setMinHeight(34);
         lblName.setPrefHeight(34);
 
-        // 3. Bottom Row: Price (12.5px Bold #563521) + [+ Thêm] Button (11.5px Bold, padding 5 10, radius 6px)
+        // 3. Bottom Row: Price / Out-of-Stock notice + [+ Thêm] Button
         HBox bottomRow = new HBox(6);
         bottomRow.setAlignment(Pos.CENTER_LEFT);
 
         Label lblPrice = new Label(available ? CurrencyFormatter.format(item.getPrice()) : "Tạm ngưng");
-        lblPrice.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-text-fill: " + (available ? "#563521" : "#B91C1C") + ";");
+        lblPrice.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-text-fill: " + (available ? "#563521" : "#6B7280") + ";");
 
         Region sp = new Region();
         HBox.setHgrow(sp, Priority.ALWAYS);
@@ -144,9 +175,16 @@ public class ItemCard extends VBox {
 
         getChildren().addAll(imageWrapper, lblName, bottomRow);
 
-        // Clicking card body opens detailed customization dialog if in stock
+        // Clicking card body opens detailed customization dialog if in stock, else shows toast warning
         setOnMouseClicked(e -> {
-            if (available && onSelect != null) onSelect.accept(item);
+            if (available) {
+                if (onSelect != null) onSelect.accept(item);
+            } else {
+                String msg = "Món '" + item.getName() + "' hiện đang tạm hết nguyên liệu. Quý khách vui lòng chọn món thơm ngon khác nhé!";
+                if (toastNotifier != null) {
+                    toastNotifier.accept(msg);
+                }
+            }
         });
     }
 

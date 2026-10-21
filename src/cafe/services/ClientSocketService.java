@@ -36,7 +36,12 @@ public class ClientSocketService {
     private Consumer<MessageProtocol.OrderAckMessage> onOrderAckReceived;
     private Consumer<MessageProtocol.OrderStatusUpdateMessage> onStatusUpdateReceived;
     private BiConsumer<Integer, String> onTableStatusReceived;
+    private Consumer<MessageProtocol.StockStatusBroadcastMessage> onStockStatusReceived;
     private Consumer<String> onErrorOccurred;
+
+    public void setOnStockStatusReceived(Consumer<MessageProtocol.StockStatusBroadcastMessage> callback) {
+        this.onStockStatusReceived = callback;
+    }
 
     public void setOnConnectionStateChanged(Consumer<Boolean> callback) {
         this.onConnectionStateChanged = callback;
@@ -222,6 +227,13 @@ public class ClientSocketService {
                             MessageProtocol.TableStatusBroadcastMessage tBroadcast = MessageProtocol.fromJson(rawJson, MessageProtocol.TableStatusBroadcastMessage.class);
                             dispatch(() -> {
                                 if (onTableStatusReceived != null) onTableStatusReceived.accept(tBroadcast.table, tBroadcast.status);
+                            });
+                            break;
+
+                        case STOCK_STATUS_BROADCAST:
+                            MessageProtocol.StockStatusBroadcastMessage stockMsg = MessageProtocol.fromJson(rawJson, MessageProtocol.StockStatusBroadcastMessage.class);
+                            dispatch(() -> {
+                                if (onStockStatusReceived != null) onStockStatusReceived.accept(stockMsg);
                             });
                             break;
 

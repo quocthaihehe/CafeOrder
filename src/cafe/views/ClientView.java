@@ -360,7 +360,7 @@ public class ClientView extends BorderPane {
         currentCards.clear();
 
         for (MenuItem item : items) {
-            ItemCard card = new ItemCard(item, onSelect, onQuickAdd);
+            ItemCard card = new ItemCard(item, onSelect, onQuickAdd, this::showToast);
             currentCards.add(card);
         }
 
@@ -399,30 +399,31 @@ public class ClientView extends BorderPane {
             "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 12, 0.1, 0, 4);"
         );
 
-        // 1. Ảnh Độ Mixi cầm hũ Khô gà
+        // 1. Ảnh Độ Mixi cầm hũ Khô gà - Siêu nét Retina x2, chuẩn tỷ lệ 4:3 (152x114), bo góc 14px hoàn hảo
         ImageView imgView = new ImageView();
         try {
             java.io.InputStream is = getClass().getResourceAsStream("/cafe/resources/images/products/kho_ga_do_mixi_banner.png");
             if (is != null) {
-                Image img = new Image(is);
+                // Nạp decode-time nội suy mịn 320x240 để khử hoàn toàn hiện tượng vỡ hạt/mờ đục
+                Image img = new Image(is, 320, 240, true, true);
                 imgView.setImage(img);
-                imgView.setFitWidth(130);
-                imgView.setFitHeight(118);
+                imgView.setFitWidth(152);
+                imgView.setFitHeight(114);
                 imgView.setPreserveRatio(true);
                 imgView.setSmooth(true);
             }
         } catch (Exception ignored) {}
 
-        Rectangle imgClip = new Rectangle(130, 118);
-        imgClip.setArcWidth(12);
-        imgClip.setArcHeight(12);
+        Rectangle imgClip = new Rectangle(152, 114);
+        imgClip.setArcWidth(14);
+        imgClip.setArcHeight(14);
         imgView.setClip(imgClip);
 
         StackPane imgWrapper = new StackPane(imgView);
-        imgWrapper.setPrefSize(130, 118);
-        imgWrapper.setMinSize(130, 118);
-        imgWrapper.setMaxSize(130, 118);
-        imgWrapper.setStyle("-fx-background-color: #292524; -fx-background-radius: 12px;");
+        imgWrapper.setPrefSize(152, 114);
+        imgWrapper.setMinSize(152, 114);
+        imgWrapper.setMaxSize(152, 114);
+        imgWrapper.setStyle("-fx-background-color: transparent; -fx-background-radius: 14px;");
 
         // 2. Nội dung Text Marketing & Câu nói viral
         VBox textCol = new VBox(4);
@@ -468,21 +469,47 @@ public class ClientView extends BorderPane {
 
         Button btnOrder = new Button("🛒 Gọi Món Ngay");
         btnOrder.setStyle(
-            "-fx-background-color: #EA580C; " +
+            "-fx-background-color: #112823; " +
             "-fx-text-fill: #FFFFFF; " +
             "-fx-font-family: 'Inter', sans-serif; " +
-            "-fx-font-size: 12.5px; " +
+            "-fx-font-size: 13px; " +
             "-fx-font-weight: 800; " +
             "-fx-background-radius: 8px; " +
             "-fx-padding: 8 16 8 16; " +
             "-fx-cursor: hand;"
         );
+        btnOrder.setOnMouseEntered(e -> btnOrder.setStyle(
+            "-fx-background-color: #1A3B34; " +
+            "-fx-text-fill: #FFFFFF; " +
+            "-fx-font-family: 'Inter', sans-serif; " +
+            "-fx-font-size: 13px; " +
+            "-fx-font-weight: 800; " +
+            "-fx-background-radius: 8px; " +
+            "-fx-padding: 8 16 8 16; " +
+            "-fx-cursor: hand;"
+        ));
+        btnOrder.setOnMouseExited(e -> btnOrder.setStyle(
+            "-fx-background-color: #112823; " +
+            "-fx-text-fill: #FFFFFF; " +
+            "-fx-font-family: 'Inter', sans-serif; " +
+            "-fx-font-size: 13px; " +
+            "-fx-font-weight: 800; " +
+            "-fx-background-radius: 8px; " +
+            "-fx-padding: 8 16 8 16; " +
+            "-fx-cursor: hand;"
+        ));
         AnimationHelper.applyButtonPress(btnOrder);
         btnOrder.setOnAction(e -> {
             MenuItem item = cafe.models.MenuRepository.findById(68);
-            if (item != null && onQuickAdd != null) {
-                onQuickAdd.accept(item);
-                showToast("🔥 Đã thêm Khô Gà Lá Chanh MixiFood vào giỏ hàng! Nhâm nhi cùng cà phê cực cuốn!");
+            if (item != null) {
+                if (!item.isInStock()) {
+                    showToast("Món '" + item.getName() + "' hiện đang tạm hết nguyên liệu. Quý khách vui lòng chọn món thơm ngon khác nhé!");
+                    return;
+                }
+                if (onQuickAdd != null) {
+                    onQuickAdd.accept(item);
+                    showToast("🔥 Đã thêm Khô Gà Lá Chanh MixiFood vào giỏ hàng! Nhâm nhi cùng cà phê cực cuốn!");
+                }
             }
         });
 
@@ -704,6 +731,14 @@ public class ClientView extends BorderPane {
         PauseTransition revert = new PauseTransition(Duration.seconds(3));
         revert.setOnFinished(e -> activeOrderBox.setStyle("-fx-background-color: #FBF9F5; -fx-border-color: #DED7CD; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-border-width: 1px;"));
         revert.play();
+    }
+
+    public void updateItemStockStatus(int itemId, boolean inStock) {
+        for (ItemCard card : currentCards) {
+            if (card.getItem().getId() == itemId) {
+                card.updateStockStatus(inStock);
+            }
+        }
     }
 
     public void showToast(String message) {

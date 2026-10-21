@@ -201,6 +201,8 @@ public class LoginController {
                 System.exit(0);
             }
         );
+        stage.setMaximized(true);
+        cafe.utils.WindowChromeHelper.applyMaximized(stage);
     }
 
     /**
@@ -249,6 +251,8 @@ public class LoginController {
                 System.exit(0);
             }
         );
+        stage.setMaximized(true);
+        cafe.utils.WindowChromeHelper.applyMaximized(stage);
     }
 
     /**
@@ -300,6 +304,8 @@ public class LoginController {
                 System.exit(0);
             }
         );
+        stage.setMaximized(true);
+        cafe.utils.WindowChromeHelper.applyMaximized(stage);
     }
 
     /**
@@ -340,6 +346,8 @@ public class LoginController {
                 System.exit(0);
             }
         );
+        stage.setMaximized(true);
+        cafe.utils.WindowChromeHelper.applyMaximized(stage);
     }
 
     private void returnToLoginView() {
@@ -359,7 +367,9 @@ public class LoginController {
 
         stage.setMinWidth(720);
         stage.setMinHeight(650);
-        view.setMaximizedMode(stage.isMaximized());
+        stage.setMaximized(true);
+        cafe.utils.WindowChromeHelper.applyMaximized(stage);
+        view.setMaximizedMode(true);
     }
 }
 

@@ -27,13 +27,15 @@ public class ClientMain {
             LoginView loginView = new LoginView();
             new LoginController(primaryStage, loginView, socketService);
 
-            // Tạo Scene hoàn chỉnh. Cửa sổ chuẩn OS cho phép thu nhỏ, phóng to, đa nhiệm Taskbar mượt mà
+            javafx.geometry.Rectangle2D bounds = javafx.stage.Screen.getPrimary().getVisualBounds();
+
+            // Tạo Scene hoàn chỉnh toàn màn hình (Maximized). Cửa sổ chuẩn OS cho phép đa nhiệm mượt mà
             Scene scene = WindowChromeHelper.createWindowScene(
                 primaryStage,
                 loginView,
                 "Đăng Nhập • Brew & Bean CAFE",
-                760,
-                700,
+                bounds.getWidth(),
+                bounds.getHeight(),
                 true,
                 () -> {
                     socketService.disconnect();
@@ -45,9 +47,11 @@ public class ClientMain {
             primaryStage.setScene(scene);
             primaryStage.setMinWidth(740);
             primaryStage.setMinHeight(660);
-            primaryStage.setWidth(760);
-            primaryStage.setHeight(700);
-            primaryStage.centerOnScreen();
+            primaryStage.setX(bounds.getMinX());
+            primaryStage.setY(bounds.getMinY());
+            primaryStage.setWidth(bounds.getWidth());
+            primaryStage.setHeight(bounds.getHeight());
+            primaryStage.setMaximized(true);
 
             // Lắng nghe phóng to form (Maximize) để chuyển sang login_hero2
             primaryStage.maximizedProperty().addListener((obs, wasMax, isNowMax) -> {
@@ -60,6 +64,8 @@ public class ClientMain {
             });
 
             primaryStage.show();
+            WindowChromeHelper.applyMaximized(primaryStage);
+            loginView.setMaximizedMode(true);
 
             // Khởi động ngầm kết nối Socket, bộ nhớ đệm hình ảnh 69 món và kết nối DB ngay tại màn hình Login
             socketService.warmupConnectAsync();

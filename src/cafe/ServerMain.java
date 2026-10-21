@@ -60,12 +60,14 @@ public class ServerMain {
                 });
             });
 
+            javafx.geometry.Rectangle2D bounds = javafx.stage.Screen.getPrimary().getVisualBounds();
+
             Scene scene = WindowChromeHelper.createWindowScene(
                 primaryStage,
                 adminShell,
                 "CoffeePOS • Quản Trị & Quầy Điều Phối Trung Tâm (Brew & Bean)",
-                1280,
-                800,
+                bounds.getWidth(),
+                bounds.getHeight(),
                 true,
                 () -> {
                     serverService.stop();
@@ -77,9 +79,11 @@ public class ServerMain {
             primaryStage.setScene(scene);
             primaryStage.setMinWidth(1080);
             primaryStage.setMinHeight(700);
-            primaryStage.setWidth(1280);
-            primaryStage.setHeight(820);
-            primaryStage.centerOnScreen();
+            primaryStage.setX(bounds.getMinX());
+            primaryStage.setY(bounds.getMinY());
+            primaryStage.setWidth(bounds.getWidth());
+            primaryStage.setHeight(bounds.getHeight());
+            primaryStage.setMaximized(true);
 
             primaryStage.setOnCloseRequest(e -> {
                 serverService.stop();
@@ -87,6 +91,7 @@ public class ServerMain {
             });
 
             primaryStage.show();
+            cafe.utils.WindowChromeHelper.applyMaximized(primaryStage);
         }
     }
 }

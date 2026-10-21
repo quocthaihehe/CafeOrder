@@ -37,13 +37,13 @@ public class WindowChromeHelper {
 
         double actualWidth = width;
         double actualHeight = height;
-        if (stage != null && stage.isMaximized()) {
-            try {
-                javafx.geometry.Rectangle2D bounds = javafx.stage.Screen.getPrimary().getVisualBounds();
+        try {
+            javafx.geometry.Rectangle2D bounds = javafx.stage.Screen.getPrimary().getVisualBounds();
+            if (stage != null && (stage.isMaximized() || width <= 0 || height <= 0)) {
                 actualWidth = bounds.getWidth();
                 actualHeight = bounds.getHeight();
-            } catch (Exception ignored) {}
-        }
+            }
+        } catch (Exception ignored) {}
 
         Scene scene = new Scene(root, actualWidth, actualHeight);
         applyTheme(scene);
@@ -76,6 +76,9 @@ public class WindowChromeHelper {
             stage.setTitle(title);
             applyTheme(existingScene);
 
+            try {
+                stage.setMaximized(true);
+            } catch (Exception ignored) {}
             applyMaximized(stage);
             return;
         }
@@ -85,6 +88,9 @@ public class WindowChromeHelper {
         Scene newScene = createWindowScene(stage, content, title, bounds.getWidth(), bounds.getHeight(), showMaximize, customClose);
         stage.setScene(newScene);
         stage.setTitle(title);
+        try {
+            stage.setMaximized(true);
+        } catch (Exception ignored) {}
         applyMaximized(stage);
     }
 
@@ -93,6 +99,9 @@ public class WindowChromeHelper {
      */
     public static void applyMaximized(Stage stage) {
         if (stage == null) return;
+        try {
+            stage.setMaximized(true);
+        } catch (Exception ignored) {}
         javafx.application.Platform.runLater(() -> {
             try {
                 if (stage.getStyle() == javafx.stage.StageStyle.UNDECORATED) {

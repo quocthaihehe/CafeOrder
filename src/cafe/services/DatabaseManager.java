@@ -283,30 +283,30 @@ public class DatabaseManager {
             list.add(new RecipeEntry("Cà phê Robusta rang", 25, "gram", 4200));
             list.add(new RecipeEntry("Sữa tươi / Sữa đặc", 60, "ml", 3100));
             list.add(new RecipeEntry("Đá viên", 150, "gram", 450));
-            list.add(new RecipeEntry("Ly nhựa size M + Ống hút", 1, "bộ", 1130));
+            list.add(new RecipeEntry("Ly nhựa size M + ống hút", 1, "bộ", 1130));
         } else if (cat.contains("Trà sữa")) {
             list.add(new RecipeEntry("Trà đen / Trà ô long", 15, "gram", 3500));
             list.add(new RecipeEntry("Bột kem béo & Sữa tươi", 80, "ml", 4200));
             list.add(new RecipeEntry("Trân châu đen", 50, "gram", 2200));
             list.add(new RecipeEntry("Đường nước", 25, "ml", 625));
-            list.add(new RecipeEntry("Ly nhựa size M + Ống hút", 1, "bộ", 1130));
+            list.add(new RecipeEntry("Ly nhựa size M + ống hút", 1, "bộ", 1130));
         } else if (cat.contains("Trà")) {
             list.add(new RecipeEntry("Trà ô long", 12, "gram", 3200));
             list.add(new RecipeEntry("Đào ngâm / Cam tươi", 65, "gram", 4800));
             list.add(new RecipeEntry("Đường nước", 25, "ml", 625));
-            list.add(new RecipeEntry("Ly nhựa size L + Ống hút", 1, "bộ", 1330));
+            list.add(new RecipeEntry("Ly nhựa size L + ống hút", 1, "bộ", 1330));
         } else if (cat.contains("Matcha") || cat.contains("Chocolate")) {
             list.add(new RecipeEntry("Bột matcha / Bột cacao", 15, "gram", 5800));
             list.add(new RecipeEntry("Sữa tươi", 140, "ml", 4200));
             list.add(new RecipeEntry("Kem béo (whipping)", 30, "ml", 2400));
-            list.add(new RecipeEntry("Ly nhựa size M + Ống hút", 1, "bộ", 1130));
+            list.add(new RecipeEntry("Ly nhựa size M + ống hút", 1, "bộ", 1130));
         } else if (cat.contains("Đá xay") || cat.contains("Soda")) {
             list.add(new RecipeEntry("Dâu tươi / Xoài chín", 90, "gram", 5600));
             list.add(new RecipeEntry("Kem béo (whipping)", 40, "ml", 3100));
             list.add(new RecipeEntry("Đường nước & Đá viên", 180, "gram", 900));
-            list.add(new RecipeEntry("Ly nhựa size L + Ống hút", 1, "bộ", 1330));
+            list.add(new RecipeEntry("Ly nhựa size L + ống hút", 1, "bộ", 1330));
         } else {
-            list.add(new RecipeEntry(" cốt bánh / Nguyên liệu chế biến", 1, "phần", Math.round(item.getPrice() * 0.30)));
+            list.add(new RecipeEntry("Cốt bánh / Nguyên liệu chế biến", 1, "phần", Math.round(item.getPrice() * 0.30)));
             list.add(new RecipeEntry("Túi giấy mang đi / Đĩa phục vụ", 1, "cái", 1200));
         }
         customRecipesMap.put(item.getId(), list);
@@ -366,6 +366,9 @@ public class DatabaseManager {
         return storedHash.equals(inputPassword);
     }
 
+    // Cache cac don da hoan tat tru kho dinh luong de chong tru trung lap tren RAM
+    private static final Set<Integer> deductedOrderIds = Collections.synchronizedSet(new HashSet<>());
+
     // =========================================================================
     // 3. LƯU ĐƠN HÀNG VÀO DATABASE (SAVE ORDER TRANSACTION)
     // =========================================================================
@@ -374,8 +377,8 @@ public class DatabaseManager {
             return false;
         }
 
-        String sqlOrder = "INSERT INTO Orders (table_id, order_type, status, total_amount, discount_amount, vat_amount, voucher_id, note) " +
-                          "VALUES (?, ?, ?, ?, ?, ?, NULL, ?);";
+        String sqlOrder = "INSERT INTO Orders (table_id, order_type, status, total_amount, discount_amount, vat_amount, voucher_id, note, idempotency_key) " +
+                          "VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?);";
         String sqlDetail = "INSERT INTO OrderDetails (order_id, product_id, quantity, unit_price, size_code, sugar_percent, ice_percent, temperature, customer_note) " +
                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);";
         String sqlTopping = "INSERT INTO OrderDetailToppings (detail_id, topping_id, quantity, unit_price) VALUES (?, ?, ?, ?);";
@@ -393,6 +396,7 @@ public class DatabaseManager {
                 ps.setDouble(5, order.getDiscountAmount());
                 ps.setDouble(6, order.getVatAmount());
                 ps.setString(7, order.getNote());
+                ps.setString(8, order.getRequestId());
                 ps.executeUpdate();
 
                 try (ResultSet rs = ps.getGeneratedKeys()) {
@@ -467,18 +471,25 @@ public class DatabaseManager {
         if (order == null || order.getItems() == null || order.getItems().isEmpty()) {
             return false;
         }
+        // Chống trừ trùng lặp cấp độ RAM
+        if (deductedOrderIds.contains(order.getOrderId())) {
+            return true;
+        }
+        deductedOrderIds.add(order.getOrderId());
+
 
         // 1. Trừ tồn kho trực tiếp trên danh sách 25 nguyên vật liệu In-Memory để UI Tab 6 cập nhật tức thì
         for (OrderItem item : order.getItems()) {
             int qty = Math.max(1, item.getQty());
             for (IngredientItem ing : ingredientsList) {
-                if (ing.name.contains("Cà phê Robusta") && item.getName().toLowerCase().contains("cà phê")) {
+                String itName = item.getName() != null ? item.getName().toLowerCase() : "";
+                if (ing.id == 1 && (itName.contains("cà phê") || itName.contains("ca phe") || itName.contains("coffee") || itName.contains("bạc xỉu"))) {
                     ing.currentStock = Math.max(0, ing.currentStock - 25 * qty);
-                } else if (ing.name.contains("Sữa tươi")) {
+                } else if (ing.id == 3 && (itName.contains("sữa") || itName.contains("latte") || itName.contains("cappuccino"))) {
                     ing.currentStock = Math.max(0, ing.currentStock - 50 * qty);
-                } else if (ing.name.contains("Đá viên")) {
+                } else if (ing.id == 14) {
                     ing.currentStock = Math.max(0, ing.currentStock - 120 * qty);
-                } else if (ing.name.contains("Ly nhựa size M")) {
+                } else if (ing.id == 22) {
                     ing.currentStock = Math.max(0, ing.currentStock - qty);
                 }
             }
@@ -487,6 +498,18 @@ public class DatabaseManager {
         if (!isAvailable()) {
             return true;
         }
+
+        // Chống trừ kho lặp lại cấp độ Database: kiểm tra xem đơn hàng đã từng trừ kho chưa
+        String sqlCheckMovement = "SELECT COUNT(*) FROM StockMovements WHERE order_id = ? AND movement_type = 'SALE';";
+        try (Connection connCheck = getConnection();
+             PreparedStatement psCheck = connCheck.prepareStatement(sqlCheckMovement)) {
+            psCheck.setInt(1, order.getOrderId());
+            try (ResultSet rsCheck = psCheck.executeQuery()) {
+                if (rsCheck.next() && rsCheck.getInt(1) > 0) {
+                    return true;
+                }
+            }
+        } catch (Exception ignored) {}
 
         String sqlFindRecipe = "SELECT r.ingredient_id, r.quantity_needed, i.name, i.unit, i.current_stock, i.min_alert_threshold " +
                                "FROM Recipes r " +
@@ -513,6 +536,13 @@ public class DatabaseManager {
                                 psDeduct.setDouble(1, totalConsumed);
                                 psDeduct.setInt(2, ingredientId);
                                 psDeduct.executeUpdate();
+                                String sqlRecordMovement = "INSERT INTO StockMovements (ingredient_id, movement_type, quantity, order_id) VALUES (?, 'SALE', ?, ?);";
+                                try (PreparedStatement psMove = conn.prepareStatement(sqlRecordMovement)) {
+                                    psMove.setInt(1, ingredientId);
+                                    psMove.setDouble(2, totalConsumed);
+                                    psMove.setInt(3, order.getOrderId());
+                                    psMove.executeUpdate();
+                                }
                             }
                         }
                     }
@@ -558,6 +588,69 @@ public class DatabaseManager {
     // =========================================================================
     // 6. THỐNG KÊ DASHBOARD QUẢN TRỊ (COFFPOS ADMIN DASHBOARD STATS)
     // =========================================================================
+    // =========================================================================
+    // 5b. KHOI PHUC DON HANG DANG XU LY KHI SERVER KHOI DONG LAI (PERSISTENCE)
+    // =========================================================================
+    public static List<Order> loadActiveOrdersFromDb() {
+        List<Order> list = new ArrayList<>();
+        if (!isAvailable()) return list;
+
+        String sqlOrders = "SELECT order_id, table_id, order_type, status, total_amount, discount_amount, vat_amount, note, created_at, idempotency_key " +
+                           "FROM Orders WHERE status IN ('QUEUED', 'PREPARING') ORDER BY order_id ASC;";
+        String sqlDetails = "SELECT product_id, quantity, unit_price, size_code, sugar_percent, ice_percent, temperature, customer_note " +
+                            "FROM OrderDetails WHERE order_id = ?;";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sqlOrders);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                int oId = rs.getInt("order_id");
+                int tbl = rs.getInt("table_id");
+                String oType = rs.getString("order_type");
+                String status = rs.getString("status");
+                double discount = rs.getDouble("discount_amount");
+                double vat = rs.getDouble("vat_amount");
+                String note = rs.getString("note");
+                Timestamp createdAt = rs.getTimestamp("created_at");
+                long ts = createdAt != null ? createdAt.getTime() : System.currentTimeMillis();
+
+                List<OrderItem> items = new ArrayList<>();
+                try (PreparedStatement psDet = conn.prepareStatement(sqlDetails)) {
+                    psDet.setInt(1, oId);
+                    try (ResultSet rsDet = psDet.executeQuery()) {
+                        while (rsDet.next()) {
+                            int pId = rsDet.getInt("product_id");
+                            int qty = rsDet.getInt("quantity");
+                            double price = rsDet.getDouble("unit_price");
+                            String size = rsDet.getString("size_code");
+                            int sugar = rsDet.getInt("sugar_percent");
+                            int ice = rsDet.getInt("ice_percent");
+                            String temp = rsDet.getString("temperature");
+                            String itemNote = rsDet.getString("customer_note");
+
+                            String prodName = "Món #" + pId;
+                            MenuItem mi = cafe.models.MenuRepository.findById(pId);
+                            if (mi != null) {
+                                prodName = mi.getName();
+                            }
+
+                            OrderItem oi = new OrderItem(pId, prodName, qty, price, size, 0, sugar, ice, temp, null, itemNote);
+                            items.add(oi);
+                        }
+                    }
+                }
+
+                String idempKey = rs.getString("idempotency_key");
+                Order o = new Order(oId, tbl, oType, items, status, discount, vat, null, note, ts, "Bàn " + tbl, idempKey);
+                list.add(o);
+            }
+        } catch (Exception e) {
+            System.err.println("[DATABASE] Lỗi đọc đơn hàng từ DB: " + e.getMessage());
+        }
+        return list;
+    }
+
     public static Map<String, Object> getDashboardStats(Map<Integer, Order> inMemoryOrders) {
         Map<String, Object> stats = new HashMap<>();
         double liveRev = 0;

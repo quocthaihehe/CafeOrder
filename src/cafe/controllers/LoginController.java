@@ -39,7 +39,7 @@ public class LoginController {
 
     private void initServerStatus() {
         socketService.setOnConnectionStateChanged(connected -> {
-            Platform.runLater(() -> view.setServerStatus(connected, "127.0.0.1", 5000));
+            Platform.runLater(() -> view.setServerStatus(connected, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort()));
         });
 
         view.getBtnRetryConnection().setOnAction(e -> {
@@ -47,13 +47,13 @@ public class LoginController {
             new Thread(() -> {
                 boolean ok = socketService.tryConnectToServer();
                 Platform.runLater(() -> {
-                    view.setServerStatus(ok, "127.0.0.1", 5000);
+                    view.setServerStatus(ok, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
                     view.getBtnRetryConnection().setDisable(false);
                 });
             }, "Retry-Connect-Thread").start();
         });
 
-        view.setServerStatus(socketService.isConnected(), "127.0.0.1", 5000);
+        view.setServerStatus(socketService.isConnected(), cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
         startServerPoll();
     }
 
@@ -65,11 +65,11 @@ public class LoginController {
                     new Thread(() -> {
                         boolean ok = socketService.tryConnectToServer();
                         Platform.runLater(() -> {
-                            view.setServerStatus(ok, "127.0.0.1", 5000);
+                            view.setServerStatus(ok, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
                         });
                     }, "Poll-Connect-Thread").start();
                 } else {
-                    view.setServerStatus(true, "127.0.0.1", 5000);
+                    view.setServerStatus(true, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
                 }
             })
         );
@@ -87,15 +87,15 @@ public class LoginController {
     private void handleLogin() {
         view.clearError();
 
-        // 1. Kiểm tra kết nối Máy chủ trung tâm (Port 5000)
+        // 1. Kiểm tra kết nối Máy chủ trung tâm (Port " + cafe.utils.NetworkConfig.getServerPort() + ")
         if (!socketService.isConnected()) {
             boolean ok = socketService.tryConnectToServer();
             if (!ok) {
-                view.setServerStatus(false, "127.0.0.1", 5000);
-                view.showError("⚠️ Chưa kết nối Máy chủ trung tâm (Port 5000)!\nVui lòng khởi động ServerMain trước rồi bấm [Thử lại].");
+                view.setServerStatus(false, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
+                view.showError("⚠️ Chưa kết nối Máy chủ trung tâm (Port " + cafe.utils.NetworkConfig.getServerPort() + ")!\nVui lòng khởi động ServerMain trước rồi bấm [Thử lại].");
                 return;
             }
-            view.setServerStatus(true, "127.0.0.1", 5000);
+            view.setServerStatus(true, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
         }
 
         String account = view.getAccountField().getText().trim();
@@ -218,7 +218,12 @@ public class LoginController {
             clientView,
             socketService,
             tableNumber,
-            null
+            null,
+            () -> {
+                socketService.disconnect();
+                socketService.warmupConnectAsync();
+                returnToLoginView();
+            }
         );
 
         if (clientView.getFloorPlanButton() != null) {
@@ -309,6 +314,7 @@ public class LoginController {
             clientView,
             socketService,
             tableNumber,
+            () -> openFloorPlan(activeTableNumber, staff),
             () -> openFloorPlan(activeTableNumber, staff)
         );
 
@@ -338,7 +344,7 @@ public class LoginController {
 
     private void returnToLoginView() {
         startServerPoll();
-        view.setServerStatus(socketService.isConnected(), "127.0.0.1", 5000);
+        view.setServerStatus(socketService.isConnected(), cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
 
         cafe.utils.WindowChromeHelper.setWindowContent(
             stage,

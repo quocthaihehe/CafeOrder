@@ -19,6 +19,10 @@ import javafx.scene.paint.Color;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.application.Platform;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.util.Duration;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -1308,7 +1312,7 @@ public class AdminSubViews {
         statusBox.setPadding(new Insets(14));
         statusBox.setStyle("-fx-background-color: #F8F5F0; -fx-background-radius: 10px;");
         statusBox.getChildren().addAll(
-            new Label("● Máy chủ Socket KDS: Đang hoạt động (127.0.0.1:5000)"),
+            new Label("● Máy chủ Socket KDS: Đang hoạt động (" + cafe.utils.NetworkConfig.getServerHost() + ":" + cafe.utils.NetworkConfig.getServerPort() + ")"),
             new Label("● Kết nối SQL Server Pool: Sẵn sàng (Non-blocking Warmup)"),
             new Label("● Máy in hóa đơn nhiệt: Khổ K80 (80mm Editorial Slip)"),
             new Label("● Phiên bản hệ thống: Brew & Bean Enterprise POS v4.0")
@@ -1423,5 +1427,350 @@ public class AdminSubViews {
         modal.setScene(scene);
         modal.show();
         AnimationHelper.playDialogEntrance(card);
+    }
+
+    // =========================================================================
+    // TAB 11: HẠ TẦNG & MẠNG SOCKET TELEMETRY (LTM & REAL-TIME MONITORING)
+    // =========================================================================
+    public static VBox buildNetworkTelemetryView(Stage parentStage, Consumer<String> toastCallback) {
+        VBox root = new VBox(14);
+        VBox.setVgrow(root, Priority.ALWAYS);
+
+        CafeServerService server = CafeServerService.getInstance();
+
+        // 1. Header
+        HBox header = new HBox(12);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        VBox titleBox = new VBox(2);
+        Label lblTitle = new Label("Hạ tầng & Giám sát Mạng Socket (LTM)");
+        lblTitle.setStyle("-fx-font-size: 20px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+        Label lblSub = new Label("Giám sát giao thông mạng TCP thời gian thực, độ trễ RTT (Ping), kiểm soát phiên & Phòng vệ Anti-Spam");
+        lblSub.setStyle("-fx-font-size: 12px; -fx-text-fill: #6F695F;");
+        titleBox.getChildren().addAll(lblTitle, lblSub);
+
+        Region spHeader = new Region();
+        HBox.setHgrow(spHeader, Priority.ALWAYS);
+
+        Button btnPingAll = new Button("📡  Ping toàn bộ thiết bị");
+        btnPingAll.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-weight: 700; -fx-font-size: 12.5px; -fx-background-radius: 8px; -fx-padding: 8 16 8 16; -fx-cursor: hand;");
+        AnimationHelper.applyButtonPress(btnPingAll);
+
+        Button btnPortConfig = new Button("⚙️  Đổi Cổng Mạng");
+        btnPortConfig.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #D6CEBE; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-weight: 700; -fx-font-size: 12.5px; -fx-text-fill: #112823; -fx-padding: 8 14 8 14; -fx-cursor: hand;");
+        btnPortConfig.setOnAction(e -> showNetworkPortModal(parentStage, toastCallback));
+
+        Button btnRefresh = new Button("🔄  Làm mới");
+        btnRefresh.setStyle("-fx-background-color: #FAF6F0; -fx-border-color: #E2DDD5; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-weight: 700; -fx-font-size: 12.5px; -fx-text-fill: #4A453E; -fx-padding: 8 14 8 14; -fx-cursor: hand;");
+
+        header.getChildren().addAll(titleBox, spHeader, btnPingAll, btnPortConfig, btnRefresh);
+
+        // 2. Metric KPI Cards (4 Cards)
+        HBox kpiRow = new HBox(12);
+
+        Label lblKpiPortVal = new Label(String.valueOf(server.getActiveServerPort()));
+        VBox cardPort = createMiniKpiCard("CỔNG LẮNG NGHE (TCP)", lblKpiPortVal, "#1E3A8A");
+
+        Label lblKpiSessionsVal = new Label(server.getActiveSessions().size() + " phiên");
+        VBox cardSessions = createMiniKpiCard("THIẾT BỊ TRỰC TUYẾN", lblKpiSessionsVal, "#047857");
+
+        Label lblKpiRttVal = new Label(server.getAverageRttMs() + " ms");
+        VBox cardRtt = createMiniKpiCard("RTT PING TRUNG BÌNH", lblKpiRttVal, "#D97706");
+
+        double totalKb = (server.getTotalBytesReceived() + server.getTotalBytesSent()) / 1024.0;
+        Label lblKpiTrafficVal = new Label(String.format("%.1f KB", totalKb));
+        VBox cardTraffic = createMiniKpiCard("LƯU LƯỢNG & PHÒNG VỆ", lblKpiTrafficVal, "#7C3AED");
+
+        kpiRow.getChildren().addAll(cardPort, cardSessions, cardRtt, cardTraffic);
+
+        // 3. Active Sessions Card
+        VBox sessionsCard = new VBox(10);
+        sessionsCard.setPadding(new Insets(16));
+        sessionsCard.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 12px; -fx-border-color: #E6E0D6; -fx-border-radius: 12px;");
+        VBox.setVgrow(sessionsCard, Priority.ALWAYS);
+
+        HBox sessionsCardHeader = new HBox(10);
+        sessionsCardHeader.setAlignment(Pos.CENTER_LEFT);
+
+        Label lblSessionsTitle = new Label("Danh sách Phiên Socket Client kết nối trực tiếp");
+        lblSessionsTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+
+        Region spSessions = new Region();
+        HBox.setHgrow(spSessions, Priority.ALWAYS);
+
+        Label lblSecBadge = new Label("🛡️ Anti-Spam Rate-Limiting: 15 req/s (BẬT)");
+        lblSecBadge.setStyle("-fx-background-color: #ECFDF5; -fx-text-fill: #065F46; -fx-font-size: 11px; -fx-font-weight: 700; -fx-padding: 4 10; -fx-background-radius: 20px;");
+
+        sessionsCardHeader.getChildren().addAll(lblSessionsTitle, spSessions, lblSecBadge);
+
+        // Table Header
+        HBox tblHeader = new HBox(8);
+        tblHeader.setPadding(new Insets(8, 12, 8, 12));
+        tblHeader.setStyle("-fx-background-color: #F8F5EE; -fx-background-radius: 6px;");
+        tblHeader.setAlignment(Pos.CENTER_LEFT);
+
+        Label thId = createTableHeader("MÃ PHIÊN", 90);
+        Label thTable = createTableHeader("BÀN", 80);
+        Label thDevice = createTableHeader("LOẠI THIẾT BỊ", 110);
+        Label thIp = createTableHeader("IP & CỔNG CLIENT", 160);
+        Label thRtt = createTableHeader("RTT LATENCY", 110);
+        Label thPkts = createTableHeader("GÓI RX / TX", 120);
+        Label thBytes = createTableHeader("LƯU LƯỢNG", 130);
+        Label thStatus = createTableHeader("TRẠNG THÁI", 130);
+        Region spTh = new Region();
+        HBox.setHgrow(spTh, Priority.ALWAYS);
+        Label thAction = createTableHeader("THAO TÁC", 140);
+        thAction.setAlignment(Pos.CENTER_RIGHT);
+
+        tblHeader.getChildren().addAll(thId, thTable, thDevice, thIp, thRtt, thPkts, thBytes, thStatus, spTh, thAction);
+
+        // Scrollable Rows
+        VBox rowsContainer = new VBox(6);
+        ScrollPane scrollPane = new ScrollPane(rowsContainer);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent; -fx-border-color: transparent;");
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+
+        Runnable[] renderRows = new Runnable[1];
+        renderRows[0] = () -> {
+            rowsContainer.getChildren().clear();
+            List<CafeServerService.ClientSession> sessions = server.getActiveSessionsList();
+
+            lblKpiPortVal.setText(String.valueOf(server.getActiveServerPort()));
+            lblKpiSessionsVal.setText(sessions.size() + " phiên");
+            lblKpiRttVal.setText(server.getAverageRttMs() + " ms");
+            double kb = (server.getTotalBytesReceived() + server.getTotalBytesSent()) / 1024.0;
+            lblKpiTrafficVal.setText(String.format("%.1f KB", kb));
+
+            if (sessions.isEmpty()) {
+                VBox emptyBox = new VBox(10);
+                emptyBox.setAlignment(Pos.CENTER);
+                emptyBox.setPadding(new Insets(36, 12, 36, 12));
+
+                Label lblEmptyIcon = new Label("📡");
+                lblEmptyIcon.setStyle("-fx-font-size: 32px;");
+
+                Label lblEmptyTitle = new Label("Chưa có thiết bị Kiosk hoặc Staff nào kết nối tới Server");
+                lblEmptyTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: #57534E;");
+
+                Label lblEmptySub = new Label("Mở ứng dụng Client (Giao diện Kiosk) hoặc Tablet nhân viên để bắt đầu giao tiếp qua Socket TCP trên cổng " + server.getActiveServerPort());
+                lblEmptySub.setStyle("-fx-font-size: 12px; -fx-text-fill: #A8A29E;");
+
+                emptyBox.getChildren().addAll(lblEmptyIcon, lblEmptyTitle, lblEmptySub);
+                rowsContainer.getChildren().add(emptyBox);
+                return;
+            }
+
+            for (CafeServerService.ClientSession s : sessions) {
+                HBox row = new HBox(8);
+                row.setAlignment(Pos.CENTER_LEFT);
+                row.setPadding(new Insets(8, 12, 8, 12));
+                row.setStyle("-fx-background-color: #FAF8F5; -fx-background-radius: 6px; -fx-border-color: #EFE9DF; -fx-border-radius: 6px; -fx-border-width: 1px;");
+
+                Label rId = new Label("#" + s.sessionId);
+                rId.setPrefWidth(90);
+                rId.setStyle("-fx-font-family: monospace; -fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #112823;");
+
+                String tblText = s.currentTable > 0 ? "Bàn " + String.format("%02d", s.currentTable) : "Chưa gán";
+                Label rTable = new Label(tblText);
+                rTable.setPrefWidth(80);
+                rTable.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #78350F;");
+
+                Label rDevice = new Label(s.deviceType != null ? s.deviceType : "KIOSK");
+                rDevice.setPrefWidth(110);
+                rDevice.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 600; -fx-text-fill: #4B5563;");
+
+                Label rIp = new Label(s.getRemoteAddress());
+                rIp.setPrefWidth(160);
+                rIp.setStyle("-fx-font-family: monospace; -fx-font-size: 11.5px; -fx-text-fill: #374151;");
+
+                long rtt = s.rttLatencyMs;
+                Label rRtt = new Label();
+                rRtt.setPrefWidth(110);
+                if (rtt <= 10) {
+                    rRtt.setText("🟢 " + rtt + " ms");
+                    rRtt.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #047857;");
+                } else if (rtt <= 50) {
+                    rRtt.setText("🟡 " + rtt + " ms");
+                    rRtt.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #D97706;");
+                } else {
+                    rRtt.setText("🔴 " + rtt + " ms");
+                    rRtt.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #DC2626;");
+                }
+
+                Label rPkts = new Label(s.packetsReceived.get() + " / " + s.packetsSent.get());
+                rPkts.setPrefWidth(120);
+                rPkts.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #4B5563;");
+
+                double inKb = s.bytesReceived.get() / 1024.0;
+                double outKb = s.bytesSent.get() / 1024.0;
+                Label rBytes = new Label(String.format("%.1f / %.1f KB", inKb, outKb));
+                rBytes.setPrefWidth(130);
+                rBytes.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #4B5563;");
+
+                Label rStatus = new Label();
+                rStatus.setPrefWidth(130);
+                if (s.isThrottled) {
+                    rStatus.setText("⚠️ Throttled (" + s.throttledCount.get() + ")");
+                    rStatus.setStyle("-fx-font-size: 11px; -fx-font-weight: 800; -fx-text-fill: #DC2626; -fx-background-color: #FEE2E2; -fx-background-radius: 4px; -fx-padding: 2 6;");
+                } else {
+                    rStatus.setText("🟢 Đang kết nối");
+                    rStatus.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #047857; -fx-background-color: #ECFDF5; -fx-background-radius: 4px; -fx-padding: 2 6;");
+                }
+
+                Region rSp = new Region();
+                HBox.setHgrow(rSp, Priority.ALWAYS);
+
+                HBox actionsBox = new HBox(6);
+                actionsBox.setAlignment(Pos.CENTER_RIGHT);
+                actionsBox.setPrefWidth(140);
+
+                Button btnPingSingle = new Button("📡 Ping");
+                btnPingSingle.setStyle("-fx-background-color: #E0E7FF; -fx-text-fill: #3730A3; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 4px; -fx-cursor: hand; -fx-padding: 3 8;");
+                btnPingSingle.setOnAction(ev -> {
+                    boolean ok = server.pingSession(s.sessionId);
+                    if (ok && toastCallback != null) {
+                        toastCallback.accept("Đã gửi gói tin thăm dò Ping tới phiên #" + s.sessionId);
+                    }
+                });
+
+                Button btnKick = new Button("🚫 Kick");
+                btnKick.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #991B1B; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 4px; -fx-cursor: hand; -fx-padding: 3 8;");
+                btnKick.setOnAction(ev -> {
+                    boolean ok = server.kickSession(s.sessionId);
+                    if (ok) {
+                        if (toastCallback != null) toastCallback.accept("Đã ngắt kết nối phiên #" + s.sessionId);
+                        Platform.runLater(renderRows[0]::run);
+                    }
+                });
+
+                actionsBox.getChildren().addAll(btnPingSingle, btnKick);
+                row.getChildren().addAll(rId, rTable, rDevice, rIp, rRtt, rPkts, rBytes, rStatus, rSp, actionsBox);
+                rowsContainer.getChildren().add(row);
+            }
+        };
+
+        btnPingAll.setOnAction(e -> {
+            server.pingAllSessions();
+            if (toastCallback != null) toastCallback.accept("Đã phát sóng thăm dò Ping (ICMP probe) đến " + server.getActiveSessions().size() + " phiên!");
+            renderRows[0].run();
+        });
+
+        btnRefresh.setOnAction(e -> {
+            renderRows[0].run();
+            if (toastCallback != null) toastCallback.accept("Đã cập nhật bảng số liệu mạng!");
+        });
+
+        sessionsCard.getChildren().addAll(sessionsCardHeader, tblHeader, scrollPane);
+
+        // 4. Network Protocol & Academic Overview (Thuyết minh đồ án LTM)
+        HBox infoBox = new HBox(12);
+        infoBox.setStyle("-fx-background-color: #FAF8F5; -fx-background-radius: 10px; -fx-border-color: #E2DDD5; -fx-border-radius: 10px; -fx-padding: 12 16 12 16;");
+
+        VBox c1 = createNetworkDocCard("1. Giao thức TCP Socket Full-Duplex", "Duy trì kết nối 2 chiều liên tục qua java.net.Socket. Cấu hình tcpNoDelay(true) để triệt tiêu thuật toán Nagle, tối ưu độ trễ gói tin < 5ms.");
+        VBox c2 = createNetworkDocCard("2. Bảng Định tuyến Decoupled Routing", "Tách biệt Session ID và Mã bàn (Table Number). Một bàn có thể kết nối nhiều thiết bị (Tablet nhân viên + Kiosk khách) đồng bộ trạng thái tức thời.");
+        VBox c3 = createNetworkDocCard("3. Cơ chế Rate-Limiting & Chống Spam", "Thuật toán Sliding Window Log chặn khi tần suất > 15 req/s. Ngăn chặn nguy cơ tấn công từ chối dịch vụ (DoS/Flooding) lên KDS máy chủ pha chế.");
+
+        infoBox.getChildren().addAll(c1, c2, c3);
+
+        // Auto-refresh timer: 3 seconds
+        Timeline timer = new Timeline(new KeyFrame(Duration.seconds(3), ev -> renderRows[0].run()));
+        timer.setCycleCount(Timeline.INDEFINITE);
+        timer.play();
+
+        root.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene == null) {
+                timer.stop();
+            }
+        });
+
+        renderRows[0].run();
+        root.getChildren().addAll(header, kpiRow, sessionsCard, infoBox);
+        return root;
+    }
+
+    private static Label createTableHeader(String text, double width) {
+        Label lbl = new Label(text);
+        lbl.setPrefWidth(width);
+        lbl.setStyle("-fx-font-size: 11px; -fx-font-weight: 800; -fx-text-fill: #78716C; -fx-letter-spacing: 0.5px;");
+        return lbl;
+    }
+
+    private static VBox createNetworkDocCard(String title, String desc) {
+        VBox box = new VBox(4);
+        HBox.setHgrow(box, Priority.ALWAYS);
+        Label lTitle = new Label(title);
+        lTitle.setStyle("-fx-font-size: 12px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+        Label lDesc = new Label(desc);
+        lDesc.setWrapText(true);
+        lDesc.setStyle("-fx-font-size: 11px; -fx-text-fill: #57534E; -fx-line-spacing: 2px;");
+        box.getChildren().addAll(lTitle, lDesc);
+        return box;
+    }
+
+    public static void showNetworkPortModal(Stage owner, Consumer<String> toastCallback) {
+        Stage modal = createModal(owner, "Cấu hình Cổng Mạng Socket");
+        VBox root = new VBox(14);
+        root.setPrefWidth(420);
+        root.setPadding(new Insets(20));
+        root.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 12px; -fx-border-color: #E6E0D6; -fx-border-radius: 12px;");
+
+        Label lblTitle = new Label("Cấu hình Cổng Mạng Socket (TCP)");
+        lblTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+
+        Label lblDesc = new Label("Thay đổi cổng mạng cho Máy chủ KDS và các Kiosk/Staff Client kết nối trong mạng LAN:");
+        lblDesc.setWrapText(true);
+        lblDesc.setStyle("-fx-font-size: 12px; -fx-text-fill: #6F695F;");
+
+        VBox form = new VBox(10);
+        Label lblPort = new Label("Cổng Socket TCP (Mặc định khuyến nghị: 8888):");
+        lblPort.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #112823;");
+
+        TextField txtPort = new TextField(String.valueOf(cafe.utils.NetworkConfig.getServerPort()));
+        txtPort.setStyle(INPUT_STYLE);
+
+        Label lblHost = new Label("Địa chỉ Máy chủ IP (Mặc định: 127.0.0.1 hoặc IP mạng LAN):");
+        lblHost.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #112823;");
+
+        TextField txtHost = new TextField(cafe.utils.NetworkConfig.getServerHost());
+        txtHost.setStyle(INPUT_STYLE);
+
+        Label lblNotice = new Label("Lưu ý: Thay đổi cổng mạng sẽ lưu vào file cấu hình hệ thống. Cần khởi động lại Máy chủ để lắng nghe trên cổng mới.");
+        lblNotice.setWrapText(true);
+        lblNotice.setStyle("-fx-font-size: 11px; -fx-text-fill: #B45309; -fx-background-color: #FEF3C7; -fx-padding: 8 10; -fx-background-radius: 6px;");
+
+        form.getChildren().addAll(lblPort, txtPort, lblHost, txtHost, lblNotice);
+
+        HBox btns = new HBox(10);
+        btns.setAlignment(Pos.CENTER_RIGHT);
+
+        Button btnCancel = new Button("Hủy");
+        btnCancel.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #4A453E; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-padding: 7 14; -fx-cursor: hand;");
+        btnCancel.setOnAction(e -> modal.close());
+
+        Button btnSave = new Button("Lưu Cấu Hình Mạng");
+        btnSave.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-padding: 7 18; -fx-cursor: hand;");
+        btnSave.setOnAction(e -> {
+            try {
+                int port = Integer.parseInt(txtPort.getText().trim());
+                if (port < 1024 || port > 65535) {
+                    if (toastCallback != null) toastCallback.accept("Cổng mạng phải nằm trong khoảng 1024 - 65535!");
+                    return;
+                }
+                String host = txtHost.getText().trim();
+                cafe.utils.NetworkConfig.setServerPort(port);
+                if (!host.isEmpty()) {
+                    cafe.utils.NetworkConfig.setServerHost(host);
+                }
+                if (toastCallback != null) toastCallback.accept("Đã cập nhật cấu hình mạng thành công: " + host + ":" + port);
+                modal.close();
+            } catch (NumberFormatException ex) {
+                if (toastCallback != null) toastCallback.accept("Cổng mạng phải là số nguyên hợp lệ!");
+            }
+        });
+
+        btns.getChildren().addAll(btnCancel, btnSave);
+        root.getChildren().addAll(lblTitle, lblDesc, form, btns);
+        showModal(modal, root);
     }
 }

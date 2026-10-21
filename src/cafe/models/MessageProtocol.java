@@ -65,11 +65,19 @@ public class MessageProtocol {
         public int orderId;
         public String status;
         public int position;
+        public boolean persisted = false;
+        public String storageMode = "IN_MEMORY"; // "DATABASE" hoac "IN_MEMORY"
 
         public OrderAckMessage(int orderId, String status, int position) {
+            this(orderId, status, position, false, "IN_MEMORY");
+        }
+
+        public OrderAckMessage(int orderId, String status, int position, boolean persisted, String storageMode) {
             this.orderId = orderId;
             this.status = status;
             this.position = position;
+            this.persisted = persisted;
+            this.storageMode = storageMode != null ? storageMode : "IN_MEMORY";
         }
     }
 
@@ -77,7 +85,7 @@ public class MessageProtocol {
         public String type = MessageType.ORDER_STATUS_UPDATE.name();
         public int orderId;
         public int table;
-        public String status; // QUEUED, PREPARING, DONE, CANCELLED
+        public String status; // CREATED, QUEUED, CONFIRMED, PREPARING, READY, DONE, SERVED, WAITING_PAYMENT, PAID, COMPLETED, CANCELLED
 
         public OrderStatusUpdateMessage(int orderId, String status) {
             this(orderId, 0, status);
@@ -146,13 +154,20 @@ public class MessageProtocol {
         return gson.fromJson(json, classOfT);
     }
 
-    // Tiện ích dịch ngôn ngữ hiển thị (Việt hóa)
+    // Tiện ích dịch ngôn ngữ hiển thị (Việt hóa chuẩn hệ thống CafeOrder)
     public static String translateStatus(String rawStatus) {
         if (rawStatus == null) return "KHÔNG RÕ";
         switch (rawStatus.toUpperCase()) {
+            case "CREATED": return "MỚI TẠO";
             case "QUEUED": return "ĐANG CHỜ";
+            case "CONFIRMED": return "ĐÃ TIẾP NHẬN";
             case "PREPARING": return "ĐANG PHA CHẾ";
+            case "READY":
             case "DONE": return "ĐÃ HOÀN THÀNH";
+            case "SERVED": return "ĐÃ PHỤC VỤ";
+            case "WAITING_PAYMENT": return "CHỜ THANH TOÁN";
+            case "PAID": return "ĐÃ THANH TOÁN";
+            case "COMPLETED": return "HOÀN TẤT";
             case "CANCELLED": return "ĐÃ HỦY";
             default: return rawStatus;
         }

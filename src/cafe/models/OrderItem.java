@@ -9,6 +9,8 @@ public class OrderItem {
     private int qty;
     private double basePrice;
     private double unitPrice;
+    private String status = "CONFIRMED"; // CONFIRMED, OUT_OF_STOCK, CANCELLED
+
     private String sizeCode; // S, M, L
     private double sizeDelta;
     private int sugarPercent; // 0, 30, 50, 70, 100
@@ -18,13 +20,41 @@ public class OrderItem {
     private String note;
 
     public OrderItem(String name, int qty, String note) {
-        this(0, name, qty, 0.0, "M", 0.0, 100, 100, "COLD", new ArrayList<>(), note);
+        this(0, name, qty, 0.0, "M", 0.0, 100, 100, "COLD", new ArrayList<>(), note, "CONFIRMED");
         parseLegacyCustomizationsFromNote();
     }
 
     public OrderItem(String name, int qty, String note, double unitPrice) {
-        this(0, name, qty, unitPrice, "M", 0.0, 100, 100, "COLD", new ArrayList<>(), note);
+        this(0, name, qty, unitPrice, "M", 0.0, 100, 100, "COLD", new ArrayList<>(), note, "CONFIRMED");
         parseLegacyCustomizationsFromNote();
+    }
+
+    public OrderItem(String name, int qty, String note, double unitPrice, String status) {
+        this(0, name, qty, unitPrice, "M", 0.0, 100, 100, "COLD", new ArrayList<>(), note, status);
+        parseLegacyCustomizationsFromNote();
+    }
+
+    public OrderItem(int productId, String name, int qty, double basePrice, String sizeCode, double sizeDelta,
+                     int sugarPercent, int icePercent, String temperature, List<ToppingItem> toppings, String note) {
+        this(productId, name, qty, basePrice, sizeCode, sizeDelta, sugarPercent, icePercent, temperature, toppings, note, "CONFIRMED");
+    }
+
+    public OrderItem(int productId, String name, int qty, double basePrice, String sizeCode, double sizeDelta,
+                     int sugarPercent, int icePercent, String temperature, List<ToppingItem> toppings, String note, String status) {
+        this.productId = productId;
+        this.name = name;
+        this.qty = qty;
+        this.basePrice = basePrice;
+        this.sizeCode = sizeCode != null ? sizeCode : "M";
+        this.sizeDelta = sizeDelta;
+        this.sugarPercent = sugarPercent;
+        this.icePercent = icePercent;
+        this.temperature = temperature != null ? temperature : "COLD";
+        this.toppings = toppings != null ? toppings : new ArrayList<>();
+        this.note = note != null ? note : "";
+        this.status = status != null ? status : "CONFIRMED";
+
+        recalculateUnitPrice();
     }
 
     private void parseLegacyCustomizationsFromNote() {
@@ -95,23 +125,6 @@ public class OrderItem {
         this.note = String.join(" • ", remainingNotes).trim();
     }
 
-    public OrderItem(int productId, String name, int qty, double basePrice, String sizeCode, double sizeDelta,
-                     int sugarPercent, int icePercent, String temperature, List<ToppingItem> toppings, String note) {
-        this.productId = productId;
-        this.name = name;
-        this.qty = qty;
-        this.basePrice = basePrice;
-        this.sizeCode = sizeCode != null ? sizeCode : "M";
-        this.sizeDelta = sizeDelta;
-        this.sugarPercent = sugarPercent;
-        this.icePercent = icePercent;
-        this.temperature = temperature != null ? temperature : "COLD";
-        this.toppings = toppings != null ? toppings : new ArrayList<>();
-        this.note = note != null ? note : "";
-
-        recalculateUnitPrice();
-    }
-
     public void recalculateUnitPrice() {
         double total = basePrice + sizeDelta;
         if (toppings != null) {
@@ -119,7 +132,9 @@ public class OrderItem {
                 total += t.getPrice();
             }
         }
-        this.unitPrice = Math.max(0, total);
+        if (total > 0 || unitPrice == 0) {
+            this.unitPrice = Math.max(0, total);
+        }
     }
 
     public int getProductId() { return productId; }
@@ -139,6 +154,16 @@ public class OrderItem {
 
     public double getUnitPrice() { return unitPrice; }
     public void setUnitPrice(double unitPrice) { this.unitPrice = unitPrice; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public boolean isBillable() {
+        return qty > 0
+                && Double.isFinite(unitPrice)
+                && unitPrice >= 0
+                && (status == null || "CONFIRMED".equalsIgnoreCase(status.trim()));
+    }
 
     public String getSizeCode() { return sizeCode; }
     public void setSizeCode(String sizeCode) { this.sizeCode = sizeCode; }
@@ -168,6 +193,9 @@ public class OrderItem {
     public void setNote(String note) { this.note = note; }
 
     public double getSubtotal() {
+        if (qty <= 0 || !Double.isFinite(unitPrice) || unitPrice < 0) {
+            return 0.0;
+        }
         return unitPrice * qty;
     }
 
@@ -182,7 +210,7 @@ public class OrderItem {
         }
         if ("HOT".equalsIgnoreCase(temperature)) {
             parts.add("Nóng");
-        } else {
+        } else if (icePercent != 100) {
             parts.add("Đá " + icePercent + "%");
         }
         if (sugarPercent != 100) {

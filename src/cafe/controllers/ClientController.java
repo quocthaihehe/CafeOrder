@@ -33,17 +33,23 @@ public class ClientController {
     private List<OrderItem> lastOrderItems = new ArrayList<>();
     private CartModalDialog activeCartDialog = null;
     private final Runnable onBackToFloorPlan;
+    private final Runnable onLogout;
 
     public ClientController(Stage primaryStage, ClientView view, ClientSocketService socketService, int tableNumber) {
-        this(primaryStage, view, socketService, tableNumber, null);
+        this(primaryStage, view, socketService, tableNumber, null, null);
     }
 
     public ClientController(Stage primaryStage, ClientView view, ClientSocketService socketService, int tableNumber, Runnable onBackToFloorPlan) {
+        this(primaryStage, view, socketService, tableNumber, onBackToFloorPlan, null);
+    }
+
+    public ClientController(Stage primaryStage, ClientView view, ClientSocketService socketService, int tableNumber, Runnable onBackToFloorPlan, Runnable onLogout) {
         this.primaryStage = primaryStage;
         this.view = view;
         this.socketService = socketService;
         this.tableNumber = tableNumber;
         this.onBackToFloorPlan = onBackToFloorPlan;
+        this.onLogout = onLogout;
         this.cartModel = new CartModel();
 
         init();
@@ -56,6 +62,11 @@ public class ClientController {
 
         if (onBackToFloorPlan != null) {
             view.getFloorPlanButton().setOnAction(e -> onBackToFloorPlan.run());
+        }
+        if (onLogout != null) {
+            view.getLogoutButton().setOnAction(e -> onLogout.run());
+        } else if (onBackToFloorPlan != null) {
+            view.getLogoutButton().setOnAction(e -> onBackToFloorPlan.run());
         }
 
         // Category & Search bindings

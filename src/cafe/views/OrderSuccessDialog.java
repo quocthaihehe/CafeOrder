@@ -36,8 +36,8 @@ import java.util.List;
 public class OrderSuccessDialog extends Stage {
 
     // Quy chuẩn 2 kiểu chữ duy nhất trên toàn bộ phiếu (ngoài tên quán)
-    private static final String STYLE_BOLD = "-fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #112823;";
-    private static final String STYLE_REGULAR = "-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 400; -fx-text-fill: #4A453E;";
+    private static final String STYLE_BOLD = "-fx-font-family: 'Segoe UI', 'Inter', -apple-system, sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #112823;";
+    private static final String STYLE_REGULAR = "-fx-font-family: 'Segoe UI', 'Inter', -apple-system, sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 500; -fx-text-fill: #4A453E;";
 
     public static class ReceiptData {
         public final int orderId;

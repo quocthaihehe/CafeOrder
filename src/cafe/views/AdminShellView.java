@@ -186,6 +186,7 @@ public class AdminShellView extends BorderPane {
         navButtons.add(createSidebarBtn(8, "Nhân sự & Phân quyền", "nhan-vien.png", SvgIcons.USER, "👥"));
         navButtons.add(createSidebarBtn(9, "Báo cáo Tài chính", "bao-cao.png", SvgIcons.ORDERS, "📈"));
         navButtons.add(createSidebarBtn(10, "Cài đặt hệ thống", "cai-dat.png", SvgIcons.SETTINGS, "⚙️"));
+        navButtons.add(createSidebarBtn(11, "Hạ tầng & Mạng", "cai-dat.png", SvgIcons.SETTINGS, "🌐"));
 
         navList.getChildren().addAll(navButtons);
 
@@ -193,10 +194,12 @@ public class AdminShellView extends BorderPane {
         VBox.setVgrow(spacer, Priority.ALWAYS);
 
         // Bottom Manager Profile Card + Quick Logout
-        HBox profileCard = new HBox(10);
-        profileCard.setAlignment(Pos.CENTER_LEFT);
+        VBox profileCard = new VBox(8);
         profileCard.setPadding(new Insets(10, 10, 10, 10));
         profileCard.setStyle("-fx-background-color: #EFE8DD; -fx-background-radius: 10px;");
+
+        HBox profInfoRow = new HBox(8);
+        profInfoRow.setAlignment(Pos.CENTER_LEFT);
 
         Circle avatar = new Circle(15, Color.web("#112823"));
         Label lblAvaText = new Label("M");
@@ -206,18 +209,22 @@ public class AdminShellView extends BorderPane {
         VBox profTexts = new VBox(1);
         HBox.setHgrow(profTexts, Priority.ALWAYS);
         Label lblName = new Label("Minh Anh");
-        lblName.setStyle("-fx-font-size: 13px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+        lblName.setStyle("-fx-font-family: 'Segoe UI', 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 800; -fx-text-fill: #112823;");
         Label lblRole = new Label("Quản lý · Toàn quyền");
-        lblRole.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 600; -fx-text-fill: #6F695F;");
+        lblRole.setStyle("-fx-font-family: 'Segoe UI', 'Inter', sans-serif; -fx-font-size: 10.5px; -fx-font-weight: 600; -fx-text-fill: #6F695F;");
         profTexts.getChildren().addAll(lblName, lblRole);
 
-        Button btnLogoutQuick = new Button("Đăng xuất");
-        btnLogoutQuick.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 5 10 5 10; -fx-cursor: hand;");
+        profInfoRow.getChildren().addAll(avaPane, profTexts);
+
+        Button btnLogoutQuick = new Button("🚪  Đăng xuất");
+        btnLogoutQuick.setMaxWidth(Double.MAX_VALUE);
+        btnLogoutQuick.setAlignment(Pos.CENTER);
+        btnLogoutQuick.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 6 10; -fx-cursor: hand;");
         btnLogoutQuick.setOnAction(e -> {
             if (onLogoutCallback != null) onLogoutCallback.run();
         });
 
-        profileCard.getChildren().addAll(avaPane, profTexts, btnLogoutQuick);
+        profileCard.getChildren().addAll(profInfoRow, btnLogoutQuick);
 
         // Nút Đăng xuất Quản trị chuyên biệt ở chân Sidebar
         Button btnAdminLogout = new Button();
@@ -395,10 +402,15 @@ public class AdminShellView extends BorderPane {
                 centerContent.getChildren().add(AdminSubViews.styleInputs(AdminSubViews.buildFinancialReportsView(this::showToastNotification)));
                 break;
             case 10:
-            default:
                 centerContent.getChildren().add(AdminSubViews.styleInputs(AdminSubViews.buildSystemSettingsView(st, this::showToastNotification, () -> {
                     if (posEmbeddedMenuController != null) posEmbeddedMenuController.refreshCatalog();
                 }, onLogoutCallback)));
+                break;
+            case 11:
+                centerContent.getChildren().add(AdminSubViews.styleInputs(AdminSubViews.buildNetworkTelemetryView(st, this::showToastNotification)));
+                break;
+            default:
+                renderDashboardTab();
                 break;
         }
     }
@@ -477,7 +489,7 @@ public class AdminShellView extends BorderPane {
         Label lblTitle = new Label(title);
         lblTitle.setStyle("-fx-font-size: 10px; -fx-font-weight: 800; -fx-text-fill: #78716C; -fx-letter-spacing: 0.5px;");
 
-        valLabel.setStyle("-fx-font-family: 'Playfair Display', Georgia, serif; -fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+        valLabel.setStyle("-fx-font-family: 'Segoe UI', 'Inter', -apple-system, sans-serif; -fx-font-size: 24px; -fx-font-weight: 800; -fx-text-fill: #112823;");
         subLabel.setStyle("-fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: #15803D;");
 
         card.getChildren().addAll(lblTitle, valLabel, subLabel);

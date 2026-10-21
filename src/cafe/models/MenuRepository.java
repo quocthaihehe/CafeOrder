@@ -223,7 +223,7 @@ public class MenuRepository {
         menuItems.add(new MenuItem(65, "Gà Viên Chiên", 40000, "Món ăn nhẹ", "Gà viên chiên vàng, sốt mayonnaise.", "🍗", false, false, false, false, 7));
         menuItems.add(new MenuItem(66, "Bánh Mì Thịt", 35000, "Món ăn nhẹ", "Bánh mì vỏ giòn nóng hổi, nhân thịt nguội, chả lụa, pate, dưa góp và sốt đậm đà.", "🥖", false, false, true, false, 5));
         menuItems.add(new MenuItem(67, "Bánh Tráng Trộn", 28000, "Món ăn nhẹ", "Bánh tráng dẻo trộn bò khô, trứng cút, xoài xanh, rau răm và sốt tắc chua ngọt.", "🥗", false, false, true, false, 5));
-        menuItems.add(new MenuItem(68, "Khô Gà Anh Độ Mixi", 35000, "Món ăn nhẹ", "Khô gà lá chanh giòn cay thơm lừng chuẩn vị Bộ Tộc, nhâm nhi cực cuốn.", "🍗", false, false, true, true, 3));
+        menuItems.add(new MenuItem(68, "Khô Gà Lá Chanh MixiFood (Độ Mixi)", 35000, "Món ăn nhẹ", "Ăn một miếng là lươn lẹo cả ngày! Khô gà giòn rụm cay cay chuẩn vị Tộc Trưởng Độ Mixi, nhâm nhi cùng cà phê là hết nước chấm.", "🍗", false, false, true, true, 3));
         menuItems.add(new MenuItem(69, "Xiên Bẩn Lộn Xộn", 45000, "Món ăn nhẹ", "Combo cá viên, bò viên, tôm viên, xúc xích, hồ lô chiên giòn chấm tương ớt.", "🍢", false, false, true, true, 6));
     }
 

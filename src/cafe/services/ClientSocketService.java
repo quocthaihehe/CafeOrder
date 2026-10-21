@@ -17,8 +17,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class ClientSocketService {
-    private static final String DEFAULT_HOST = "127.0.0.1";
-    private static final int DEFAULT_PORT = 5000;
+    private static final String DEFAULT_HOST = cafe.utils.NetworkConfig.getServerHost();
+    private static final int DEFAULT_PORT = cafe.utils.NetworkConfig.getServerPort();
 
     private Socket socket;
     private PrintWriter out;
@@ -170,10 +170,17 @@ public class ClientSocketService {
         if (!isConnected() || out == null || items == null || items.isEmpty()) {
             return false;
         }
+        return sendOrderWithKey(tableNumber, orderType, discount, voucherCode, note, UUID.randomUUID().toString(), customerPhone, customerName, items);
+    }
+
+    public boolean sendOrderWithKey(int tableNumber, String orderType, double discount, String voucherCode, String note, String idempotencyKey, String customerPhone, String customerName, List<OrderItem> items) {
+        if (!isConnected() || out == null || items == null || items.isEmpty()) {
+            return false;
+        }
         try {
-            String idempotencyKey = UUID.randomUUID().toString();
+            String key = idempotencyKey != null ? idempotencyKey : UUID.randomUUID().toString();
             MessageProtocol.NewOrderMessage msg = new MessageProtocol.NewOrderMessage(
-                tableNumber, orderType, discount, voucherCode, note, idempotencyKey, customerPhone, customerName, items
+                tableNumber, orderType, discount, voucherCode, note, key, customerPhone, customerName, items
             );
             out.print(MessageProtocol.toJson(msg));
             out.flush();
@@ -216,6 +223,16 @@ public class ClientSocketService {
                             dispatch(() -> {
                                 if (onTableStatusReceived != null) onTableStatusReceived.accept(tBroadcast.table, tBroadcast.status);
                             });
+                            break;
+
+                        case PING:
+                            if (out != null) {
+                                out.print(MessageProtocol.toJson(new MessageProtocol.PongMessage()));
+                                out.flush();
+                            }
+                            break;
+
+                        case PONG:
                             break;
 
                         default:

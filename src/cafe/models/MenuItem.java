@@ -1,5 +1,8 @@
 package cafe.models;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 public class MenuItem {
     private int id;
     private String name;
@@ -7,6 +10,12 @@ public class MenuItem {
     private String category;
     private String description;
     private String iconEmoji;
+
+    // Admin & Status fields
+    private String status = "ACTIVE"; // "ACTIVE", "INACTIVE"
+    private String updatedAt;
+
+    // UI & Client/KDS extended fields (GiaiDoan4)
     private String imagePath;
     private boolean allowSize;
     private boolean isHotAvailable;
@@ -23,6 +32,13 @@ public class MenuItem {
         this(id, name, price, category, description, iconEmoji, true, false, false, false, 5);
     }
 
+    public MenuItem(int id, String name, double price, String category, String description, String iconEmoji, String status, String updatedAt) {
+        this(id, name, price, category, description, iconEmoji, true, false, false, false, 5);
+        this.status = status != null ? status : "ACTIVE";
+        this.updatedAt = updatedAt != null ? updatedAt : new SimpleDateFormat("yyyy-MM-dd HH:mm").format(new Date());
+        this.inStock = "ACTIVE".equalsIgnoreCase(this.status);
+    }
+
     public MenuItem(int id, String name, double price, String category, String description, String iconEmoji,
                     boolean allowSize, boolean isHotAvailable, boolean isBestseller, boolean isNew, int prepMinutes) {
         this.id = id;
@@ -31,12 +47,15 @@ public class MenuItem {
         this.category = category;
         this.description = description;
         this.iconEmoji = iconEmoji != null && !iconEmoji.isEmpty() ? iconEmoji : "☕";
+        this.status = "ACTIVE";
+        this.updatedAt = new SimpleDateFormat("yyyy-MM-dd HH:mm").format(new Date());
         this.imagePath = "images/products/" + id + ".jpg";
         this.allowSize = allowSize;
         this.isHotAvailable = isHotAvailable;
         this.isBestseller = isBestseller;
         this.isNew = isNew;
         this.prepMinutes = prepMinutes > 0 ? prepMinutes : 5;
+        this.inStock = true;
     }
 
     public int getId() { return id; }
@@ -57,6 +76,19 @@ public class MenuItem {
     public String getIconEmoji() { return iconEmoji; }
     public void setIconEmoji(String iconEmoji) { this.iconEmoji = iconEmoji; }
 
+    public String getStatus() { return status; }
+    public void setStatus(String status) { 
+        this.status = status; 
+        this.inStock = "ACTIVE".equalsIgnoreCase(status);
+    }
+
+    public boolean isActive() {
+        return "ACTIVE".equalsIgnoreCase(status);
+    }
+
+    public String getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(String updatedAt) { this.updatedAt = updatedAt; }
+
     public String getImagePath() { return imagePath; }
     public void setImagePath(String imagePath) { this.imagePath = imagePath; }
 
@@ -76,7 +108,12 @@ public class MenuItem {
     public void setPrepMinutes(int prepMinutes) { this.prepMinutes = prepMinutes; }
 
     public boolean isInStock() { return inStock; }
-    public void setInStock(boolean inStock) { this.inStock = inStock; }
+    public void setInStock(boolean inStock) { 
+        this.inStock = inStock; 
+        if (!inStock) {
+            this.status = "INACTIVE";
+        }
+    }
 
     public String getFormattedPrice() {
         return String.format("%,.0f đ", price);
@@ -86,4 +123,3 @@ public class MenuItem {
         return cafe.utils.ImageManager.getProductImageFileName(this);
     }
 }
-

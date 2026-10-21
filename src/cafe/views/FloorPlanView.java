@@ -72,9 +72,9 @@ public class FloorPlanView extends BorderPane {
     private final List<TableWithChairsNode> tableNodes = new ArrayList<>();
     private final VBox inspectorContentBox = new VBox(12);
 
-    private final Label lblStaffName = new Label("Trần Minh Anh");
+    private final Label lblStaffName = new Label("Nguyễn Minh Luân");
     private final Label lblStaffRole = new Label("Nhân viên");
-    private final Label lblStaffAvaText = new Label("NV");
+    private final Label lblStaffAvaText = new Label("NL");
     private StaffModel currentStaff;
 
     private final Map<Integer, String> tableStatusMap = new ConcurrentHashMap<>();
@@ -256,15 +256,7 @@ public class FloorPlanView extends BorderPane {
             e.consume();
             showStaffShiftModal(parentStage, currentStaff);
         });
-
-        Button btnLogoutQuick = new Button("Thoát");
-        btnLogoutQuick.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 4 8 4 8; -fx-cursor: hand;");
-        btnLogoutQuick.setOnAction(e -> {
-            e.consume();
-            if (onLogout != null) onLogout.run();
-        });
-
-        profBottomRow.getChildren().addAll(btnShiftManage, btnLogoutQuick);
+        profBottomRow.getChildren().add(btnShiftManage);
         profileCard.getChildren().addAll(profTopRow, profBottomRow);
 
         // Đăng xuất ở dưới cùng (nổi bật với theme đỏ cảnh báo sang trọng)
@@ -1384,11 +1376,47 @@ VBox summaryBox = new VBox(6);
         return btn;
     }
 
-    private void applyFilterPillStyle(Button btn, boolean isActive) {
+        private void applyFilterPillStyle(Button btn, boolean isActive) {
+        if (btn == null) return;
         if (isActive) {
-            btn.setStyle("-fx-background-color: #112823; -fx-background-radius: 6px;");
+            btn.setStyle(
+                "-fx-background-color: #112823; " +
+                "-fx-background-radius: 8px; " +
+                "-fx-cursor: hand;"
+            );
         } else {
-            btn.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 6px; -fx-border-color: #DED7CD; -fx-border-radius: 6px; -fx-border-width: 1px;");
+            btn.setStyle(
+                "-fx-background-color: #FFFFFF; " +
+                "-fx-background-radius: 8px; " +
+                "-fx-border-color: #DED7CD; " +
+                "-fx-border-radius: 8px; " +
+                "-fx-border-width: 1px; " +
+                "-fx-cursor: hand;"
+            );
+        }
+
+        if (btn.getGraphic() instanceof HBox) {
+            HBox content = (HBox) btn.getGraphic();
+            for (Node child : content.getChildren()) {
+                if (child instanceof Label) {
+                    ((Label) child).setStyle(
+                        "-fx-font-size: 12px; -fx-font-weight: 700; " +
+                        "-fx-text-fill: " + (isActive ? "#FFFFFF" : "#3F3931") + ";"
+                    );
+                } else if (child instanceof SVGPath) {
+                    ((SVGPath) child).setFill(isActive ? Color.WHITE : Color.web("#112823"));
+                    ((SVGPath) child).setStroke(isActive ? Color.WHITE : Color.web("#112823"));
+                } else if (child instanceof javafx.scene.Parent) {
+                    for (Node inner : ((javafx.scene.Parent) child).getChildrenUnmodifiable()) {
+                        if (inner instanceof SVGPath) {
+                            ((SVGPath) inner).setFill(isActive ? Color.WHITE : Color.web("#112823"));
+                            ((SVGPath) inner).setStroke(isActive ? Color.WHITE : Color.web("#112823"));
+                        } else if (inner instanceof Label) {
+                            ((Label) inner).setStyle("-fx-text-fill: " + (isActive ? "#FFFFFF" : "#112823") + ";");
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -1552,7 +1580,7 @@ VBox summaryBox = new VBox(6);
 
         VBox root = new VBox(14);
         root.setPadding(new Insets(24));
-        root.setPrefWidth(600);
+        root.setPrefWidth(680);
         root.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 16px; -fx-border-color: #DFD7CA; -fx-border-radius: 16px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 24, 0.15, 0, 8);");
 
         Label lblTitle = new Label("📋 Hồ Sơ Nhân Viên & Quản Lý Ca Trực (Shift Drawer)");
@@ -1589,6 +1617,7 @@ VBox summaryBox = new VBox(6);
 
         Label badgeActive = new Label("● Đang hoạt động");
         badgeActive.setStyle("-fx-background-color: #DCFCE7; -fx-text-fill: #15803D; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 4 8 4 8;");
+        badgeActive.setMinWidth(Region.USE_PREF_SIZE);
         staffInfo.getChildren().addAll(avaP, nameBox, badgeActive);
 
         // Revenue Audit Section
@@ -1725,7 +1754,20 @@ VBox summaryBox = new VBox(6);
         btnClose.setStyle("-fx-background-color: #EAE4DA; -fx-text-fill: #1C1917; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 8 14 8 14; -fx-cursor: hand;");
         btnClose.setOnAction(e -> modal.close());
 
-        actions.getChildren().addAll(btnPin, btnPrintZ, btnLogout, btnClose);
+        actions.setAlignment(Pos.CENTER_LEFT);
+
+        HBox leftActions = new HBox(8);
+        leftActions.setAlignment(Pos.CENTER_LEFT);
+        leftActions.getChildren().addAll(btnPin, btnPrintZ);
+
+        Region spacerActions = new Region();
+        HBox.setHgrow(spacerActions, Priority.ALWAYS);
+
+        HBox rightActions = new HBox(8);
+        rightActions.setAlignment(Pos.CENTER_RIGHT);
+        rightActions.getChildren().addAll(btnLogout, btnClose);
+
+        actions.getChildren().addAll(leftActions, spacerActions, rightActions);
 
         root.getChildren().addAll(lblTitle, staffInfo, auditCard, handoverBox, actions);
 

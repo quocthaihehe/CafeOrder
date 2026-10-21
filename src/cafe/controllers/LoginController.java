@@ -42,7 +42,53 @@ public class LoginController {
             Platform.runLater(() -> view.setServerStatus(connected, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort()));
         });
 
+        socketService.setOnReconnectApproved(appMsg -> {
+            Platform.runLater(() -> {
+                view.clearError();
+                view.showInfo("Phiên làm việc đã được Quản trị viên phê duyệt thành công!");
+                socketService.resetKickedState();
+                socketService.warmupConnectAsync();
+                view.setServerStatus(true, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
+                view.getBtnRetryConnection().setText("↻ Thử lại");
+                view.getBtnRetryConnection().setDisable(false);
+            });
+        });
+
+        socketService.setOnReconnectRejected(rejMsg -> {
+            Platform.runLater(() -> {
+                view.showError("Yêu cầu cấp lại phiên bị từ chối: " + (rejMsg != null && rejMsg.reason != null ? rejMsg.reason : "Không được cấp phép"));
+                view.setServerStatus(false, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
+                view.getBtnRetryConnection().setText("↻ Xin cấp lại");
+                view.getBtnRetryConnection().setDisable(false);
+            });
+        });
+
         view.getBtnRetryConnection().setOnAction(e -> {
+            if (socketService.isKickedByAdmin()) {
+                view.getBtnRetryConnection().setText("⏳ Đang gửi yêu cầu...");
+                view.getBtnRetryConnection().setDisable(true);
+                new Thread(() -> {
+                    boolean sent = socketService.sendReconnectRequest(
+                        "DEVICE-" + (activeTableNumber < 10 ? "0" + activeTableNumber : activeTableNumber),
+                        activeTableNumber,
+                        "KIOSK",
+                        "Thiết bị Bàn " + activeTableNumber + " xin cấp lại phiên làm việc"
+                    );
+                    Platform.runLater(() -> {
+                        if (sent) {
+                            view.showInfo("Đã gửi yêu cầu cấp lại phiên! Đang chờ Quản trị viên phê duyệt...");
+                            view.setServerStatus(false, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
+                            view.getBtnRetryConnection().setText("Đang chờ duyệt...");
+                        } else {
+                            view.showError("Không thể kết nối máy chủ để gửi yêu cầu! Vui lòng thử lại sau.");
+                            view.getBtnRetryConnection().setDisable(false);
+                            view.getBtnRetryConnection().setText("↻ Thử lại");
+                        }
+                    });
+                }, "Reconnect-Request-Thread").start();
+                return;
+            }
+
             view.getBtnRetryConnection().setDisable(true);
             new Thread(() -> {
                 boolean ok = socketService.tryConnectToServer();

@@ -152,6 +152,49 @@ public class MessageProtocol {
         }
     }
 
+    public static class ReconnectRequestMessage {
+        public String type = MessageType.RECONNECT_REQUEST.name();
+        public String deviceId;
+        public int tableNumber;
+        public String deviceType;
+        public long requestTime;
+        public String note;
+
+        public ReconnectRequestMessage() {}
+
+        public ReconnectRequestMessage(String deviceId, int tableNumber, String deviceType, String note) {
+            this.deviceId = deviceId;
+            this.tableNumber = tableNumber;
+            this.deviceType = deviceType;
+            this.requestTime = System.currentTimeMillis();
+            this.note = note;
+        }
+    }
+
+    public static class ReconnectApprovedMessage {
+        public String type = MessageType.RECONNECT_APPROVED.name();
+        public String sessionId;
+        public long approvedAt;
+
+        public ReconnectApprovedMessage() {}
+
+        public ReconnectApprovedMessage(String sessionId) {
+            this.sessionId = sessionId;
+            this.approvedAt = System.currentTimeMillis();
+        }
+    }
+
+    public static class ReconnectRejectedMessage {
+        public String type = MessageType.RECONNECT_REJECTED.name();
+        public String reason;
+
+        public ReconnectRejectedMessage() {}
+
+        public ReconnectRejectedMessage(String reason) {
+            this.reason = reason;
+        }
+    }
+
     public static class PingMessage {
         public String type = MessageType.PING.name();
         public long timestamp = System.currentTimeMillis();

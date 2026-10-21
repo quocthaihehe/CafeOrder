@@ -429,6 +429,14 @@ public class LoginView extends HBox {
 
     public void showError(String message) {
         lblError.setText(message);
+        lblError.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #DC2626; -fx-alignment: center;");
+        lblError.setVisible(true);
+        lblError.setManaged(true);
+    }
+
+    public void showInfo(String message) {
+        lblError.setText(message);
+        lblError.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #15803D; -fx-alignment: center;");
         lblError.setVisible(true);
         lblError.setManaged(true);
     }

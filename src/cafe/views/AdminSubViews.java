@@ -1733,6 +1733,13 @@ public class AdminSubViews {
 
         kpiRow.getChildren().addAll(cardPort, cardSessions, cardRtt, cardTraffic);
 
+        // 2.5. Pending Reconnect Requests Card
+        VBox pendingCard = new VBox(8);
+        pendingCard.setPadding(new Insets(12, 16, 12, 16));
+        pendingCard.setStyle("-fx-background-color: #FFFBEB; -fx-background-radius: 10px; -fx-border-color: #FDE68A; -fx-border-radius: 10px;");
+        pendingCard.setVisible(false);
+        pendingCard.setManaged(false);
+
         // 3. Active Sessions Card
         VBox sessionsCard = new VBox(10);
         sessionsCard.setPadding(new Insets(16));
@@ -1783,6 +1790,76 @@ public class AdminSubViews {
 
         Runnable[] renderRows = new Runnable[1];
         renderRows[0] = () -> {
+            // Render Pending Reconnect Requests
+            java.util.List<CafeServerService.ReconnectRequestEntry> reqs = server.getPendingReconnectRequests();
+            if (reqs == null || reqs.isEmpty()) {
+                pendingCard.getChildren().clear();
+                pendingCard.setVisible(false);
+                pendingCard.setManaged(false);
+            } else {
+                pendingCard.getChildren().clear();
+                pendingCard.setVisible(true);
+                pendingCard.setManaged(true);
+
+                HBox pendingHeader = new HBox(8);
+                pendingHeader.setAlignment(Pos.CENTER_LEFT);
+                Label lblPendingTitle = new Label("⚠️ YÊU CẦU NỐI LẠI PHIÊN ĐANG CHỜ DUYỆT (" + reqs.size() + ")");
+                lblPendingTitle.setStyle("-fx-font-size: 13px; -fx-font-weight: 800; -fx-text-fill: #92400E;");
+                Region spPending = new Region();
+                HBox.setHgrow(spPending, Priority.ALWAYS);
+                Label lblPendingHint = new Label("Thiết bị bị ngắt kết nối yêu cầu khôi phục quyền truy cập");
+                lblPendingHint.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #B45309;");
+                pendingHeader.getChildren().addAll(lblPendingTitle, spPending, lblPendingHint);
+                pendingCard.getChildren().add(pendingHeader);
+
+                for (CafeServerService.ReconnectRequestEntry req : reqs) {
+                    HBox reqRow = new HBox(10);
+                    reqRow.setAlignment(Pos.CENTER_LEFT);
+                    reqRow.setPadding(new Insets(8, 12, 8, 12));
+                    reqRow.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 8px; -fx-border-color: #FCD34D; -fx-border-radius: 8px;");
+
+                    String timeStr = new java.text.SimpleDateFormat("HH:mm:ss").format(new java.util.Date(req.requestTime));
+                    Label lblTime = new Label(timeStr);
+                    lblTime.setStyle("-fx-font-family: monospace; -fx-font-size: 11px; -fx-text-fill: #6B7280;");
+
+                    Label lblDev = new Label(req.deviceId + " (Bàn " + (req.tableNumber < 10 ? "0" + req.tableNumber : req.tableNumber) + ")");
+                    lblDev.setStyle("-fx-font-size: 12px; -fx-font-weight: 800; -fx-text-fill: #92400E;");
+
+                    Label lblType = new Label(req.deviceType != null ? req.deviceType : "KIOSK");
+                    lblType.setStyle("-fx-font-size: 11px; -fx-background-color: #FEF3C7; -fx-text-fill: #78350F; -fx-padding: 2 6 2 6; -fx-background-radius: 4px;");
+
+                    Label lblIp = new Label("IP: " + (req.ip != null ? req.ip : "127.0.0.1"));
+                    lblIp.setStyle("-fx-font-family: monospace; -fx-font-size: 11.5px; -fx-text-fill: #4B5563;");
+
+                    Label lblNote = new Label(req.note != null ? req.note : "Xin mở lại phiên làm việc");
+                    lblNote.setStyle("-fx-font-size: 12px; -fx-text-fill: #374151;");
+                    HBox.setHgrow(lblNote, Priority.ALWAYS);
+
+                    Button btnApprove = new Button("✔ Phê duyệt");
+                    btnApprove.setStyle("-fx-background-color: #DCFCE7; -fx-text-fill: #15803D; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-padding: 4 10 4 10; -fx-cursor: hand;");
+                    btnApprove.setOnAction(ev -> {
+                        boolean ok = server.approveReconnectRequest(req.deviceId);
+                        if (ok && toastCallback != null) {
+                            toastCallback.accept("Đã phê duyệt cấp lại phiên cho thiết bị: " + req.deviceId);
+                        }
+                        renderRows[0].run();
+                    });
+
+                    Button btnReject = new Button("✕ Từ chối");
+                    btnReject.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-padding: 4 10 4 10; -fx-cursor: hand;");
+                    btnReject.setOnAction(ev -> {
+                        boolean ok = server.rejectReconnectRequest(req.deviceId, "Quản trị viên từ chối cấp phiên");
+                        if (ok && toastCallback != null) {
+                            toastCallback.accept("Đã từ chối cấp lại phiên cho thiết bị: " + req.deviceId);
+                        }
+                        renderRows[0].run();
+                    });
+
+                    reqRow.getChildren().addAll(lblTime, lblDev, lblType, lblIp, lblNote, btnApprove, btnReject);
+                    pendingCard.getChildren().add(reqRow);
+                }
+            }
+
             rowsContainer.getChildren().clear();
             List<CafeServerService.ClientSession> sessions = server.getActiveSessionsList();
 
@@ -1875,13 +1952,32 @@ public class AdminSubViews {
                 actionsBox.setAlignment(Pos.CENTER_RIGHT);
                 actionsBox.setPrefWidth(140);
 
-                Button btnPingSingle = new Button("📡 Ping");
+                Button btnPingSingle = new Button("⚡ Ping");
                 btnPingSingle.setStyle("-fx-background-color: #E0E7FF; -fx-text-fill: #3730A3; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 4px; -fx-cursor: hand; -fx-padding: 3 8;");
                 btnPingSingle.setOnAction(ev -> {
-                    boolean ok = server.pingSession(s.sessionId);
-                    if (ok && toastCallback != null) {
-                        toastCallback.accept("Đã gửi gói tin thăm dò Ping tới phiên #" + s.sessionId);
-                    }
+                    btnPingSingle.setText("⏳ Đang đo...");
+                    btnPingSingle.setDisable(true);
+                    server.sendPingWithCallback(s.sessionId, (rttVal) -> Platform.runLater(() -> {
+                        btnPingSingle.setText("⚡ Ping");
+                        btnPingSingle.setDisable(false);
+                        if (rttVal >= 0) {
+                            rRtt.setText(rttVal + " ms");
+                            if (rttVal < 20) {
+                                rRtt.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #047857; -fx-background-color: #ECFDF5; -fx-background-radius: 4px; -fx-padding: 2 6;");
+                                if (toastCallback != null) toastCallback.accept("⚡ Phản hồi từ Phiên #" + s.sessionId + " (Bàn " + s.currentTable + "): " + rttVal + " ms (Rất tốt - Cực ổn định)");
+                            } else if (rttVal <= 80) {
+                                rRtt.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #B45309; -fx-background-color: #FEF3C7; -fx-background-radius: 4px; -fx-padding: 2 6;");
+                                if (toastCallback != null) toastCallback.accept("⚡ Phản hồi từ Phiên #" + s.sessionId + " (Bàn " + s.currentTable + "): " + rttVal + " ms (Bình thường)");
+                            } else {
+                                rRtt.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #DC2626; -fx-background-color: #FEE2E2; -fx-background-radius: 4px; -fx-padding: 2 6;");
+                                if (toastCallback != null) toastCallback.accept("⚠️ Phản hồi từ Phiên #" + s.sessionId + " (Bàn " + s.currentTable + "): " + rttVal + " ms (Mạng lag / Chậm)");
+                            }
+                        } else {
+                            rRtt.setText("Timeout ⚠️");
+                            rRtt.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #DC2626; -fx-background-color: #FEE2E2; -fx-background-radius: 4px; -fx-padding: 2 6;");
+                            if (toastCallback != null) toastCallback.accept("⚠️ Phiên #" + s.sessionId + " không phản hồi gói tin Ping (Request Timeout)!");
+                        }
+                    }));
                 });
 
                 Button btnKick = new Button("🚫 Kick");
@@ -1935,7 +2031,8 @@ public class AdminSubViews {
         });
 
         renderRows[0].run();
-        root.getChildren().addAll(header, kpiRow, sessionsCard, infoBox);
+        server.setOnReconnectRequestsChanged(() -> Platform.runLater(renderRows[0]::run));
+        root.getChildren().addAll(header, kpiRow, pendingCard, sessionsCard, infoBox);
         return root;
     }
 

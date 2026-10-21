@@ -3,6 +3,7 @@ package test;
 import cafe.models.MenuItem;
 import cafe.models.MessageProtocol;
 import cafe.models.MessageType;
+import cafe.models.StaffModel;
 import cafe.services.CafeServerService;
 import cafe.services.DatabaseManager;
 
@@ -13,7 +14,7 @@ public class PlanUIVer6VerificationTest {
 
     public static void main(String[] args) {
         System.out.println("===============================================================");
-        System.out.println("  KIỂM THỬ TÍNH NĂNG MỚI PLAN UI VER 6.0");
+        System.out.println("  KIỂM THỬ TÍNH NĂNG MỚI PLAN UI VER 6.0 & 6.5");
         System.out.println("===============================================================");
 
         int passed = 0;
@@ -83,6 +84,66 @@ public class PlanUIVer6VerificationTest {
             }
         } catch (Exception e) {
             System.err.println("[FAIL] 4. Exception: " + e.getMessage());
+            failed++;
+        }
+
+        // Test 5: Reconnect Protocols (Plan UI 6.5)
+        try {
+            MessageProtocol.ReconnectRequestMessage reqMsg = new MessageProtocol.ReconnectRequestMessage("DEVICE-05", 5, "KIOSK", "Xin cấp lại");
+            MessageProtocol.ReconnectApprovedMessage appMsg = new MessageProtocol.ReconnectApprovedMessage("DEVICE-05");
+            MessageProtocol.ReconnectRejectedMessage rejMsg = new MessageProtocol.ReconnectRejectedMessage("Từ chối");
+            if (MessageType.RECONNECT_REQUEST.name().equals(reqMsg.type) &&
+                MessageType.RECONNECT_APPROVED.name().equals(appMsg.type) &&
+                MessageType.RECONNECT_REJECTED.name().equals(rejMsg.type)) {
+                System.out.println("[PASS] 5. Reconnect message protocols cấu hình chuẩn xác.");
+                passed++;
+            } else {
+                System.err.println("[FAIL] 5. Reconnect message types mismatch.");
+                failed++;
+            }
+        } catch (Exception e) {
+            System.err.println("[FAIL] 5. Exception: " + e.getMessage());
+            failed++;
+        }
+
+        // Test 6: Reconnect Approval/Rejection in CafeServerService (Plan UI 6.5)
+        try {
+            CafeServerService server = CafeServerService.getInstance();
+            server.kickSession("DEVICE-TEST-RECON");
+            // Simulate receiving a reconnect request
+            CafeServerService.ReconnectRequestEntry entry = new CafeServerService.ReconnectRequestEntry(
+                "DEVICE-TEST-RECON", 5, "KIOSK", "127.0.0.1", System.currentTimeMillis(), "Cần phục hồi", null
+            );
+            server.addPendingReconnectRequest(entry);
+            boolean approved = server.approveReconnectRequest("DEVICE-TEST-RECON");
+            boolean stillBlacklisted = server.isSessionBlacklisted("DEVICE-TEST-RECON");
+            if (approved && !stillBlacklisted) {
+                System.out.println("[PASS] 6. CafeServerService approveReconnectRequest gỡ bỏ blacklist thành công.");
+                passed++;
+            } else {
+                System.err.println("[FAIL] 6. approveReconnectRequest logic error.");
+                failed++;
+            }
+        } catch (Exception e) {
+            System.err.println("[FAIL] 6. Exception: " + e.getMessage());
+            failed++;
+        }
+
+        // Test 7: Staff Name "Nguyễn Minh Luân" (Plan UI 6.5)
+        try {
+            DatabaseManager.resetStaffAndIngredientsSeed();
+            StaffModel adminStaff = DatabaseManager.authenticateStaff("admin", "123456");
+            StaffModel cashierStaff = DatabaseManager.authenticateStaff("cashier1", "123456");
+            if (adminStaff != null && "Nguyễn Minh Luân".equals(adminStaff.getFullName()) &&
+                cashierStaff != null && "Nguyễn Minh Luân".equals(cashierStaff.getFullName())) {
+                System.out.println("[PASS] 7. Tên nhân sự chuẩn hóa thành 'Nguyễn Minh Luân' cho admin và cashier1.");
+                passed++;
+            } else {
+                System.err.println("[FAIL] 7. Staff name mismatch: " + (adminStaff != null ? adminStaff.getFullName() : "null"));
+                failed++;
+            }
+        } catch (Exception e) {
+            System.err.println("[FAIL] 7. Exception: " + e.getMessage());
             failed++;
         }
 

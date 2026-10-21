@@ -73,6 +73,37 @@ public class ClientSocketService {
         this.onErrorOccurred = callback;
     }
 
+    private Consumer<MessageProtocol.ReconnectApprovedMessage> onReconnectApproved;
+    private Consumer<MessageProtocol.ReconnectRejectedMessage> onReconnectRejected;
+
+    public void setOnReconnectApproved(Consumer<MessageProtocol.ReconnectApprovedMessage> callback) {
+        this.onReconnectApproved = callback;
+    }
+
+    public void setOnReconnectRejected(Consumer<MessageProtocol.ReconnectRejectedMessage> callback) {
+        this.onReconnectRejected = callback;
+    }
+
+    public void resetKickedState() {
+        this.isKickedByAdmin = false;
+    }
+
+    public boolean sendReconnectRequest(String deviceId, int tableNumber, String deviceType, String note) {
+        this.isKickedByAdmin = false;
+        if (!isConnected()) {
+            openSocketInternal(DEFAULT_HOST, DEFAULT_PORT);
+        }
+        if (isConnected() && out != null) {
+            MessageProtocol.ReconnectRequestMessage req = new MessageProtocol.ReconnectRequestMessage(
+                deviceId, tableNumber, deviceType, note
+            );
+            out.print(MessageProtocol.toJson(req));
+            out.flush();
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Kết nối ngầm trước tới Server ngay khi màn hình Login vừa hiển thị.
      * Khi người dùng nhấn Đăng nhập, Socket đã mở sẵn nên thời gian chờ bằng 0ms.
@@ -259,6 +290,22 @@ public class ClientSocketService {
                             } catch (IOException ignored) {}
                             dispatch(() -> {
                                 if (onSessionKickedReceived != null) onSessionKickedReceived.accept(kickMsg);
+                            });
+                            break;
+
+                        case RECONNECT_APPROVED:
+                            isKickedByAdmin = false;
+                            MessageProtocol.ReconnectApprovedMessage approvedMsg = MessageProtocol.fromJson(rawJson, MessageProtocol.ReconnectApprovedMessage.class);
+                            dispatch(() -> {
+                                if (onReconnectApproved != null) onReconnectApproved.accept(approvedMsg);
+                            });
+                            break;
+
+                        case RECONNECT_REJECTED:
+                            isKickedByAdmin = true;
+                            MessageProtocol.ReconnectRejectedMessage rejectedMsg = MessageProtocol.fromJson(rawJson, MessageProtocol.ReconnectRejectedMessage.class);
+                            dispatch(() -> {
+                                if (onReconnectRejected != null) onReconnectRejected.accept(rejectedMsg);
                             });
                             break;
 

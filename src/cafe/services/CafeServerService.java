@@ -269,10 +269,20 @@ public class CafeServerService {
             send(MessageProtocol.toJson(new MessageProtocol.PingMessage()));
         }
 
+        private final java.util.List<Consumer<Long>> pongCallbacks = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+        public void addPongCallback(Consumer<Long> cb) {
+            if (cb != null) pongCallbacks.add(cb);
+        }
+
         public void recordPong() {
             if (lastPingSentAt > 0) {
                 long rtt = System.currentTimeMillis() - lastPingSentAt;
                 rttLatencyMs = Math.max(1, rtt);
+                for (Consumer<Long> cb : pongCallbacks) {
+                    try { cb.accept(rttLatencyMs); } catch (Exception ignored) {}
+                }
+                pongCallbacks.clear();
             }
         }
 
@@ -321,6 +331,120 @@ public class CafeServerService {
         for (ClientSession session : activeSessions.values()) {
             session.sendPingProbe();
         }
+    }
+
+    public void sendPingWithCallback(String sessionId, Consumer<Long> rttCallback) {
+        ClientSession session = activeSessions.get(sessionId);
+        if (session == null) {
+            if (rttCallback != null) rttCallback.accept(-1L);
+            return;
+        }
+        java.util.concurrent.atomic.AtomicBoolean completed = new java.util.concurrent.atomic.AtomicBoolean(false);
+        Consumer<Long> cbWrapper = (rtt) -> {
+            if (completed.compareAndSet(false, true)) {
+                if (rttCallback != null) rttCallback.accept(rtt);
+            }
+        };
+        session.addPongCallback(cbWrapper);
+        session.sendPingProbe();
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(1500);
+            } catch (InterruptedException ignored) {}
+            if (completed.compareAndSet(false, true)) {
+                if (rttCallback != null) rttCallback.accept(-1L);
+            }
+        }, "Ping-Timeout-Thread-" + sessionId).start();
+    }
+
+    // =========================================================================
+    // RECONNECT REQUEST MANAGEMENT (Duyệt cấp lại phiên làm việc)
+    // =========================================================================
+    public static class ReconnectRequestEntry {
+        public final String deviceId;
+        public final int tableNumber;
+        public final String deviceType;
+        public final String ip;
+        public final long requestTime;
+        public final String note;
+        public final ClientSession session;
+
+        public ReconnectRequestEntry(String deviceId, int tableNumber, String deviceType, String ip, long requestTime, String note, ClientSession session) {
+            this.deviceId = deviceId;
+            this.tableNumber = tableNumber;
+            this.deviceType = deviceType;
+            this.ip = ip;
+            this.requestTime = requestTime;
+            this.note = note;
+            this.session = session;
+        }
+    }
+
+    private final java.util.List<ReconnectRequestEntry> pendingReconnectRequests = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private final java.util.List<Runnable> reconnectRequestListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    public void setOnReconnectRequestsChanged(Runnable callback) {
+        if (callback != null) reconnectRequestListeners.add(callback);
+    }
+
+    public void notifyReconnectRequestsChanged() {
+        for (Runnable r : reconnectRequestListeners) {
+            try { r.run(); } catch (Exception ignored) {}
+        }
+    }
+
+    public java.util.List<ReconnectRequestEntry> getPendingReconnectRequests() {
+        return new java.util.ArrayList<>(pendingReconnectRequests);
+    }
+
+    public void addPendingReconnectRequest(ReconnectRequestEntry entry) {
+        if (entry != null) {
+            pendingReconnectRequests.removeIf(r -> r.deviceId != null && r.deviceId.equalsIgnoreCase(entry.deviceId));
+            pendingReconnectRequests.add(entry);
+            notifyReconnectRequestsChanged();
+        }
+    }
+
+    public boolean approveReconnectRequest(String deviceId) {
+        ReconnectRequestEntry target = null;
+        for (ReconnectRequestEntry req : pendingReconnectRequests) {
+            if (req.deviceId != null && req.deviceId.equalsIgnoreCase(deviceId)) {
+                target = req;
+                break;
+            }
+        }
+        if (target != null) {
+            pendingReconnectRequests.remove(target);
+            kickedBlacklist.remove(target.deviceId);
+            if (target.session != null) {
+                target.session.send(MessageProtocol.toJson(new MessageProtocol.ReconnectApprovedMessage(target.deviceId)));
+            }
+            notifyReconnectRequestsChanged();
+            log("Đã phê duyệt cấp lại phiên cho thiết bị: " + deviceId);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean rejectReconnectRequest(String deviceId, String reason) {
+        ReconnectRequestEntry target = null;
+        for (ReconnectRequestEntry req : pendingReconnectRequests) {
+            if (req.deviceId != null && req.deviceId.equalsIgnoreCase(deviceId)) {
+                target = req;
+                break;
+            }
+        }
+        if (target != null) {
+            pendingReconnectRequests.remove(target);
+            if (target.session != null) {
+                target.session.send(MessageProtocol.toJson(new MessageProtocol.ReconnectRejectedMessage(reason != null ? reason : "Quản trị viên từ chối cấp phiên")));
+            }
+            notifyReconnectRequestsChanged();
+            log("Đã từ chối cấp lại phiên cho thiết bị: " + deviceId);
+            return true;
+        }
+        return false;
     }
 
     private final Map<String, Long> kickedBlacklist = new ConcurrentHashMap<>();
@@ -488,6 +612,26 @@ public class CafeServerService {
                 switch (type) {
                     case PONG:
                         session.recordPong();
+                        break;
+
+                    case RECONNECT_REQUEST:
+                        MessageProtocol.ReconnectRequestMessage reqMsg = MessageProtocol.fromJson(line, MessageProtocol.ReconnectRequestMessage.class);
+                        if (reqMsg != null) {
+                            String dId = (reqMsg.deviceId != null && !reqMsg.deviceId.isEmpty()) ? reqMsg.deviceId : sessionId;
+                            ReconnectRequestEntry entry = new ReconnectRequestEntry(
+                                dId,
+                                reqMsg.tableNumber,
+                                reqMsg.deviceType != null ? reqMsg.deviceType : session.deviceType,
+                                session.getRemoteAddress(),
+                                reqMsg.requestTime > 0 ? reqMsg.requestTime : System.currentTimeMillis(),
+                                reqMsg.note,
+                                session
+                            );
+                            pendingReconnectRequests.removeIf(r -> r.deviceId != null && r.deviceId.equalsIgnoreCase(entry.deviceId));
+                            pendingReconnectRequests.add(entry);
+                            notifyReconnectRequestsChanged();
+                            log("Nhận yêu cầu xin nối lại phiên từ " + entry.deviceId + " (Bàn " + entry.tableNumber + ")");
+                        }
                         break;
 
                     case HELLO:

@@ -180,13 +180,13 @@ public class AdminShellView extends BorderPane {
         navButtons.add(createSidebarBtn(2, "Gọi món & Bàn", "goi-mon.png", SvgIcons.SHOPPING_BAG, "🛒"));
         navButtons.add(createSidebarBtn(3, "Đơn hàng", "don-hang.png", SvgIcons.ORDERS, "🧾"));
         navButtons.add(createSidebarBtn(4, "Bếp & Bar (KDS)", "man-pha-che.png", SvgIcons.COFFEE, "☕"));
-        navButtons.add(createSidebarBtn(5, "Thực đơn & Giá", "mon-va-gia.png", SvgIcons.MENU, "🏷️"));
+        navButtons.add(createSidebarBtn(5, "Thực đơn & Giá", "thuc-don-gia.png", SvgIcons.MENU, "🏷️"));
         navButtons.add(createSidebarBtn(6, "Kho & Định lượng", "kho.png", SvgIcons.SETTINGS, "📦"));
         navButtons.add(createSidebarBtn(7, "Khuyến mãi", "mon-va-gia.png", SvgIcons.MENU, "🎁"));
         navButtons.add(createSidebarBtn(8, "Nhân sự & Phân quyền", "nhan-vien.png", SvgIcons.USER, "👥"));
         navButtons.add(createSidebarBtn(9, "Báo cáo Tài chính", "bao-cao.png", SvgIcons.ORDERS, "📈"));
         navButtons.add(createSidebarBtn(10, "Cài đặt hệ thống", "cai-dat.png", SvgIcons.SETTINGS, "⚙️"));
-        navButtons.add(createSidebarBtn(11, "Hạ tầng & Mạng", "cai-dat.png", SvgIcons.SETTINGS, "🌐"));
+        navButtons.add(createSidebarBtn(11, "Hạ tầng & Mạng", "ha-tang-mang.png", SvgIcons.SETTINGS, "🌐"));
 
         navList.getChildren().addAll(navButtons);
 
@@ -202,29 +202,20 @@ public class AdminShellView extends BorderPane {
         profInfoRow.setAlignment(Pos.CENTER_LEFT);
 
         Circle avatar = new Circle(15, Color.web("#112823"));
-        Label lblAvaText = new Label("M");
+        Label lblAvaText = new Label("NL");
         lblAvaText.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 800; -fx-text-fill: #FFFFFF;");
         StackPane avaPane = new StackPane(avatar, lblAvaText);
 
         VBox profTexts = new VBox(1);
         HBox.setHgrow(profTexts, Priority.ALWAYS);
-        Label lblName = new Label("Minh Anh");
+        Label lblName = new Label("Nguyễn Minh Luân");
         lblName.setStyle("-fx-font-family: 'Segoe UI', 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 800; -fx-text-fill: #112823;");
         Label lblRole = new Label("Quản lý · Toàn quyền");
         lblRole.setStyle("-fx-font-family: 'Segoe UI', 'Inter', sans-serif; -fx-font-size: 10.5px; -fx-font-weight: 600; -fx-text-fill: #6F695F;");
         profTexts.getChildren().addAll(lblName, lblRole);
 
         profInfoRow.getChildren().addAll(avaPane, profTexts);
-
-        Button btnLogoutQuick = new Button("🚪  Đăng xuất");
-        btnLogoutQuick.setMaxWidth(Double.MAX_VALUE);
-        btnLogoutQuick.setAlignment(Pos.CENTER);
-        btnLogoutQuick.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 6 10; -fx-cursor: hand;");
-        btnLogoutQuick.setOnAction(e -> {
-            if (onLogoutCallback != null) onLogoutCallback.run();
-        });
-
-        profileCard.getChildren().addAll(profInfoRow, btnLogoutQuick);
+        profileCard.getChildren().add(profInfoRow);
 
         // Nút Đăng xuất Quản trị chuyên biệt ở chân Sidebar
         Button btnAdminLogout = new Button();

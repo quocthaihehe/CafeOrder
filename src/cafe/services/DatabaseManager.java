@@ -182,9 +182,9 @@ public class DatabaseManager {
         staffList.clear();
         staffPasswords.clear();
 
-        addSeedStaff(1, "admin", "Trần Minh Anh", "OWNER", "ACTIVE", "123456");
+        addSeedStaff(1, "admin", "Nguyễn Minh Luân", "OWNER", "ACTIVE", "123456");
         addSeedStaff(2, "manager", "Nguyễn Hoàng Khang", "MANAGER", "ACTIVE", "123456");
-        addSeedStaff(3, "cashier1", "Trần Minh Anh", "CASHIER", "ACTIVE", "123456");
+        addSeedStaff(3, "cashier1", "Nguyễn Minh Luân", "CASHIER", "ACTIVE", "123456");
         addSeedStaff(4, "waiter", "Lê Quốc Bảo", "WAITER", "ACTIVE", "123456");
         addSeedStaff(5, "barista1", "Phạm Thu Hà", "BARISTA", "ACTIVE", "123456");
         addSeedStaff(6, "barista2", "Đặng Gia Huy", "BARISTA", "ACTIVE", "123456");

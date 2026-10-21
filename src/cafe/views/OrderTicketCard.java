@@ -60,13 +60,13 @@ public class OrderTicketCard extends VBox {
     private void initUI() {
         getStyleClass().add("ticket-card");
         setSpacing(10);
-        setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 10px; -fx-border-color: #D8D1C3; -fx-border-radius: 10px; -fx-border-width: 1px; -fx-padding: 14; -fx-pref-width: 340px; -fx-max-width: 360px; -fx-min-width: 320px;");
+        setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 10px; -fx-border-color: #D8D1C3; -fx-border-radius: 10px; -fx-border-width: 1px; -fx-padding: 12 14 12 14;");
 
         // 1. TICKET HEADER (Bố cục 2 tầng không bị cắt chữ)
         VBox header = buildHeader();
         getChildren().add(header);
 
-        // 2. ITEMS LIST (Pinned Sticky Baseline với Vgrow ALWAYS)
+        // 2. ITEMS LIST (Co gọn tự nhiên theo số lượng món, triệt tiêu khoảng trống rỗng)
         VBox itemsBox = buildItemsBox();
         VBox.setVgrow(itemsBox, Priority.ALWAYS);
         getChildren().add(itemsBox);

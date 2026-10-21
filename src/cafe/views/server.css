@@ -140,10 +140,7 @@
     -fx-border-color: #D8D1C3;
     -fx-border-radius: 10px;
     -fx-border-width: 1px;
-    -fx-padding: 14;
-    -fx-pref-width: 340;
-    -fx-max-width: 360;
-    -fx-min-width: 320;
+    -fx-padding: 12 14 12 14;
 }
 
 .ticket-header {

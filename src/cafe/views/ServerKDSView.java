@@ -122,7 +122,8 @@ public class ServerKDSView extends BorderPane {
 
         controlBar.getChildren().addAll(txtSearch, filterButtonsBox, spacer, btnClearDone);
 
-        // Tickets FlowPane inside ScrollPane
+        // Tickets FlowPane inside ScrollPane - Căn lề trên trái và co giãn linh hoạt
+        ticketsFlowPane.setAlignment(Pos.TOP_LEFT);
         ticketsFlowPane.setPadding(new Insets(4, 0, 16, 0));
 
         ticketsScrollPane.setContent(ticketsFlowPane);
@@ -130,6 +131,10 @@ public class ServerKDSView extends BorderPane {
         ticketsScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         ticketsScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         VBox.setVgrow(ticketsScrollPane, Priority.ALWAYS);
+
+        // Lắng nghe thay đổi kích thước ScrollPane để tự động tính lại chiều rộng card lấp đầy 100%
+        ticketsScrollPane.viewportBoundsProperty().addListener((obs, oldVal, newVal) -> updateCardWidths());
+        ticketsScrollPane.widthProperty().addListener((obs, oldVal, newVal) -> updateCardWidths());
 
         // Empty state when no orders
         emptyTicketsBox.setAlignment(Pos.CENTER);
@@ -169,6 +174,32 @@ public class ServerKDSView extends BorderPane {
         lblStatDone.setText("Đã xong: " + done);
     }
 
+    private double computeDynamicCardWidth() {
+        double w = ticketsScrollPane.getViewportBounds() != null && ticketsScrollPane.getViewportBounds().getWidth() > 0
+                ? ticketsScrollPane.getViewportBounds().getWidth()
+                : ticketsScrollPane.getWidth();
+        double availableWidth = w - 36; // trừ thanh cuộn và padding lề
+        if (availableWidth <= 0) {
+            return 340;
+        }
+        int cols = Math.max(1, (int) Math.floor((availableWidth + 14) / (330 + 14)));
+        return Math.floor((availableWidth - (cols - 1) * 14) / cols);
+    }
+
+    private void updateCardWidths() {
+        double dynamicCardWidth = computeDynamicCardWidth();
+        if (dynamicCardWidth <= 0) return;
+
+        for (javafx.scene.Node node : ticketsFlowPane.getChildren()) {
+            if (node instanceof OrderTicketCard) {
+                OrderTicketCard card = (OrderTicketCard) node;
+                card.setPrefWidth(dynamicCardWidth);
+                card.setMinWidth(300);
+                card.setMaxWidth(Double.MAX_VALUE);
+            }
+        }
+    }
+
     public void renderOrders(List<Order> orders, BiConsumer<Order, String> onStatusChange) {
         ticketsFlowPane.getChildren().clear();
 
@@ -185,10 +216,19 @@ public class ServerKDSView extends BorderPane {
         ticketsScrollPane.setVisible(true);
         ticketsScrollPane.setManaged(true);
 
+        double dynamicCardWidth = computeDynamicCardWidth();
+
         for (Order order : orders) {
             OrderTicketCard card = new OrderTicketCard(order, onStatusChange);
+            if (dynamicCardWidth > 0) {
+                card.setPrefWidth(dynamicCardWidth);
+                card.setMinWidth(300);
+                card.setMaxWidth(Double.MAX_VALUE);
+            }
             ticketsFlowPane.getChildren().add(card);
         }
+
+        javafx.application.Platform.runLater(this::updateCardWidths);
     }
 
     public void setLatestLog(String log) {

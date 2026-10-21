@@ -133,6 +133,25 @@ public class MessageProtocol {
         }
     }
 
+    public static class SessionKickedMessage {
+        public String type = MessageType.SESSION_KICKED.name();
+        public String sessionId;
+        public String reason;
+        public long banMs;
+        public long timestamp;
+
+        public SessionKickedMessage() {
+            this(null, "Phiên làm việc đã bị ngắt bởi Quản trị viên!", 60000L);
+        }
+
+        public SessionKickedMessage(String sessionId, String reason, long banMs) {
+            this.sessionId = sessionId;
+            this.reason = reason;
+            this.banMs = banMs;
+            this.timestamp = System.currentTimeMillis();
+        }
+    }
+
     public static class PingMessage {
         public String type = MessageType.PING.name();
         public long timestamp = System.currentTimeMillis();

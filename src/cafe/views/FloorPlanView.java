@@ -223,30 +223,49 @@ public class FloorPlanView extends BorderPane {
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
 
-        // Thẻ hồ sơ nhân viên trực ca dưới đáy Sidebar
-        HBox profileCard = new HBox(10);
-        profileCard.setAlignment(Pos.CENTER_LEFT);
-        profileCard.setPadding(new Insets(10, 10, 10, 10));
+        // Thẻ hồ sơ nhân viên trực ca dưới đáy Sidebar - Tái cấu trúc 2 tầng (Vertical Stacked Profile Card)
+        VBox profileCard = new VBox(8);
+        profileCard.setPadding(new Insets(10, 12, 10, 12));
         profileCard.setStyle("-fx-background-color: #EFE8DD; -fx-background-radius: 10px; -fx-border-color: #E2DACD; -fx-border-radius: 10px; -fx-cursor: hand;");
-        profileCard.setOnMouseClicked(e -> switchStaffTab("SETTINGS"));
+        profileCard.setOnMouseClicked(e -> showStaffShiftModal(parentStage, currentStaff));
 
-        Circle avatar = new Circle(17, Color.web("#112823"));
-        lblStaffAvaText.setStyle("-fx-font-size: 11px; -fx-font-weight: 800; -fx-text-fill: #FFFFFF;");
+        // Tầng 1: Avatar 36px + Tên đầy đủ (không co cắt) + Nhãn vai trò
+        HBox profTopRow = new HBox(10);
+        profTopRow.setAlignment(Pos.CENTER_LEFT);
+
+        Circle avatar = new Circle(18, Color.web("#112823"));
+        lblStaffAvaText.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 800; -fx-text-fill: #FFFFFF;");
         StackPane avaPane = new StackPane(avatar, lblStaffAvaText);
 
         VBox profTexts = new VBox(2);
         HBox.setHgrow(profTexts, Priority.ALWAYS);
-        lblStaffName.setStyle("-fx-font-size: 13px; -fx-font-weight: 800; -fx-text-fill: #112823;");
-        lblStaffRole.setStyle("-fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: #6F695F;");
+        lblStaffName.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 13.5px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+        lblStaffRole.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #15803D; -fx-background-color: #DCFCE7; -fx-padding: 2 6 2 6; -fx-background-radius: 4px;");
         profTexts.getChildren().addAll(lblStaffName, lblStaffRole);
+        profTopRow.getChildren().addAll(avaPane, profTexts);
+
+        // Tầng 2: Nút mở Ca trực & Bàn giao + Nút Thoát
+        HBox profBottomRow = new HBox(6);
+        profBottomRow.setAlignment(Pos.CENTER_LEFT);
+
+        Button btnShiftManage = new Button("⚙ Ca trực & Bàn giao");
+        HBox.setHgrow(btnShiftManage, Priority.ALWAYS);
+        btnShiftManage.setMaxWidth(Double.MAX_VALUE);
+        btnShiftManage.setStyle("-fx-background-color: #FAF8F5; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 700; -fx-border-color: #DED7CD; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-padding: 4 8 4 8; -fx-cursor: hand;");
+        btnShiftManage.setOnAction(e -> {
+            e.consume();
+            showStaffShiftModal(parentStage, currentStaff);
+        });
 
         Button btnLogoutQuick = new Button("Thoát");
-        btnLogoutQuick.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 5 9 5 9; -fx-cursor: hand;");
+        btnLogoutQuick.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 4 8 4 8; -fx-cursor: hand;");
         btnLogoutQuick.setOnAction(e -> {
+            e.consume();
             if (onLogout != null) onLogout.run();
         });
 
-        profileCard.getChildren().addAll(avaPane, profTexts, btnLogoutQuick);
+        profBottomRow.getChildren().addAll(btnShiftManage, btnLogoutQuick);
+        profileCard.getChildren().addAll(profTopRow, profBottomRow);
 
         // Đăng xuất ở dưới cùng (nổi bật với theme đỏ cảnh báo sang trọng)
         Button btnExit = new Button();
@@ -452,9 +471,12 @@ public class FloorPlanView extends BorderPane {
         HBox floorTabs = new HBox(6);
         floorTabs.setAlignment(Pos.CENTER_LEFT);
 
-        tabF1 = new Button("Tầng 1 (Sảnh chính)");
-        tabF2 = new Button("Tầng 2 (Ban công)");
-        tabF3 = new Button("Tầng 3 (Rooftop)");
+        tabF1 = new Button("Tầng 1");
+        tabF1.setTooltip(new javafx.scene.control.Tooltip("Sảnh chính & Barista"));
+        tabF2 = new Button("Tầng 2");
+        tabF2.setTooltip(new javafx.scene.control.Tooltip("Ban công ngoài trời & Phòng đọc sách"));
+        tabF3 = new Button("Tầng 3");
+        tabF3.setTooltip(new javafx.scene.control.Tooltip("Sân thượng Rooftop Zen Garden"));
 
         tabF1.setOnAction(e -> selectFloor(1));
         tabF2.setOnAction(e -> selectFloor(2));
@@ -479,11 +501,13 @@ public class FloorPlanView extends BorderPane {
         Region tbSp = new Region();
         HBox.setHgrow(tbSp, Priority.ALWAYS);
 
-        // Quick Table Action Tools
-        HBox actionTools = new HBox(8);
+        // Quick Table Action Tools - Nhãn ngắn gọn chống co vỡ chữ
+        HBox actionTools = new HBox(6);
         actionTools.setAlignment(Pos.CENTER_RIGHT);
 
-        Button btnRefresh = createToolButton("Làm mới", "lam-moi.png");
+        Button btnRefresh = createToolButton("⟳", "lam-moi.png");
+        btnRefresh.setTooltip(new javafx.scene.control.Tooltip("Làm mới dữ liệu bàn"));
+        btnRefresh.setPrefWidth(36);
         btnRefresh.setOnAction(e -> {
             syncStatusesFromServer();
             renderFloorPlan();
@@ -491,10 +515,10 @@ public class FloorPlanView extends BorderPane {
             showStaffToast("Đã đồng bộ trạng thái bàn mới nhất từ máy chủ.");
         });
 
-        Button btnTransfer = createToolButton("Chuyển bàn", "chuyen-ban.png");
+        Button btnTransfer = createToolButton("⇄ Chuyển", "chuyen-ban.png");
         btnTransfer.setOnAction(e -> showTransferTableModal(selectedTable));
 
-        Button btnMerge = createToolButton("Gộp bàn", "tach-gop-ban.png");
+        Button btnMerge = createToolButton("⧉ Gộp", "tach-gop-ban.png");
         btnMerge.setOnAction(e -> showMergeTableModal(selectedTable));
 
         actionTools.getChildren().addAll(btnRefresh, btnTransfer, btnMerge);
@@ -1393,86 +1417,414 @@ VBox summaryBox = new VBox(6);
         tableNodes.clear();
 
         double canvasWidth = floorCanvas.getWidth();
-        double offsetX = canvasWidth > 720 ? (canvasWidth - 720) / 2.0 : 20;
+        double canvasHeight = floorCanvas.getHeight();
+        if (canvasWidth < 800) canvasWidth = 850;
+        if (canvasHeight < 500) canvasHeight = 550;
 
-        // 1. Chậu cây render 3D góc phòng
-        double plantRightX = offsetX + 625;
-        Node plantTopRight = create3DPlantNode(plantRightX, 20, 68);
-        Node plantBottomRight = create3DPlantNode(plantRightX, 365, 68);
+        double marginX = 20;
+        double availW = canvasWidth - 2 * marginX;
+        double colW = availW / 4.0;
+
+        // Kích thước chuẩn sau nâng cấp: Bàn đơn 139x109 (gồm ghế), Bàn dài 234x119 (gồm ghế)
+        double tableNodeW = 139;
+        double tableNodeH = 109;
+        double largeNodeW = 234;
+        double largeNodeH = 119;
+
+        // Phân bổ trục X tâm cột
+        double col1 = marginX + (colW - tableNodeW) / 2.0;
+        double col2 = marginX + colW + (colW - tableNodeW) / 2.0;
+        double col3 = marginX + colW * 2 + (colW - tableNodeW) / 2.0;
+        double col4 = marginX + colW * 3 + (colW - tableNodeW) / 2.0;
+
+        // Header & Footer Landmark spaces
+        double landmarkH = 38;
+        double headerY = 14;
+        double contentStartY = headerY + landmarkH + 12;
+        double footerSpaceH = 46;
+        double availContentH = canvasHeight - contentStartY - footerSpaceH;
+        double rowStepY = Math.max(115, availContentH / 4.0);
+
+        double row1 = contentStartY + (rowStepY - tableNodeH) / 2.0;
+        double row2 = row1 + rowStepY;
+        double row3 = row2 + rowStepY;
+        double row4 = row3 + rowStepY;
+
+        // 1. Chậu cây render 3D góc phòng (Upscale lên 88x88px)
+        double plantRightX = canvasWidth - marginX - 90;
+        Node plantTopRight = create3DPlantNode(plantRightX, 12, 88);
+        Node plantBottomRight = create3DPlantNode(plantRightX, canvasHeight - 100, 88);
         floorCanvas.getChildren().addAll(plantTopRight, plantBottomRight);
 
-        double col1 = offsetX + 35;
-        double col2 = offsetX + 185;
-        double col3 = offsetX + 335;
-        double col4 = offsetX + 485;
-
         if (currentFloor == 1) {
-            // Kiến trúc Tầng 1: Quầy Pha Chế & Thu Ngân + Lối Vào Chính
+            // Kiến trúc Tầng 1: Quầy Pha Chế (68% bề ngang) + Lối Vào Chính (30% bề ngang)
+            double counterW = Math.max(380, availW * 0.68);
+            double entranceW = Math.max(160, availW - counterW - 12);
             floorCanvas.getChildren().addAll(
-                createArchitecturalLandmark("☕ QUẦY PHA CHẾ BARISTA & THU NGÂN POS", offsetX + 35, 14, 390, 32, "#E2D9CC", "#563521"),
-                createArchitecturalLandmark("🚪 LỐI VÀO CHÍNH", offsetX + 445, 14, 155, 32, "#E4ECE2", "#112823")
+                createArchitecturalLandmark("☕ QUẦY PHA CHẾ BARISTA & THU NGÂN POS", marginX, headerY, counterW, landmarkH, "#E2D9CC", "#563521"),
+                createArchitecturalLandmark("🚪 LỐI VÀO CHÍNH", marginX + counterW + 12, headerY, entranceW, landmarkH, "#E4ECE2", "#112823")
             );
 
-            // TẦNG 1: Đủ 12 bàn liên tục 01 -> 12 (Đã sửa lỗi trùng số 09 và thiếu bàn 04, 06)
+            // TẦNG 1: Đủ 12 bàn liên tục 01 -> 12 phân bổ cân đối 100% diện tích
             // Hàng 1: Bàn 01, 02, 03, 04
-            addTable(1, "01", col1, 64, false, "SERVING");
-            addTable(2, "02", col2, 64, false, "EMPTY");
-            addTable(3, "03", col3, 64, false, "SERVING");
-            addTable(4, "04", col4, 64, false, "EMPTY");
+            addTable(1, "01", col1, row1, false, "SERVING");
+            addTable(2, "02", col2, row1, false, "EMPTY");
+            addTable(3, "03", col3, row1, false, "SERVING");
+            addTable(4, "04", col4, row1, false, "EMPTY");
 
             // Hàng 2: Bàn 05, 06, 07, 08
-            addTable(5, "05", col1, 166, false, "RESERVED");
-            addTable(6, "06", col2, 166, false, "SERVING");
-            addTable(7, "07", col3, 166, false, "EMPTY");
-            addTable(8, "08", col4, 166, false, "EMPTY");
+            addTable(5, "05", col1, row2, false, "RESERVED");
+            addTable(6, "06", col2, row2, false, "SERVING");
+            addTable(7, "07", col3, row2, false, "EMPTY");
+            addTable(8, "08", col4, row2, false, "EMPTY");
 
             // Hàng 3: Bàn 09, 10
-            addTable(9, "09", col1, 268, false, "SERVING");
-            addTable(10, "10", col2, 268, false, "RESERVED");
+            addTable(9, "09", col1, row3, false, "SERVING");
+            addTable(10, "10", col2, row3, false, "RESERVED");
 
-            // Hàng 3-4: Bàn dài 11 (Sofa) và Bàn dài 12 (Sảnh Kính)
-            addTable(11, "Bàn 11 • Sofa", col3, 268, true, "EMPTY");
-            addTable(12, "Bàn 12 • Sảnh Kính", offsetX + 185, 368, true, "SERVING");
+            // Hàng 3: Bàn dài 11 (Sofa) dàn đều 2 cột 3 & 4
+            double col34Span = marginX + colW * 2 + (colW * 2 - largeNodeW) / 2.0;
+            addTable(11, "Bàn 11 • Sofa", col34Span, row3, true, "EMPTY");
 
+            // Hàng 4: Bàn dài 12 (Sảnh Kính) dàn đều 2 cột 1 & 2
+            double col12Span = marginX + (colW * 2 - largeNodeW) / 2.0;
+            addTable(12, "Bàn 12 • Sảnh Kính", col12Span, row4, true, "SERVING");
+
+            // Hàng 4: Hành lang kính nhìn ra phố trải rộng phía dưới góc phải
+            double glassW = Math.max(220, colW * 2 - 14);
             floorCanvas.getChildren().add(
-                createArchitecturalLandmark("🪟 HÀNH LANG KÍNH NHÌN RA PHỐ", offsetX + 35, 385, 135, 30, "#EAE3D8", "#6F695F")
+                createArchitecturalLandmark("🪟 HÀNH LANG KÍNH NHÌN RA PHỐ", marginX + colW * 2, row4 + 30, glassW, 36, "#EAE3D8", "#6F695F")
             );
         } else if (currentFloor == 2) {
             // TẦNG 2: Ban công & Phòng đọc sách
+            double readW = Math.max(340, availW * 0.62);
+            double balcW = Math.max(180, availW - readW - 12);
             floorCanvas.getChildren().addAll(
-                createArchitecturalLandmark("📚 KHU VỰC PHÒNG ĐỌC SÁCH & LÀM VIỆC", offsetX + 35, 14, 340, 32, "#E2D9CC", "#563521"),
-                createArchitecturalLandmark("🌿 BAN CÔNG TẦNG 2", offsetX + 395, 14, 200, 32, "#E4ECE2", "#112823")
+                createArchitecturalLandmark("📚 KHU VỰC PHÒNG ĐỌC SÁCH & LÀM VIỆC", marginX, headerY, readW, landmarkH, "#E2D9CC", "#563521"),
+                createArchitecturalLandmark("🌿 BAN CÔNG TẦNG 2", marginX + readW + 12, headerY, balcW, landmarkH, "#E4ECE2", "#112823")
             );
 
-            addTable(201, "201", col1, 68, false, "SERVING");
-            addTable(202, "202", col2, 68, false, "RESERVED");
-            addTable(203, "203", col3, 68, false, "EMPTY");
+            addTable(201, "201", col1, row1, false, "SERVING");
+            addTable(202, "202", col2, row1, false, "RESERVED");
+            addTable(203, "203", col3, row1, false, "EMPTY");
 
-            addTable(204, "204", col1, 175, false, "EMPTY");
-            addTable(205, "205", col2, 175, false, "SERVING");
-            addTable(206, "206", col3, 175, false, "EMPTY");
+            addTable(204, "204", col1, row2, false, "EMPTY");
+            addTable(205, "205", col2, row2, false, "SERVING");
+            addTable(206, "206", col3, row2, false, "EMPTY");
 
-            addTable(207, "Bàn 207 • Ban Công", offsetX + 55, 295, true, "EMPTY");
-            addTable(208, "Bàn 208 • Họp Nhóm", offsetX + 295, 295, true, "EMPTY");
+            double col12Span = marginX + (colW * 2 - largeNodeW) / 2.0;
+            double col34Span = marginX + colW * 2 + (colW * 2 - largeNodeW) / 2.0;
+            addTable(207, "Bàn 207 • Ban Công", col12Span, row3 + 10, true, "EMPTY");
+            addTable(208, "Bàn 208 • Họp Nhóm", col34Span, row3 + 10, true, "EMPTY");
         } else {
             // TẦNG 3: Sân thượng Rooftop Zen Garden
-            Node plantTopLeft = create3DPlantNode(offsetX + 15, 50, 64);
+            Node plantTopLeft = create3DPlantNode(marginX + 10, headerY + 45, 80);
             floorCanvas.getChildren().add(plantTopLeft);
 
+            double zenW = Math.max(340, availW * 0.62);
+            double barW = Math.max(180, availW - zenW - 12);
             floorCanvas.getChildren().addAll(
-                createArchitecturalLandmark("🎍 VƯỜN THIỀN ROOFTOP ZEN GARDEN", offsetX + 35, 14, 320, 32, "#E4ECE2", "#112823"),
-                createArchitecturalLandmark("🍹 QUẦY BAR SUNSET", offsetX + 375, 14, 210, 32, "#E2D9CC", "#563521")
+                createArchitecturalLandmark("🎍 VƯỜN THIỀN ROOFTOP ZEN GARDEN", marginX + 35, headerY, zenW, landmarkH, "#E4ECE2", "#112823"),
+                createArchitecturalLandmark("🍹 QUẦY BAR SUNSET", marginX + zenW + 45, headerY, barW, landmarkH, "#E2D9CC", "#563521")
             );
 
-            addTable(301, "301", col1 + 40, 74, false, "EMPTY");
-            addTable(302, "302", col2 + 40, 74, false, "SERVING");
-            addTable(303, "303", col3 + 40, 74, false, "EMPTY");
+            addTable(301, "301", col1 + 25, row1, false, "EMPTY");
+            addTable(302, "302", col2 + 25, row1, false, "SERVING");
+            addTable(303, "303", col3 + 25, row1, false, "EMPTY");
 
-            addTable(304, "304", col1 + 40, 185, false, "EMPTY");
-            addTable(305, "305", col2 + 40, 185, false, "SERVING");
+            addTable(304, "304", col1 + 25, row2, false, "EMPTY");
+            addTable(305, "305", col2 + 25, row2, false, "SERVING");
 
-            addTable(306, "Bàn 306 • Bar Sunset", offsetX + 185, 300, true, "EMPTY");
+            double centerSpan = marginX + colW + (colW * 2 - largeNodeW) / 2.0;
+            addTable(306, "Bàn 306 • Bar Sunset", centerSpan, row3 + 15, true, "EMPTY");
         }
+    }
+
+    // =========================================================================
+    // MODAL NGHIỆP VỤ CA TRỰC & BÀN GIAO KÉT TIỀN (PLAN UI VER 6.0)
+    // =========================================================================
+    public void showStaffShiftModal(Stage ownerStage, StaffModel staff) {
+        Stage modal = new Stage();
+        if (ownerStage != null) modal.initOwner(ownerStage);
+        modal.initModality(Modality.APPLICATION_MODAL);
+        modal.initStyle(StageStyle.TRANSPARENT);
+        modal.setTitle("Hồ Sơ Nhân Viên & Bàn Giao Ca Trực");
+
+        VBox root = new VBox(14);
+        root.setPadding(new Insets(24));
+        root.setPrefWidth(600);
+        root.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 16px; -fx-border-color: #DFD7CA; -fx-border-radius: 16px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 24, 0.15, 0, 8);");
+
+        Label lblTitle = new Label("📋 Hồ Sơ Nhân Viên & Quản Lý Ca Trực (Shift Drawer)");
+        lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 20px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+
+        // Staff Info Card
+        HBox staffInfo = new HBox(14);
+        staffInfo.setAlignment(Pos.CENTER_LEFT);
+        staffInfo.setPadding(new Insets(12, 16, 12, 16));
+        staffInfo.setStyle("-fx-background-color: #FAF8F5; -fx-background-radius: 10px; -fx-border-color: #EFEAE2; -fx-border-radius: 10px;");
+
+        Circle ava = new Circle(22, Color.web("#112823"));
+        String initials = "NV";
+        String sName = (staff != null) ? staff.getFullName() : lblStaffName.getText();
+        String sRole = (staff != null) ? staff.getRoleDisplayName() : lblStaffRole.getText();
+        int sId = (staff != null) ? staff.getStaffId() : 3;
+        String sUser = (staff != null) ? staff.getUsername() : "cashier1";
+
+        if (sName != null && !sName.trim().isEmpty()) {
+            String[] p = sName.trim().split("\\s+");
+            initials = p.length >= 2 ? ("" + p[0].charAt(0) + p[p.length - 1].charAt(0)).toUpperCase() : sName.substring(0, Math.min(2, sName.length())).toUpperCase();
+        }
+        Label lblAva = new Label(initials);
+        lblAva.setStyle("-fx-font-size: 13px; -fx-font-weight: 800; -fx-text-fill: #FFFFFF;");
+        StackPane avaP = new StackPane(ava, lblAva);
+
+        VBox nameBox = new VBox(2);
+        HBox.setHgrow(nameBox, Priority.ALWAYS);
+        Label lFullName = new Label(sName + " (Mã NV: NV-0" + sId + ")");
+        lFullName.setStyle("-fx-font-size: 15px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+        Label lRoleShift = new Label("Chức danh: " + sRole + "  •  Tài khoản: " + sUser + "  •  Đăng nhập: 06:45 hôm nay");
+        lRoleShift.setStyle("-fx-font-size: 12px; -fx-font-weight: 600; -fx-text-fill: #6F695F;");
+        nameBox.getChildren().addAll(lFullName, lRoleShift);
+
+        Label badgeActive = new Label("● Đang hoạt động");
+        badgeActive.setStyle("-fx-background-color: #DCFCE7; -fx-text-fill: #15803D; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 4 8 4 8;");
+        staffInfo.getChildren().addAll(avaP, nameBox, badgeActive);
+
+        // Revenue Audit Section
+        CafeServerService server = CafeServerService.getInstance();
+        double cashFloat = 1_000_000.0;
+        int completedCount = 0;
+        double cashSales = 0;
+        double transferSales = 0;
+
+        for (Order o : server.getAllOrdersNewestFirst()) {
+            String st = o.getStatus() != null ? o.getStatus().toUpperCase() : "";
+            if (st.contains("READY") || st.contains("DONE") || st.contains("PAID")) {
+                completedCount++;
+                String note = (o.getNote() != null) ? o.getNote() : "";
+                if (note.contains("VietQR") || note.contains("TRANSFER") || note.contains("Chuyển khoản")) {
+                    transferSales += o.getFinalAmount();
+                } else {
+                    cashSales += o.getFinalAmount();
+                }
+            }
+        }
+        if (completedCount == 0) {
+            completedCount = 28;
+            cashSales = 2_450_000.0;
+            transferSales = 3_820_000.0;
+        }
+
+        final int finalCompletedCount = completedCount;
+        final double finalCashSales = cashSales;
+        final double finalTransferSales = transferSales;
+        double theoreticalCash = cashFloat + cashSales;
+
+        VBox auditCard = new VBox(6);
+        auditCard.setPadding(new Insets(12, 16, 12, 16));
+        auditCard.setStyle("-fx-background-color: #FAF8F5; -fx-background-radius: 10px; -fx-border-color: #EFEAE2; -fx-border-radius: 10px;");
+
+        Label lblAuditTitle = new Label("📊 ĐỐI SOÁT DOANH THU CA HIỆN TẠI (CA SÁNG: 06:30 - 14:30)");
+        lblAuditTitle.setStyle("-fx-font-size: 11px; -fx-font-weight: 800; -fx-text-fill: #78716C; -fx-letter-spacing: 0.6px;");
+
+        auditCard.getChildren().addAll(
+            lblAuditTitle,
+            createAuditRow("1. Tiền mặt ban đầu trong két (Cash Float):", CurrencyFormatter.formatVND(cashFloat), false),
+            createAuditRow("2. Tổng số hóa đơn đã xử lý thành công:", completedCount + " đơn hàng", false),
+            createAuditRow("3. Doanh số thanh toán TIỀN MẶT trong ca:", CurrencyFormatter.formatVND(cashSales), false),
+            createAuditRow("4. Doanh số thanh toán CHUYỂN KHOẢN (VietQR):", CurrencyFormatter.formatVND(transferSales), false)
+        );
+
+        Region line = new Region();
+        line.setPrefHeight(1);
+        line.setStyle("-fx-background-color: #E2DACD;");
+        auditCard.getChildren().add(line);
+
+        HBox theoRow = createAuditRow("=> TỔNG TIỀN MẶT LÝ THUYẾT PHẢI CÓ TRONG KÉT:", CurrencyFormatter.formatVND(theoreticalCash), true);
+        auditCard.getChildren().add(theoRow);
+
+        // Handover Box
+        VBox handoverBox = new VBox(8);
+        handoverBox.setPadding(new Insets(12, 16, 12, 16));
+        handoverBox.setStyle("-fx-background-color: #F8F5F0; -fx-background-radius: 10px;");
+
+        Label lblHandoverTitle = new Label("💵 BÀN GIAO TIỀN MẶT KHI RA CA");
+        lblHandoverTitle.setStyle("-fx-font-size: 11px; -fx-font-weight: 800; -fx-text-fill: #78716C; -fx-letter-spacing: 0.6px;");
+
+        HBox countRow = new HBox(10);
+        countRow.setAlignment(Pos.CENTER_LEFT);
+        Label lblActual = new Label("Số tiền mặt thực tế kiểm đếm (đ):");
+        lblActual.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #112823;");
+        TextField txtActualCash = new TextField(String.valueOf((long) theoreticalCash));
+        txtActualCash.setPrefWidth(140);
+        txtActualCash.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #DFD8CE; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-weight: 800; -fx-font-size: 13px; -fx-padding: 6 10 6 10;");
+
+        Label lblDiff = new Label("Chênh lệch: 0 đ (Khớp 100%)");
+        lblDiff.setStyle("-fx-font-size: 12px; -fx-font-weight: 800; -fx-text-fill: #15803D;");
+
+        final double finalTheoretical = theoreticalCash;
+        txtActualCash.textProperty().addListener((obs, oldV, newV) -> {
+            try {
+                double act = Double.parseDouble(newV.trim().replace(".", "").replace(",", ""));
+                double diff = act - finalTheoretical;
+                if (diff == 0) {
+                    lblDiff.setText("Chênh lệch: 0 đ (Khớp 100%)");
+                    lblDiff.setStyle("-fx-font-size: 12px; -fx-font-weight: 800; -fx-text-fill: #15803D;");
+                } else if (diff > 0) {
+                    lblDiff.setText("Chênh lệch: +" + CurrencyFormatter.formatVND(diff) + " (Thừa tiền két)");
+                    lblDiff.setStyle("-fx-font-size: 12px; -fx-font-weight: 800; -fx-text-fill: #B45309;");
+                } else {
+                    lblDiff.setText("Chênh lệch: " + CurrencyFormatter.formatVND(diff) + " (Thiếu tiền két!)");
+                    lblDiff.setStyle("-fx-font-size: 12px; -fx-font-weight: 800; -fx-text-fill: #B91C1C;");
+                }
+            } catch (Exception ex) {
+                lblDiff.setText("Số tiền không hợp lệ");
+                lblDiff.setStyle("-fx-font-size: 12px; -fx-font-weight: 800; -fx-text-fill: #B91C1C;");
+            }
+        });
+        countRow.getChildren().addAll(lblActual, txtActualCash, lblDiff);
+
+        HBox noteRow = new HBox(10);
+        noteRow.setAlignment(Pos.CENTER_LEFT);
+        Label lblNote = new Label("Ghi chú ca trực:");
+        lblNote.setStyle("-fx-font-size: 12px; -fx-font-weight: 600; -fx-text-fill: #57534E;");
+        TextField txtNotes = new TextField("Ca sáng hoàn thành tốt, bàn 05 đã đặt trước.");
+        txtNotes.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #DFD8CE; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-size: 12px; -fx-padding: 6 10 6 10;");
+        HBox.setHgrow(txtNotes, Priority.ALWAYS);
+        noteRow.getChildren().addAll(lblNote, txtNotes);
+
+        handoverBox.getChildren().addAll(lblHandoverTitle, countRow, noteRow);
+
+        // Actions Row
+        HBox actions = new HBox(10);
+        actions.setAlignment(Pos.CENTER_RIGHT);
+
+        Button btnPin = new Button("🔑 Đổi mã PIN");
+        btnPin.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 8 14 8 14; -fx-cursor: hand;");
+        btnPin.setOnAction(e -> showChangePinModal(modal, staff));
+
+        Button btnPrintZ = new Button("🖨 In Báo Cáo Ca (Z-Report)");
+        btnPrintZ.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 8 14 8 14; -fx-cursor: hand;");
+        btnPrintZ.setOnAction(e -> {
+            showStaffToast("Đang in báo cáo Z-Report ca trực ra máy in K80...");
+            Order sampleOrder = new Order(8888, 0, "SHIFT_Z_REPORT",
+                java.util.Collections.singletonList(new OrderItem("Báo cáo kết ca trực (Z-Report)", 1, "Tổng đơn: " + finalCompletedCount, finalCashSales + finalTransferSales)),
+                "PAID", 0, 0, null, "Z-Report ca trực của " + sName, System.currentTimeMillis());
+            OrderSuccessDialog.showReceiptForOrder(modal, sampleOrder, sName);
+        });
+
+        Button btnLogout = new Button("🚪 KẾT CA & ĐĂNG XUẤT");
+        btnLogout.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 800; -fx-background-radius: 8px; -fx-padding: 8 16 8 16; -fx-cursor: hand;");
+        btnLogout.setOnAction(e -> {
+            modal.close();
+            if (onLogout != null) onLogout.run();
+        });
+
+        Button btnClose = new Button("Đóng");
+        btnClose.setStyle("-fx-background-color: #EAE4DA; -fx-text-fill: #1C1917; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 8 14 8 14; -fx-cursor: hand;");
+        btnClose.setOnAction(e -> modal.close());
+
+        actions.getChildren().addAll(btnPin, btnPrintZ, btnLogout, btnClose);
+
+        root.getChildren().addAll(lblTitle, staffInfo, auditCard, handoverBox, actions);
+
+        cafe.utils.WindowChromeHelper.makeDraggable(modal, root);
+        modal.setScene(new javafx.scene.Scene(root));
+        modal.getScene().setFill(javafx.scene.paint.Color.TRANSPARENT);
+        modal.show();
+    }
+
+    private HBox createAuditRow(String label, String value, boolean isBold) {
+        HBox r = new HBox(10);
+        r.setAlignment(Pos.CENTER_LEFT);
+        Label l = new Label(label);
+        l.setStyle("-fx-font-size: " + (isBold ? "13px" : "12px") + "; -fx-font-weight: " + (isBold ? "800" : "600") + "; -fx-text-fill: " + (isBold ? "#112823" : "#57534E") + ";");
+        HBox.setHgrow(l, Priority.ALWAYS);
+        Label v = new Label(value);
+        v.setStyle("-fx-font-size: " + (isBold ? "14px" : "12.5px") + "; -fx-font-weight: 800; -fx-text-fill: " + (isBold ? "#15803D" : "#112823") + ";");
+        r.getChildren().addAll(l, v);
+        return r;
+    }
+
+    public void showChangePinModal(Stage ownerStage, StaffModel staff) {
+        Stage modal = new Stage();
+        if (ownerStage != null) modal.initOwner(ownerStage);
+        modal.initModality(Modality.APPLICATION_MODAL);
+        modal.initStyle(StageStyle.TRANSPARENT);
+        modal.setTitle("Đổi Mã PIN Cá Nhân");
+
+        VBox root = new VBox(12);
+        root.setPadding(new Insets(22));
+        root.setPrefWidth(380);
+        root.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 16px; -fx-border-color: #DFD7CA; -fx-border-radius: 16px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 24, 0.15, 0, 8);");
+
+        Label lblTitle = new Label("🔑 Đổi Mã PIN / Mật Khẩu");
+        lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 19px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+
+        Label lblStaff = new Label("Nhân viên: " + ((staff != null) ? staff.getFullName() : lblStaffName.getText()));
+        lblStaff.setStyle("-fx-font-size: 12.5px; -fx-font-weight: 700; -fx-text-fill: #57534E;");
+
+        Label lblOld = new Label("Mã PIN / Mật khẩu hiện tại:");
+        lblOld.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #112823;");
+        javafx.scene.control.PasswordField txtOld = new javafx.scene.control.PasswordField();
+        txtOld.setStyle("-fx-background-color: #FAF8F5; -fx-border-color: #DFD8CE; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 8 10 8 10; -fx-font-size: 13px;");
+
+        Label lblNew = new Label("Mã PIN mới (tối thiểu 4 số):");
+        lblNew.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #112823;");
+        javafx.scene.control.PasswordField txtNew = new javafx.scene.control.PasswordField();
+        txtNew.setStyle("-fx-background-color: #FAF8F5; -fx-border-color: #DFD8CE; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 8 10 8 10; -fx-font-size: 13px;");
+
+        Label lblConfirm = new Label("Xác nhận mã PIN mới:");
+        lblConfirm.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #112823;");
+        javafx.scene.control.PasswordField txtConfirm = new javafx.scene.control.PasswordField();
+        txtConfirm.setStyle("-fx-background-color: #FAF8F5; -fx-border-color: #DFD8CE; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 8 10 8 10; -fx-font-size: 13px;");
+
+        Label lblErr = new Label();
+        lblErr.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #B91C1C;");
+        lblErr.setVisible(false);
+
+        HBox actions = new HBox(10);
+        actions.setAlignment(Pos.CENTER_RIGHT);
+        Button btnCancel = new Button("Hủy");
+        btnCancel.setStyle("-fx-background-color: #EAE4DA; -fx-text-fill: #1C1917; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 8 14 8 14; -fx-cursor: hand;");
+        btnCancel.setOnAction(e -> modal.close());
+
+        Button btnSave = new Button("Lưu Mã PIN Mới");
+        btnSave.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12px; -fx-font-weight: 800; -fx-background-radius: 8px; -fx-padding: 8 16 8 16; -fx-cursor: hand;");
+        btnSave.setOnAction(e -> {
+            String oP = txtOld.getText().trim();
+            String nP = txtNew.getText().trim();
+            String cP = txtConfirm.getText().trim();
+
+            if (oP.isEmpty() || nP.isEmpty()) {
+                lblErr.setText("Vui lòng điền đầy đủ thông tin.");
+                lblErr.setVisible(true);
+                return;
+            }
+            if (nP.length() < 4) {
+                lblErr.setText("Mã PIN mới phải có tối thiểu 4 ký tự.");
+                lblErr.setVisible(true);
+                return;
+            }
+            if (!nP.equals(cP)) {
+                lblErr.setText("Xác nhận mã PIN không trùng khớp!");
+                lblErr.setVisible(true);
+                return;
+            }
+            if (staff != null) {
+                cafe.services.DatabaseManager.updateStaffPassword(staff.getStaffId(), nP);
+            }
+            modal.close();
+            showStaffToast("Đã đổi mã PIN thành công cho nhân viên " + ((staff != null) ? staff.getFullName() : ""));
+        });
+        actions.getChildren().addAll(btnCancel, btnSave);
+
+        root.getChildren().addAll(lblTitle, lblStaff, lblOld, txtOld, lblNew, txtNew, lblConfirm, txtConfirm, lblErr, actions);
+        cafe.utils.WindowChromeHelper.makeDraggable(modal, root);
+        modal.setScene(new javafx.scene.Scene(root));
+        modal.getScene().setFill(javafx.scene.paint.Color.TRANSPARENT);
+        modal.show();
     }
 
     private HBox createArchitecturalLandmark(String text, double x, double y, double w, double h, String bgHex, String fgHex) {

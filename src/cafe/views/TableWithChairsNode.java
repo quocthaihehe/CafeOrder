@@ -46,10 +46,10 @@ public class TableWithChairsNode extends StackPane {
     }
 
     private void initComponent(Runnable onSelect, Runnable onDoubleClick) {
-        double tableW = isLarge ? 148 : 74;
-        double tableH = 60;
-        double totalW = tableW + 16;
-        double totalH = tableH + 16;
+        double tableW = isLarge ? 210 : 115;
+        double tableH = isLarge ? 95 : 85;
+        double totalW = tableW + 24;
+        double totalH = tableH + 24;
 
         setPrefSize(totalW, totalH);
         setMinSize(totalW, totalH);
@@ -66,49 +66,49 @@ public class TableWithChairsNode extends StackPane {
         chairsLayer.setPickOnBounds(false);
 
         if (!isLarge) {
-            Region chairTop = createPillChair(34, 12);
-            chairTop.setLayoutX((totalW - 34) / 2.0);
+            Region chairTop = createPillChair(50, 16);
+            chairTop.setLayoutX((totalW - 50) / 2.0);
             chairTop.setLayoutY(2);
 
-            Region chairBottom = createPillChair(34, 12);
-            chairBottom.setLayoutX((totalW - 34) / 2.0);
-            chairBottom.setLayoutY(totalH - 12 - 2);
+            Region chairBottom = createPillChair(50, 16);
+            chairBottom.setLayoutX((totalW - 50) / 2.0);
+            chairBottom.setLayoutY(totalH - 16 - 2);
 
-            Region chairLeft = createPillChair(12, 30);
+            Region chairLeft = createPillChair(16, 44);
             chairLeft.setLayoutX(2);
-            chairLeft.setLayoutY((totalH - 30) / 2.0);
+            chairLeft.setLayoutY((totalH - 44) / 2.0);
 
-            Region chairRight = createPillChair(12, 30);
-            chairRight.setLayoutX(totalW - 12 - 2);
-            chairRight.setLayoutY((totalH - 30) / 2.0);
+            Region chairRight = createPillChair(16, 44);
+            chairRight.setLayoutX(totalW - 16 - 2);
+            chairRight.setLayoutY((totalH - 44) / 2.0);
 
             chairsLayer.getChildren().addAll(chairTop, chairBottom, chairLeft, chairRight);
         } else {
-            double gapX = (tableW - (36 * 2)) / 3.0;
+            double gapX = (tableW - 100) / 3.0;
 
-            Region chairTop1 = createPillChair(36, 12);
-            chairTop1.setLayoutX(8 + gapX);
+            Region chairTop1 = createPillChair(50, 16);
+            chairTop1.setLayoutX(12 + gapX);
             chairTop1.setLayoutY(2);
 
-            Region chairTop2 = createPillChair(36, 12);
-            chairTop2.setLayoutX(8 + gapX * 2 + 36);
+            Region chairTop2 = createPillChair(50, 16);
+            chairTop2.setLayoutX(12 + gapX * 2 + 50);
             chairTop2.setLayoutY(2);
 
-            Region chairBottom1 = createPillChair(36, 12);
-            chairBottom1.setLayoutX(8 + gapX);
-            chairBottom1.setLayoutY(totalH - 12 - 2);
+            Region chairBottom1 = createPillChair(50, 16);
+            chairBottom1.setLayoutX(12 + gapX);
+            chairBottom1.setLayoutY(totalH - 16 - 2);
 
-            Region chairBottom2 = createPillChair(36, 12);
-            chairBottom2.setLayoutX(8 + gapX * 2 + 36);
-            chairBottom2.setLayoutY(totalH - 12 - 2);
+            Region chairBottom2 = createPillChair(50, 16);
+            chairBottom2.setLayoutX(12 + gapX * 2 + 50);
+            chairBottom2.setLayoutY(totalH - 16 - 2);
 
-            Region chairLeft = createPillChair(12, 30);
+            Region chairLeft = createPillChair(16, 48);
             chairLeft.setLayoutX(2);
-            chairLeft.setLayoutY((totalH - 30) / 2.0);
+            chairLeft.setLayoutY((totalH - 48) / 2.0);
 
-            Region chairRight = createPillChair(12, 30);
-            chairRight.setLayoutX(totalW - 12 - 2);
-            chairRight.setLayoutY((totalH - 30) / 2.0);
+            Region chairRight = createPillChair(16, 48);
+            chairRight.setLayoutX(totalW - 16 - 2);
+            chairRight.setLayoutY((totalH - 48) / 2.0);
 
             chairsLayer.getChildren().addAll(chairTop1, chairTop2, chairBottom1, chairBottom2, chairLeft, chairRight);
         }
@@ -178,14 +178,14 @@ public class TableWithChairsNode extends StackPane {
             String borderWidth = currentSelected ? "2.5px" : "1.2px";
             tableSurface.setStyle(
                 "-fx-background-color: #172E27; " +
-                "-fx-background-radius: 14px; " +
+                "-fx-background-radius: 16px; " +
                 "-fx-border-color: " + borderColor + "; " +
-                "-fx-border-radius: 14px; " +
+                "-fx-border-radius: 16px; " +
                 "-fx-border-width: " + borderWidth + ";"
             );
             lblNumber.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: " + (isLarge ? "13px" : "14px") + "; " +
+                "-fx-font-size: " + (isLarge ? "15px" : "16px") + "; " +
                 "-fx-font-weight: 800; " +
                 "-fx-text-fill: #FFFFFF;"
             );
@@ -193,7 +193,7 @@ public class TableWithChairsNode extends StackPane {
             lblMeta.setText(meta);
             lblMeta.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: 9.5px; " +
+                "-fx-font-size: 11px; " +
                 "-fx-font-weight: 700; " +
                 "-fx-text-fill: #E8C798;"
             );
@@ -213,14 +213,14 @@ public class TableWithChairsNode extends StackPane {
             String borderWidth = currentSelected ? "2.5px" : "1.5px";
             tableSurface.setStyle(
                 "-fx-background-color: #FFFBEB; " +
-                "-fx-background-radius: 14px; " +
+                "-fx-background-radius: 16px; " +
                 "-fx-border-color: " + borderColor + "; " +
-                "-fx-border-radius: 14px; " +
+                "-fx-border-radius: 16px; " +
                 "-fx-border-width: " + borderWidth + ";"
             );
             lblNumber.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: " + (isLarge ? "13px" : "14px") + "; " +
+                "-fx-font-size: " + (isLarge ? "15px" : "16px") + "; " +
                 "-fx-font-weight: 800; " +
                 "-fx-text-fill: #92400E;"
             );
@@ -228,7 +228,7 @@ public class TableWithChairsNode extends StackPane {
             lblMeta.setText(meta);
             lblMeta.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: 9.5px; " +
+                "-fx-font-size: 11px; " +
                 "-fx-font-weight: 700; " +
                 "-fx-text-fill: #B45309;"
             );
@@ -241,21 +241,21 @@ public class TableWithChairsNode extends StackPane {
             // TRẠNG THÁI 5: CHỜ DỌN BÀN (CLEANING)
             tableSurface.setStyle(
                 "-fx-background-color: #FEF2F2; " +
-                "-fx-background-radius: 14px; " +
+                "-fx-background-radius: 16px; " +
                 "-fx-border-color: " + (currentSelected ? "#B91C1C" : "#EF4444") + "; " +
-                "-fx-border-radius: 14px; " +
+                "-fx-border-radius: 16px; " +
                 "-fx-border-width: " + (currentSelected ? "2.5px" : "1.5px") + ";"
             );
             lblNumber.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: " + (isLarge ? "13px" : "14px") + "; " +
+                "-fx-font-size: " + (isLarge ? "15px" : "16px") + "; " +
                 "-fx-font-weight: 800; " +
                 "-fx-text-fill: #991B1B;"
             );
             lblMeta.setText("Chờ dọn");
             lblMeta.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: 9.5px; " +
+                "-fx-font-size: 11px; " +
                 "-fx-font-weight: 700; " +
                 "-fx-text-fill: #DC2626;"
             );
@@ -268,21 +268,21 @@ public class TableWithChairsNode extends StackPane {
             // Giữ nền sáng #FCFBF8, viền xanh đậm #112823 (2.5px), tuyệt đối KHÔNG biến thành màu đen của bàn có khách!
             tableSurface.setStyle(
                 "-fx-background-color: #FCFBF8; " +
-                "-fx-background-radius: 14px; " +
+                "-fx-background-radius: 16px; " +
                 "-fx-border-color: #112823; " +
-                "-fx-border-radius: 14px; " +
+                "-fx-border-radius: 16px; " +
                 "-fx-border-width: 2.5px;"
             );
             lblNumber.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: " + (isLarge ? "13px" : "14px") + "; " +
+                "-fx-font-size: " + (isLarge ? "15px" : "16px") + "; " +
                 "-fx-font-weight: 800; " +
                 "-fx-text-fill: #112823;"
             );
             lblMeta.setText("Đang chọn");
             lblMeta.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: 9.5px; " +
+                "-fx-font-size: 11px; " +
                 "-fx-font-weight: 700; " +
                 "-fx-text-fill: #16A34A;"
             );
@@ -295,21 +295,21 @@ public class TableWithChairsNode extends StackPane {
             // TRẠNG THÁI 1: BÀN TRỐNG (EMPTY) - Nền trắng #FFFFFF, chữ #2C2623
             tableSurface.setStyle(
                 "-fx-background-color: #FFFFFF; " +
-                "-fx-background-radius: 14px; " +
+                "-fx-background-radius: 16px; " +
                 "-fx-border-color: #D8CEBE; " +
-                "-fx-border-radius: 14px; " +
+                "-fx-border-radius: 16px; " +
                 "-fx-border-width: 1.2px;"
             );
             lblNumber.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: " + (isLarge ? "13px" : "14px") + "; " +
+                "-fx-font-size: " + (isLarge ? "15px" : "16px") + "; " +
                 "-fx-font-weight: 800; " +
                 "-fx-text-fill: #2C2623;"
             );
             lblMeta.setText("Trống");
             lblMeta.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: 9.5px; " +
+                "-fx-font-size: 11px; " +
                 "-fx-font-weight: 600; " +
                 "-fx-text-fill: #8C8277;"
             );

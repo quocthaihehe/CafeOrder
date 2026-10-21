@@ -323,10 +323,32 @@ public class CafeServerService {
         }
     }
 
+    private final Map<String, Long> kickedBlacklist = new ConcurrentHashMap<>();
+
+    public boolean isSessionBlacklisted(String sessionId) {
+        if (sessionId == null) return false;
+        Long expireTime = kickedBlacklist.get(sessionId);
+        if (expireTime != null) {
+            if (System.currentTimeMillis() < expireTime) {
+                return true;
+            } else {
+                kickedBlacklist.remove(sessionId);
+            }
+        }
+        return false;
+    }
+
     public boolean kickSession(String sessionId) {
         ClientSession session = activeSessions.remove(sessionId);
         if (session != null) {
             try {
+                kickedBlacklist.put(sessionId, System.currentTimeMillis() + 60_000L);
+                MessageProtocol.SessionKickedMessage kickMsg = new MessageProtocol.SessionKickedMessage(
+                    sessionId, "Phiên làm việc của bạn đã bị ngắt bởi Quản trị viên hệ thống!", 60_000L
+                );
+                session.send(MessageProtocol.toJson(kickMsg));
+                try { Thread.sleep(50); } catch (InterruptedException ignored) {}
+
                 unbindTableSubscriber(session.currentTable, sessionId);
                 if (session.socket != null && !session.socket.isClosed()) {
                     session.socket.close();
@@ -470,6 +492,15 @@ public class CafeServerService {
 
                     case HELLO:
                         MessageProtocol.HelloMessage hello = MessageProtocol.fromJson(line, MessageProtocol.HelloMessage.class);
+                        if (hello.sessionId != null && isSessionBlacklisted(hello.sessionId)) {
+                            log("Từ chối kết nối phiên đang bị khóa (Kick Blacklist): " + hello.sessionId);
+                            MessageProtocol.SessionKickedMessage kickMsg = new MessageProtocol.SessionKickedMessage(
+                                hello.sessionId, "Phiên làm việc này đang bị tạm khóa bởi Quản trị viên!", 60_000L
+                            );
+                            session.send(MessageProtocol.toJson(kickMsg));
+                            try { session.socket.close(); } catch (Exception ignored) {}
+                            return;
+                        }
                         int registeredTable = hello.table;
                         session.currentTable = registeredTable;
                         if (hello.deviceType != null) session.deviceType = hello.deviceType;

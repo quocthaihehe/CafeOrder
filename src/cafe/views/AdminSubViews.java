@@ -327,6 +327,12 @@ public class AdminSubViews {
                     selectedItemHolder[0] = item;
                     refreshLeftRows[0].run();
                     refreshRightBom[0].run();
+                    showBomRecipeModal(parentStage, item, () -> {
+                        refreshLeftRows[0].run();
+                        refreshRightBom[0].run();
+                        if (onMenuUpdated != null) onMenuUpdated.run();
+                        if (toastCallback != null) toastCallback.accept("Đã lưu định lượng (BOM) thành công cho món '" + item.getName() + "'!");
+                    });
                 });
 
                 row.setOnMouseClicked(ev -> {
@@ -361,6 +367,193 @@ public class AdminSubViews {
         body.getChildren().addAll(leftCard, rightCard);
         root.getChildren().addAll(header, body);
         return root;
+    }
+
+    public static void showBomRecipeModal(Stage owner, MenuItem item, Runnable onUpdated) {
+        Stage modal = createModal(owner, "Chi Tiết Định Lượng (BOM) - " + item.getName());
+        VBox root = new VBox(14);
+        root.setPadding(new Insets(22));
+        root.setPrefWidth(580);
+        root.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 16px; -fx-border-color: #DFD7CA; -fx-border-radius: 16px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 24, 0.15, 0, 8);");
+
+        Label lblTitle = new Label("🧪 Công Thức Định Lượng Nguyên Liệu (BOM)");
+        lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 20px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+
+        // Item Header Banner
+        HBox itemHeader = new HBox(12);
+        itemHeader.setAlignment(Pos.CENTER_LEFT);
+        itemHeader.setPadding(new Insets(10, 14, 10, 14));
+        itemHeader.setStyle("-fx-background-color: #FAF8F5; -fx-background-radius: 10px; -fx-border-color: #EFEAE2; -fx-border-radius: 10px;");
+
+        ProductImagePane thumb = new ProductImagePane(item, 56, 8);
+        thumb.setMinSize(56, 56);
+        thumb.setMaxSize(56, 56);
+
+        VBox itemTexts = new VBox(2);
+        HBox.setHgrow(itemTexts, Priority.ALWAYS);
+        Label lName = new Label(item.getName());
+        lName.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 15px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+        Label lCatPrice = new Label("Danh mục: " + item.getCategory() + "  •  Giá niêm yết: " + CurrencyFormatter.formatVND(item.getPrice()));
+        lCatPrice.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #B45309;");
+        itemTexts.getChildren().addAll(lName, lCatPrice);
+
+        Label badgeStatus = new Label(item.isInStock() ? "● Đang bán" : "✕ Tạm hết (86)");
+        badgeStatus.setStyle(
+            "-fx-background-color: " + (item.isInStock() ? "#DCFCE7" : "#FEE2E2") + "; " +
+            "-fx-text-fill: " + (item.isInStock() ? "#15803D" : "#B91C1C") + "; " +
+            "-fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 4 8 4 8;"
+        );
+        itemHeader.getChildren().addAll(thumb, itemTexts, badgeStatus);
+
+        // Recipe Table
+        List<DatabaseManager.RecipeEntry> currentRecipes = new ArrayList<>(DatabaseManager.getRecipesForProduct(item));
+        VBox rowsBox = new VBox(6);
+        rowsBox.setPadding(new Insets(4, 0, 4, 0));
+
+        HBox tblHead = new HBox(8);
+        tblHead.setPadding(new Insets(6, 10, 6, 10));
+        tblHead.setStyle("-fx-background-color: #F4EFE6; -fx-background-radius: 6px;");
+        Label hName = createColHeader("NGUYÊN LIỆU TIÊU HAO CHO 1 PHẦN", 210);
+        HBox.setHgrow(hName, Priority.ALWAYS);
+        hName.setMaxWidth(Double.MAX_VALUE);
+        tblHead.getChildren().addAll(
+            hName,
+            createColHeader("ĐỊNH LƯỢNG", 100),
+            createColHeader("CHI PHÍ", 110),
+            createColHeader("", 40)
+        );
+
+        ScrollPane scroll = new ScrollPane(rowsBox);
+        scroll.setFitToWidth(true);
+        scroll.setPrefHeight(180);
+        scroll.setMinHeight(140);
+        scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+
+        // Financial Summary Box
+        HBox summaryBox = new HBox(12);
+        summaryBox.setAlignment(Pos.CENTER_LEFT);
+        summaryBox.setPadding(new Insets(10, 14, 10, 14));
+        summaryBox.setStyle("-fx-background-color: #F8F5F0; -fx-background-radius: 10px;");
+
+        Label lblCogs = new Label();
+        lblCogs.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #B45309;");
+        Label lblProfit = new Label();
+        lblProfit.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #15803D;");
+        Label lblMargin = new Label();
+        lblMargin.setStyle("-fx-font-size: 12px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+        summaryBox.getChildren().addAll(lblCogs, new Label(" • "), lblProfit, new Label(" • "), lblMargin);
+
+        final Runnable[] renderRows = new Runnable[1];
+        renderRows[0] = () -> {
+            rowsBox.getChildren().clear();
+            double totalCost = 0;
+            for (int i = 0; i < currentRecipes.size(); i++) {
+                final int idx = i;
+                DatabaseManager.RecipeEntry re = currentRecipes.get(i);
+                totalCost += re.estimatedCost;
+
+                HBox r = new HBox(8);
+                r.setAlignment(Pos.CENTER_LEFT);
+                r.setPadding(new Insets(6, 10, 6, 10));
+                r.setStyle("-fx-background-color: #FAF8F5; -fx-background-radius: 6px; -fx-border-color: #EFEAE2; -fx-border-radius: 6px;");
+
+                Label lIngName = new Label("☕ " + re.ingredientName);
+                lIngName.setStyle("-fx-font-size: 12.5px; -fx-font-weight: 700; -fx-text-fill: #1C1917;");
+                HBox.setHgrow(lIngName, Priority.ALWAYS);
+                lIngName.setMaxWidth(Double.MAX_VALUE);
+
+                Label lIngQty = new Label(String.format("%.0f %s", re.quantityNeeded, re.unit));
+                lIngQty.setPrefWidth(100);
+                lIngQty.setStyle("-fx-background-color: #EAE4DA; -fx-text-fill: #112823; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 3 8 3 8; -fx-alignment: center;");
+
+                Label lIngCost = new Label(CurrencyFormatter.formatVND(re.estimatedCost));
+                lIngCost.setPrefWidth(110);
+                lIngCost.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #B45309; -fx-alignment: center-right;");
+
+                Button btnDel = new Button("✕");
+                btnDel.setPrefSize(28, 28);
+                btnDel.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-size: 10px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-cursor: hand;");
+                btnDel.setOnAction(e -> {
+                    currentRecipes.remove(idx);
+                    renderRows[0].run();
+                });
+
+                r.getChildren().addAll(lIngName, lIngQty, lIngCost, btnDel);
+                rowsBox.getChildren().add(r);
+            }
+
+            double grossProfit = item.getPrice() - totalCost;
+            double marginPct = item.getPrice() > 0 ? (grossProfit / item.getPrice()) * 100.0 : 0.0;
+            lblCogs.setText("Giá vốn (COGS): " + CurrencyFormatter.formatVND(totalCost));
+            lblProfit.setText("Lãi gộp: " + CurrencyFormatter.formatVND(grossProfit));
+            lblMargin.setText(String.format("Tỷ suất lợi nhuận: %.1f%%", marginPct));
+        };
+
+        renderRows[0].run();
+
+        // Add Ingredient Row
+        HBox addRow = new HBox(8);
+        addRow.setAlignment(Pos.CENTER_LEFT);
+
+        ComboBox<DatabaseManager.IngredientItem> cboNew = new ComboBox<>();
+        for (DatabaseManager.IngredientItem ing : DatabaseManager.getAllIngredients()) {
+            cboNew.getItems().add(ing);
+        }
+        cboNew.getSelectionModel().selectFirst();
+        cboNew.setPrefHeight(36);
+        cboNew.setStyle(COMBO_STYLE);
+        HBox.setHgrow(cboNew, Priority.ALWAYS);
+        cboNew.setConverter(new javafx.util.StringConverter<DatabaseManager.IngredientItem>() {
+            @Override
+            public String toString(DatabaseManager.IngredientItem ing) {
+                return ing == null ? "" : ing.name + " (" + ing.unit + " - " + CurrencyFormatter.formatVND(ing.unitCost) + ")";
+            }
+            @Override
+            public DatabaseManager.IngredientItem fromString(String string) { return null; }
+        });
+
+        TextField txtNewQty = new TextField("20");
+        txtNewQty.setPrefWidth(65);
+        txtNewQty.setPrefHeight(36);
+        txtNewQty.setStyle(INPUT_STYLE);
+
+        Button btnAdd = new Button("+ Thêm nguyên liệu");
+        btnAdd.setPrefHeight(36);
+        btnAdd.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 6 14 6 14; -fx-cursor: hand;");
+        btnAdd.setOnAction(e -> {
+            DatabaseManager.IngredientItem selectedIng = cboNew.getValue();
+            if (selectedIng != null) {
+                try {
+                    double q = Double.parseDouble(txtNewQty.getText().trim());
+                    if (q > 0) {
+                        double estCost = Math.round(selectedIng.unitCost * q);
+                        currentRecipes.add(new DatabaseManager.RecipeEntry(selectedIng.name, q, selectedIng.unit, estCost));
+                        renderRows[0].run();
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+        });
+        addRow.getChildren().addAll(cboNew, txtNewQty, btnAdd);
+
+        // Actions Bottom Row
+        HBox actions = new HBox(10);
+        actions.setAlignment(Pos.CENTER_RIGHT);
+
+        Button btnCancel = new Button("Hủy bỏ");
+        btnCancel.setStyle("-fx-background-color: #EAE4DA; -fx-text-fill: #1C1917; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 8 16 8 16; -fx-cursor: hand;");
+        btnCancel.setOnAction(e -> modal.close());
+
+        Button btnSave = new Button("💾 LƯU CÔNG THỨC");
+        btnSave.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 800; -fx-background-radius: 8px; -fx-padding: 8 20 8 20; -fx-cursor: hand;");
+        btnSave.setOnAction(e -> {
+            DatabaseManager.saveRecipeForProduct(item.getId(), currentRecipes);
+            if (onUpdated != null) onUpdated.run();
+            modal.close();
+        });
+        actions.getChildren().addAll(btnCancel, btnSave);
+
+        root.getChildren().addAll(lblTitle, itemHeader, tblHead, scroll, summaryBox, addRow, actions);
+        showModal(modal, root);
     }
 
     private static void showAddMenuItemModal(Stage owner, Runnable onAdded) {

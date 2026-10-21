@@ -158,6 +158,45 @@ public class ClientController {
             view.showToast("Món \"" + stockMsg.itemName + "\" hiện " + statusText + "!");
         });
 
+        socketService.setOnSessionKickedReceived(kickMsg -> {
+            cartModel.clear();
+            view.updateCartBadge(0);
+            javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+            alert.initOwner(primaryStage);
+            alert.setTitle("Phiên Làm Việc Đã Bị Ngắt");
+            alert.setHeaderText("NGẮT KẾT NỐI TỪ QUẢN TRỊ VIÊN");
+            alert.setContentText(kickMsg != null && kickMsg.reason != null 
+                ? kickMsg.reason 
+                : "Phiên làm việc của bạn đã bị ngắt bởi Quản trị viên hệ thống!");
+            alert.showAndWait();
+
+            if (onLogout != null) {
+                onLogout.run();
+            } else if (onBackToFloorPlan != null) {
+                onBackToFloorPlan.run();
+            } else {
+                primaryStage.close();
+                Stage loginStage = new Stage();
+                cafe.views.LoginView loginView = new cafe.views.LoginView();
+                new LoginController(loginStage, loginView, socketService);
+                javafx.geometry.Rectangle2D bounds = javafx.stage.Screen.getPrimary().getVisualBounds();
+                javafx.scene.Scene scene = cafe.utils.WindowChromeHelper.createWindowScene(
+                    loginStage,
+                    loginView,
+                    "Đăng Nhập • Brew & Bean CAFE",
+                    bounds.getWidth(),
+                    bounds.getHeight(),
+                    true,
+                    () -> {
+                        socketService.disconnect();
+                        System.exit(0);
+                    }
+                );
+                loginStage.setScene(scene);
+                loginStage.show();
+            }
+        });
+
         socketService.setOnErrorOccurred(errMsg -> {
             view.showToast(errMsg);
         });

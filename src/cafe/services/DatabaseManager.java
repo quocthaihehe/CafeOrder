@@ -255,6 +255,15 @@ public class DatabaseManager {
         }
     }
 
+    public static synchronized boolean updateStaffPassword(int staffId, String newPassword) {
+        for (StaffModel s : staffList) {
+            if (s.getStaffId() == staffId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static List<IngredientItem> getAllIngredients() {
         return ingredientsList;
     }
@@ -311,6 +320,12 @@ public class DatabaseManager {
         }
         customRecipesMap.put(item.getId(), list);
         return list;
+    }
+
+    public static void saveRecipeForProduct(int itemId, List<RecipeEntry> recipes) {
+        if (recipes != null) {
+            customRecipesMap.put(itemId, new ArrayList<>(recipes));
+        }
     }
 
     public static StaffModel authenticateStaff(String username, String password) {

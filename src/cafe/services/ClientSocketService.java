@@ -37,7 +37,17 @@ public class ClientSocketService {
     private Consumer<MessageProtocol.OrderStatusUpdateMessage> onStatusUpdateReceived;
     private BiConsumer<Integer, String> onTableStatusReceived;
     private Consumer<MessageProtocol.StockStatusBroadcastMessage> onStockStatusReceived;
+    private Consumer<MessageProtocol.SessionKickedMessage> onSessionKickedReceived;
     private Consumer<String> onErrorOccurred;
+    private volatile boolean isKickedByAdmin = false;
+
+    public void setOnSessionKickedReceived(Consumer<MessageProtocol.SessionKickedMessage> callback) {
+        this.onSessionKickedReceived = callback;
+    }
+
+    public boolean isKickedByAdmin() {
+        return isKickedByAdmin;
+    }
 
     public void setOnStockStatusReceived(Consumer<MessageProtocol.StockStatusBroadcastMessage> callback) {
         this.onStockStatusReceived = callback;
@@ -80,6 +90,9 @@ public class ClientSocketService {
     }
 
     private synchronized boolean openSocketInternal(String host, int port) {
+        if (isKickedByAdmin) {
+            return false;
+        }
         if (isConnected() && out != null) {
             return true;
         }
@@ -234,6 +247,18 @@ public class ClientSocketService {
                             MessageProtocol.StockStatusBroadcastMessage stockMsg = MessageProtocol.fromJson(rawJson, MessageProtocol.StockStatusBroadcastMessage.class);
                             dispatch(() -> {
                                 if (onStockStatusReceived != null) onStockStatusReceived.accept(stockMsg);
+                            });
+                            break;
+
+                        case SESSION_KICKED:
+                            isKickedByAdmin = true;
+                            running = false;
+                            MessageProtocol.SessionKickedMessage kickMsg = MessageProtocol.fromJson(rawJson, MessageProtocol.SessionKickedMessage.class);
+                            try {
+                                if (socket != null && !socket.isClosed()) socket.close();
+                            } catch (IOException ignored) {}
+                            dispatch(() -> {
+                                if (onSessionKickedReceived != null) onSessionKickedReceived.accept(kickMsg);
                             });
                             break;
 

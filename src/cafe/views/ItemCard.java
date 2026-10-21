@@ -81,9 +81,9 @@ public class ItemCard extends VBox {
             setOpacity(0.62);
         }
 
-        // Khung viền & Huy hiệu Lửa Bán Chạy Nhất #1
+        // Khung viền & Huy hiệu Lửa Bán Chạy
         if (item.isBestseller()) {
-            Label badgeHot = new Label("🔥 BÁN CHẠY #1");
+            Label badgeHot = new Label("🔥 BÁN CHẠY");
             badgeHot.setStyle(
                 "-fx-background-color: linear-gradient(to right, #DC2626, #EA580C); " +
                 "-fx-text-fill: #FFFFFF; " +

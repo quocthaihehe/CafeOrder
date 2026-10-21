@@ -226,6 +226,13 @@ public class LoginController {
             clientView.getFloorPlanButton().setManaged(false);
         }
 
+        // Đăng xuất từ màn hình Kiosk Khách (Role 1)
+        clientView.setOnLogout(() -> {
+            socketService.disconnect();
+            socketService.warmupConnectAsync();
+            returnToLoginView();
+        });
+
         String menuTitle = "Brew & Bean CAFE • Bàn " + (tableNumber < 10 ? "0" + tableNumber : tableNumber);
         cafe.utils.WindowChromeHelper.setWindowContent(
             stage,
@@ -309,6 +316,12 @@ public class LoginController {
             clientView.getFloorPlanButton().setVisible(true);
             clientView.getFloorPlanButton().setManaged(true);
         }
+
+        clientView.setOnLogout(() -> {
+            socketService.disconnect();
+            socketService.warmupConnectAsync();
+            returnToLoginView();
+        });
 
         String menuTitle = "Brew & Bean CAFE • Đặt món Bàn " + (tableNumber < 10 ? "0" + tableNumber : tableNumber);
         cafe.utils.WindowChromeHelper.setWindowContent(

@@ -78,7 +78,7 @@ public class AdminSubViews {
         cboCat.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #DFD8CE; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-size: 12px;");
 
         Button btnAddDish = new Button("+ Thêm món mới");
-        btnAddDish.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 8 16 8 16; -fx-cursor: hand;");
+        btnAddDish.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 36px; -fx-padding: 7 16 7 16; -fx-cursor: hand;");
 
         header.getChildren().addAll(titleBox, sp, txtSearch, cboCat, btnAddDish);
 
@@ -154,9 +154,9 @@ public class AdminSubViews {
             lblEditPrice.setStyle("-fx-font-size: 12px; -fx-font-weight: 600; -fx-text-fill: #57534E;");
             TextField txtNewPrice = new TextField(String.valueOf((long) sel.getPrice()));
             txtNewPrice.setPrefWidth(105);
-            txtNewPrice.setStyle("-fx-background-color: #FAF8F5; -fx-border-color: #D8CEBE; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-padding: 5 8 5 8; -fx-font-size: 12px; -fx-font-weight: 700;");
+            txtNewPrice.setStyle("-fx-background-color: #FAF8F5; -fx-border-color: #D8CEBE; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 6 10 6 10; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-pref-height: 34px;");
             Button btnSavePrice = new Button("Lưu giá");
-            btnSavePrice.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-padding: 6 12 6 12; -fx-cursor: hand;");
+            btnSavePrice.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 34px; -fx-padding: 6 14 6 14; -fx-cursor: hand;");
             btnSavePrice.setOnAction(e -> {
                 try {
                     double np = Double.parseDouble(txtNewPrice.getText().trim().replace(".", "").replace(",", ""));
@@ -211,15 +211,19 @@ public class AdminSubViews {
             }
             cboIng.getSelectionModel().selectFirst();
             cboIng.setPrefWidth(175);
-            cboIng.setStyle("-fx-font-size: 11px;");
+            cboIng.setPrefHeight(36);
+            cboIng.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px;");
 
             TextField txtQty = new TextField("20");
-            txtQty.setPrefWidth(55);
+            txtQty.setPrefWidth(60);
+            txtQty.setPrefHeight(36);
             txtQty.setPromptText("ĐL");
-            txtQty.setStyle("-fx-font-size: 11.5px;");
+            txtQty.setStyle("-fx-background-color: #FAF8F5; -fx-border-color: #D8CEBE; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-padding: 6 8 6 8;");
 
             Button btnAddBom = new Button("+ Thêm ĐL");
-            btnAddBom.setStyle("-fx-background-color: #EAE4DA; -fx-text-fill: #112823; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-cursor: hand;");
+            btnAddBom.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 36px; -fx-padding: 6 12 6 12; -fx-cursor: hand;");
+            btnAddBom.setOnMouseEntered(e -> btnAddBom.setStyle("-fx-background-color: #EAE4DA; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 36px; -fx-padding: 6 12 6 12; -fx-cursor: hand;"));
+            btnAddBom.setOnMouseExited(e -> btnAddBom.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 36px; -fx-padding: 6 12 6 12; -fx-cursor: hand;"));
             btnAddBom.setOnAction(e -> {
                 String chosen = cboIng.getValue();
                 if (chosen != null) {
@@ -294,7 +298,7 @@ public class AdminSubViews {
                 btnStockToggle.setStyle(
                     "-fx-background-color: " + (inStock ? "#DCFCE7" : "#FEE2E2") + "; " +
                     "-fx-text-fill: " + (inStock ? "#15803D" : "#B91C1C") + "; " +
-                    "-fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 999px; -fx-padding: 4 10 4 10; -fx-cursor: hand;"
+                    "-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-font-weight: 800; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;"
                 );
                 btnStockToggle.setOnAction(ev -> {
                     ev.consume();
@@ -309,8 +313,10 @@ public class AdminSubViews {
                 });
 
                 Button btnInspect = new Button("Định lượng →");
-                btnInspect.setPrefWidth(90);
-                btnInspect.setStyle("-fx-background-color: #F4EFE6; -fx-text-fill: #112823; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-padding: 4 8 4 8; -fx-cursor: hand;");
+                btnInspect.setPrefWidth(95);
+                btnInspect.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 8 4 8; -fx-cursor: hand;");
+                btnInspect.setOnMouseEntered(e -> btnInspect.setStyle("-fx-background-color: #EAE4DA; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 8 4 8; -fx-cursor: hand;"));
+                btnInspect.setOnMouseExited(e -> btnInspect.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 8 4 8; -fx-cursor: hand;"));
                 btnInspect.setOnAction(ev -> {
                     selectedItemHolder[0] = item;
                     refreshLeftRows[0].run();
@@ -439,7 +445,7 @@ public class AdminSubViews {
         txtSearch.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #DFD8CE; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 7 12 7 12; -fx-font-size: 12px;");
 
         Button btnRestockModal = new Button("+ Nhập kho nguyên liệu");
-        btnRestockModal.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 8 16 8 16; -fx-cursor: hand;");
+        btnRestockModal.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 36px; -fx-padding: 7 16 7 16; -fx-cursor: hand;");
 
         header.getChildren().addAll(titleCol, sp, txtSearch, btnRestockModal);
 
@@ -470,8 +476,8 @@ public class AdminSubViews {
                 for (Button b : chipBtns) {
                     boolean active = b.getText().equals(cat);
                     b.setStyle(active
-                        ? "-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 999px; -fx-padding: 6 14 6 14; -fx-cursor: hand;"
-                        : "-fx-background-color: #EAE4DA; -fx-text-fill: #57534E; -fx-font-size: 12px; -fx-font-weight: 600; -fx-background-radius: 999px; -fx-padding: 6 14 6 14; -fx-cursor: hand;");
+                        ? "-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 34px; -fx-padding: 6 14 6 14; -fx-cursor: hand;"
+                        : "-fx-background-color: #F5EFEB; -fx-text-fill: #57534E; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 600; -fx-background-radius: 8px; -fx-pref-height: 34px; -fx-padding: 6 14 6 14; -fx-cursor: hand;");
                 }
                 renderInventory[0].run();
             });
@@ -562,12 +568,14 @@ public class AdminSubViews {
                 badge.setStyle(
                     "-fx-background-color: " + (ing.isLowStock() ? "#FEE2E2" : "#DCFCE7") + "; " +
                     "-fx-text-fill: " + (ing.isLowStock() ? "#B91C1C" : "#15803D") + "; " +
-                    "-fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 999px; -fx-padding: 4 10 4 10; -fx-alignment: center;"
+                    "-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-font-weight: 800; -fx-background-radius: 8px; -fx-padding: 4 10 4 10; -fx-alignment: center;"
                 );
 
                 Button btnQuickImport = new Button("+ Nhập thêm");
                 btnQuickImport.setPrefWidth(110);
-                btnQuickImport.setStyle("-fx-background-color: #F4EFE6; -fx-text-fill: #112823; -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-padding: 5 10 5 10; -fx-cursor: hand;");
+                btnQuickImport.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;");
+                btnQuickImport.setOnMouseEntered(e -> btnQuickImport.setStyle("-fx-background-color: #EAE4DA; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;"));
+                btnQuickImport.setOnMouseExited(e -> btnQuickImport.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;"));
                 btnQuickImport.setOnAction(ev -> showRestockIngredientModal(parentStage, ing, () -> {
                     renderInventory[0].run();
                     if (toastCallback != null) toastCallback.accept("Đã nhập kho bổ sung cho '" + ing.name + "'!");
@@ -710,7 +718,7 @@ public class AdminSubViews {
         final Runnable[] renderVouchers = new Runnable[1];
 
         Button btnCreate = new Button("+ Tạo mã Voucher mới");
-        btnCreate.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 8 16 8 16; -fx-cursor: hand;");
+        btnCreate.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 36px; -fx-padding: 7 16 7 16; -fx-cursor: hand;");
         btnCreate.setOnAction(e -> showCreateVoucherModal(parentStage, () -> {
             renderVouchers[0].run();
             if (toastCallback != null) toastCallback.accept("Đã phát hành mã khuyến mãi mới trên toàn hệ thống!");
@@ -782,7 +790,7 @@ public class AdminSubViews {
                 btnToggle.setStyle(
                     "-fx-background-color: " + (act ? "#DCFCE7" : "#FEE2E2") + "; " +
                     "-fx-text-fill: " + (act ? "#15803D" : "#B91C1C") + "; " +
-                    "-fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 999px; -fx-padding: 4 10 4 10; -fx-cursor: hand;"
+                    "-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-font-weight: 800; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;"
                 );
                 btnToggle.setOnAction(ev -> {
                     v.setActive(!act);
@@ -794,7 +802,9 @@ public class AdminSubViews {
 
                 Button btnDelete = new Button("Xóa mã");
                 btnDelete.setPrefWidth(100);
-                btnDelete.setStyle("-fx-background-color: #F4EFE6; -fx-text-fill: #B91C1C; -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-cursor: hand;");
+                btnDelete.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-cursor: hand;");
+                btnDelete.setOnMouseEntered(e -> btnDelete.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-cursor: hand;"));
+                btnDelete.setOnMouseExited(e -> btnDelete.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-cursor: hand;"));
                 btnDelete.setOnAction(ev -> {
                     MenuRepository.removeVoucher(v.getCode());
                     renderVouchers[0].run();
@@ -889,7 +899,7 @@ public class AdminSubViews {
         final Runnable[] renderStaff = new Runnable[1];
 
         Button btnAddStaff = new Button("+ Thêm nhân viên mới");
-        btnAddStaff.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 8 16 8 16; -fx-cursor: hand;");
+        btnAddStaff.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 36px; -fx-padding: 7 16 7 16; -fx-cursor: hand;");
         btnAddStaff.setOnAction(e -> showAddStaffModal(parentStage, () -> {
             renderStaff[0].run();
             if (toastCallback != null) toastCallback.accept("Đã tạo tài khoản nhân viên mới thành công!");
@@ -962,7 +972,7 @@ public class AdminSubViews {
                 btnStatus.setStyle(
                     "-fx-background-color: " + (active ? "#DCFCE7" : "#FEE2E2") + "; " +
                     "-fx-text-fill: " + (active ? "#15803D" : "#B91C1C") + "; " +
-                    "-fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 999px; -fx-padding: 5 10 5 10; -fx-cursor: hand;"
+                    "-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-font-weight: 800; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;"
                 );
                 btnStatus.setOnAction(ev -> {
                     DatabaseManager.toggleStaffStatus(s.getStaffId());
@@ -1059,7 +1069,7 @@ public class AdminSubViews {
         List<Button> pBtns = new ArrayList<>();
 
         Button btnExportCsv = new Button("📥 Xuất Báo Cáo CSV / Excel");
-        btnExportCsv.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 8 16 8 16; -fx-cursor: hand;");
+        btnExportCsv.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 36px; -fx-padding: 7 16 7 16; -fx-cursor: hand;");
 
         header.getChildren().addAll(titleCol, sp, periodBtnsBox, btnExportCsv);
 
@@ -1191,8 +1201,8 @@ public class AdminSubViews {
                 for (Button btn : pBtns) {
                     boolean act = btn.getText().equals(p);
                     btn.setStyle(act
-                        ? "-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 7 14 7 14; -fx-cursor: hand;"
-                        : "-fx-background-color: #EAE4DA; -fx-text-fill: #57534E; -fx-font-size: 12px; -fx-font-weight: 600; -fx-background-radius: 8px; -fx-padding: 7 14 7 14; -fx-cursor: hand;");
+                        ? "-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 34px; -fx-padding: 6 14 6 14; -fx-cursor: hand;"
+                        : "-fx-background-color: #F5EFEB; -fx-text-fill: #57534E; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 600; -fx-background-radius: 8px; -fx-pref-height: 34px; -fx-padding: 6 14 6 14; -fx-cursor: hand;");
                 }
                 renderFinancials.run();
             });
@@ -1253,7 +1263,7 @@ public class AdminSubViews {
 
         HBox leftBtns = new HBox(10);
         Button btnSaveConfig = new Button("💾 Lưu Cấu Hình Quán");
-        btnSaveConfig.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 10 18 10 18; -fx-cursor: hand;");
+        btnSaveConfig.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 38px; -fx-padding: 8 18 8 18; -fx-cursor: hand;");
         btnSaveConfig.setOnAction(e -> {
             DatabaseManager.brandName = txtBrand.getText().trim();
             DatabaseManager.storeAddress = txtAddress.getText().trim();
@@ -1264,7 +1274,9 @@ public class AdminSubViews {
         });
 
         Button btnTestPrint = new Button("🖨 In Thử Phiếu Mẫu (Test Print)");
-        btnTestPrint.setStyle("-fx-background-color: #F4EFE6; -fx-text-fill: #112823; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 10 18 10 18; -fx-cursor: hand;");
+        btnTestPrint.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 38px; -fx-padding: 8 18 8 18; -fx-cursor: hand;");
+        btnTestPrint.setOnMouseEntered(e -> btnTestPrint.setStyle("-fx-background-color: #EAE4DA; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 38px; -fx-padding: 8 18 8 18; -fx-cursor: hand;"));
+        btnTestPrint.setOnMouseExited(e -> btnTestPrint.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 38px; -fx-padding: 8 18 8 18; -fx-cursor: hand;"));
         btnTestPrint.setOnAction(e -> {
             Order sample = new Order(9999, 1, "DINE_IN",
                 Collections.singletonList(new OrderItem("Cà phê Sữa Đá Đặc Biệt (Test Print)", 1, "Size M", 35000)),

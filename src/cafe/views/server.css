@@ -70,9 +70,9 @@
    -------------------------------------------------------------------------- */
 .kds-search-box {
     -fx-background-color: #FFFFFF;
-    -fx-background-radius: 4px;
-    -fx-border-color: #D8D1C3;
-    -fx-border-radius: 4px;
+    -fx-background-radius: 8px;
+    -fx-border-color: #DFD7CA;
+    -fx-border-radius: 8px;
     -fx-border-width: 1px;
     -fx-padding: 6 12 6 12;
 }
@@ -86,13 +86,13 @@
 }
 
 .kds-filter-btn {
-    -fx-background-color: #FFFFFF;
+    -fx-background-color: #F5EFEB;
     -fx-text-fill: #57534E;
     -fx-font-family: 'Inter', sans-serif;
     -fx-font-size: 12.5px;
     -fx-font-weight: 600;
     -fx-background-radius: 8px;
-    -fx-border-color: #DFD7CA;
+    -fx-border-color: transparent;
     -fx-border-radius: 8px;
     -fx-border-width: 1px;
     -fx-padding: 7 16 7 16;
@@ -100,7 +100,7 @@
 }
 
 .kds-filter-btn:hover {
-    -fx-background-color: #F5EFEB;
+    -fx-background-color: #EAE4DA;
     -fx-text-fill: #112823;
 }
 
@@ -118,7 +118,7 @@
     -fx-font-size: 12.5px;
     -fx-font-weight: 600;
     -fx-background-radius: 8px;
-    -fx-border-color: #DFD7CA;
+    -fx-border-color: transparent;
     -fx-border-radius: 8px;
     -fx-border-width: 1px;
     -fx-padding: 7 14 7 14;
@@ -141,9 +141,9 @@
     -fx-border-radius: 10px;
     -fx-border-width: 1px;
     -fx-padding: 14;
-    -fx-pref-width: 320;
+    -fx-pref-width: 340;
     -fx-max-width: 360;
-    -fx-min-width: 290;
+    -fx-min-width: 320;
 }
 
 .ticket-header {

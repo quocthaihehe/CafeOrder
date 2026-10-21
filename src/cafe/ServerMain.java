@@ -7,6 +7,8 @@ import cafe.utils.WindowChromeHelper;
 import cafe.views.ServerKDSView;
 import javafx.application.Application;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
@@ -40,6 +42,20 @@ public class ServerMain {
             // Đồng bộ live: khi có đơn hàng mới từ Kiosk/Staff, đẩy vào Dashboard Admin
             serverService.setOnOrderReceived(order -> {
                 adminShell.notifyNewOrderArrived(order);
+            });
+
+            // Xử lý sự kiện Đăng xuất trên màn hình Quản trị trung tâm
+            adminShell.setOnLogout(() -> {
+                Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+                confirm.setTitle("Đăng xuất Quản trị");
+                confirm.setHeaderText("Bạn có chắc chắn muốn đăng xuất và đóng phiên làm việc?");
+                confirm.setContentText("Thao tác này sẽ đóng giao diện quản trị trung tâm và ngắt máy chủ một cách an toàn.");
+                confirm.showAndWait().ifPresent(res -> {
+                    if (res == ButtonType.OK) {
+                        serverService.stop();
+                        System.exit(0);
+                    }
+                });
             });
 
             Scene scene = WindowChromeHelper.createWindowScene(

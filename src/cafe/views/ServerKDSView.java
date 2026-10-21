@@ -103,14 +103,15 @@ public class ServerKDSView extends BorderPane {
         center.setPadding(new Insets(14, 20, 14, 20));
 
         // Filter & Search bar
-        HBox controlBar = new HBox(10);
+        HBox controlBar = new HBox(12);
         controlBar.setAlignment(Pos.CENTER_LEFT);
 
         txtSearch.setPromptText("Tìm theo số bàn hoặc mã đơn (VD: 1, 1002)...");
-        txtSearch.getStyleClass().add("text-input-field");
-        txtSearch.setPrefWidth(280);
+        txtSearch.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #DFD7CA; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 7 12 7 12; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px;");
+        txtSearch.setPrefWidth(300);
         txtSearch.setPrefHeight(36);
 
+        filterButtonsBox.setSpacing(8);
         filterButtonsBox.setAlignment(Pos.CENTER_LEFT);
 
         Region spacer = new Region();

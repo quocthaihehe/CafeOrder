@@ -21,6 +21,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.SVGPath;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -234,14 +235,36 @@ public class FloorPlanView extends BorderPane {
         StackPane avaPane = new StackPane(avatar, lblStaffAvaText);
 
         VBox profTexts = new VBox(2);
+        HBox.setHgrow(profTexts, Priority.ALWAYS);
         lblStaffName.setStyle("-fx-font-size: 13px; -fx-font-weight: 800; -fx-text-fill: #112823;");
         lblStaffRole.setStyle("-fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: #6F695F;");
         profTexts.getChildren().addAll(lblStaffName, lblStaffRole);
 
-        profileCard.getChildren().addAll(avaPane, profTexts);
+        Button btnLogoutQuick = new Button("Thoát");
+        btnLogoutQuick.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 5 9 5 9; -fx-cursor: hand;");
+        btnLogoutQuick.setOnAction(e -> {
+            if (onLogout != null) onLogout.run();
+        });
 
-        // Đăng xuất ở dưới cùng
-        Button btnExit = createNavButton("Đăng xuất", "dang-xuat.png", SvgIcons.USER, "🚪", false);
+        profileCard.getChildren().addAll(avaPane, profTexts, btnLogoutQuick);
+
+        // Đăng xuất ở dưới cùng (nổi bật với theme đỏ cảnh báo sang trọng)
+        Button btnExit = new Button();
+        btnExit.setMaxWidth(Double.MAX_VALUE);
+        btnExit.setAlignment(Pos.CENTER);
+        btnExit.setPrefHeight(38);
+        btnExit.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-border-color: #FECACA; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-cursor: hand; -fx-padding: 8 14 8 14;");
+        btnExit.setOnMouseEntered(e -> btnExit.setStyle("-fx-background-color: #FCA5A5; -fx-text-fill: #7F1D1D; -fx-border-color: #F87171; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-cursor: hand; -fx-padding: 8 14 8 14;"));
+        btnExit.setOnMouseExited(e -> btnExit.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-border-color: #FECACA; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-cursor: hand; -fx-padding: 8 14 8 14;"));
+        AnimationHelper.applyButtonPress(btnExit);
+
+        HBox exitContent = new HBox(8);
+        exitContent.setAlignment(Pos.CENTER);
+        SVGPath exitIcon = SvgIcons.createOutlineIcon(SvgIcons.LOG_OUT, 0.75, Color.web("#B91C1C"));
+        Label lblExit = new Label("Đăng xuất ca trực");
+        lblExit.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #B91C1C;");
+        exitContent.getChildren().addAll(exitIcon, lblExit);
+        btnExit.setGraphic(exitContent);
         btnExit.setOnAction(e -> {
             if (onLogout != null) onLogout.run();
         });
@@ -402,7 +425,25 @@ public class FloorPlanView extends BorderPane {
         AnimationHelper.applyButtonPress(btnGoToMenu);
         btnGoToMenu.setOnAction(e -> switchStaffTab("MENU"));
 
-        topBar.getChildren().addAll(titleRow, sp1, btnQuickReserve, btnGoToMenu);
+        // Nút Đăng xuất ca trực trên TopBar
+        Button btnTopLogout = new Button();
+        btnTopLogout.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-border-color: #FECACA; -fx-border-radius: 8px; -fx-border-width: 1px; -fx-padding: 8 14 8 14; -fx-cursor: hand;");
+        btnTopLogout.setOnMouseEntered(e -> btnTopLogout.setStyle("-fx-background-color: #FCA5A5; -fx-text-fill: #7F1D1D; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-border-color: #F87171; -fx-border-radius: 8px; -fx-border-width: 1px; -fx-padding: 8 14 8 14; -fx-cursor: hand;"));
+        btnTopLogout.setOnMouseExited(e -> btnTopLogout.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-border-color: #FECACA; -fx-border-radius: 8px; -fx-border-width: 1px; -fx-padding: 8 14 8 14; -fx-cursor: hand;"));
+        AnimationHelper.applyButtonPress(btnTopLogout);
+
+        HBox topLogoutContent = new HBox(6);
+        topLogoutContent.setAlignment(Pos.CENTER);
+        SVGPath topLogoutIcon = SvgIcons.createOutlineIcon(SvgIcons.LOG_OUT, 0.7, Color.web("#B91C1C"));
+        Label lblTopLogoutText = new Label("Đăng xuất");
+        lblTopLogoutText.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #B91C1C;");
+        topLogoutContent.getChildren().addAll(topLogoutIcon, lblTopLogoutText);
+        btnTopLogout.setGraphic(topLogoutContent);
+        btnTopLogout.setOnAction(e -> {
+            if (onLogout != null) onLogout.run();
+        });
+
+        topBar.getChildren().addAll(titleRow, sp1, btnQuickReserve, btnGoToMenu, btnTopLogout);
 
         // 2. Floor & Table Status Toolbar
         HBox floorToolbar = new HBox(10);

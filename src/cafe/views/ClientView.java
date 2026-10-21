@@ -47,6 +47,9 @@ public class ClientView extends BorderPane {
     private final Label lblLiveClock = new Label();
 
     private final Button btnFloorPlan = new Button();
+    private final Button btnLogout = new Button();
+    private final Button btnSidebarLogout = new Button();
+    private Runnable onLogoutCallback;
 
     private final HBox notificationToast = new HBox();
     private final Label lblToastMessage = new Label();
@@ -106,6 +109,10 @@ public class ClientView extends BorderPane {
             setLeft(null);
             categoryPillScroll.setVisible(true);
             categoryPillScroll.setManaged(true);
+            btnLogout.setVisible(false);
+            btnLogout.setManaged(false);
+            btnSidebarLogout.setVisible(false);
+            btnSidebarLogout.setManaged(false);
             if (lastCategories != null && lastOnCategorySelect != null) {
                 renderCategories(lastCategories, lastSelectedCategory, lastOnCategorySelect);
             }
@@ -113,6 +120,10 @@ public class ClientView extends BorderPane {
             setLeft(leftCategorySidebar);
             categoryPillScroll.setVisible(false);
             categoryPillScroll.setManaged(false);
+            btnLogout.setVisible(true);
+            btnLogout.setManaged(true);
+            btnSidebarLogout.setVisible(true);
+            btnSidebarLogout.setManaged(true);
         }
     }
 
@@ -204,7 +215,26 @@ public class ClientView extends BorderPane {
         lblActiveOrderStatus.setStyle("-fx-font-size: 10px; -fx-font-weight: 600; -fx-text-fill: #E5A04D;");
         activeOrderBox.getChildren().addAll(orderTrackHeader, lblActiveOrderId, lblActiveOrderStatus);
 
-        sidebar.getChildren().addAll(brandBox, btnFloorPlan, scrollNav, activeOrderBox);
+        // Nút Đăng xuất ở chân Sidebar
+        btnSidebarLogout.setMaxWidth(Double.MAX_VALUE);
+        btnSidebarLogout.setPrefHeight(38);
+        btnSidebarLogout.setStyle("-fx-background-color: transparent; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-border-color: #FECACA; -fx-border-radius: 8px; -fx-border-width: 1px; -fx-cursor: hand; -fx-padding: 6 12 6 12;");
+        btnSidebarLogout.setOnMouseEntered(e -> btnSidebarLogout.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-border-color: #F87171; -fx-border-radius: 8px; -fx-border-width: 1px; -fx-cursor: hand; -fx-padding: 6 12 6 12;"));
+        btnSidebarLogout.setOnMouseExited(e -> btnSidebarLogout.setStyle("-fx-background-color: transparent; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-border-color: #FECACA; -fx-border-radius: 8px; -fx-border-width: 1px; -fx-cursor: hand; -fx-padding: 6 12 6 12;"));
+        AnimationHelper.applyButtonPress(btnSidebarLogout);
+
+        HBox sbLogoutBox = new HBox(8);
+        sbLogoutBox.setAlignment(Pos.CENTER);
+        SVGPath sbLogoutIcon = SvgIcons.createOutlineIcon(SvgIcons.LOG_OUT, 0.7, Color.web("#B91C1C"));
+        Label lblSbLogout = new Label("Đăng xuất bàn");
+        lblSbLogout.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-text-fill: #B91C1C;");
+        sbLogoutBox.getChildren().addAll(sbLogoutIcon, lblSbLogout);
+        btnSidebarLogout.setGraphic(sbLogoutBox);
+        btnSidebarLogout.setOnAction(e -> {
+            if (onLogoutCallback != null) onLogoutCallback.run();
+        });
+
+        sidebar.getChildren().addAll(brandBox, btnFloorPlan, scrollNav, activeOrderBox, btnSidebarLogout);
         return sidebar;
     }
 
@@ -256,7 +286,26 @@ public class ClientView extends BorderPane {
         cartButtonContent.getChildren().addAll(cartIcon, lblCartText, lblCartBadge);
         btnFloatingCart.setGraphic(cartButtonContent);
 
-        topBar.getChildren().addAll(titleBox, spacer, searchBox, btnFloatingCart);
+        // Nút Đăng xuất Kiosk (height 42px, radius 8px, đồng bộ với btnFloatingCart)
+        btnLogout.setPrefHeight(42);
+        btnLogout.setMinHeight(42);
+        btnLogout.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-border-color: #FECACA; -fx-border-radius: 8px; -fx-border-width: 1px; -fx-padding: 6 16 6 14; -fx-cursor: hand;");
+        btnLogout.setOnMouseEntered(e -> btnLogout.setStyle("-fx-background-color: #FCA5A5; -fx-text-fill: #7F1D1D; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-border-color: #F87171; -fx-border-radius: 8px; -fx-border-width: 1px; -fx-padding: 6 16 6 14; -fx-cursor: hand;"));
+        btnLogout.setOnMouseExited(e -> btnLogout.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-border-color: #FECACA; -fx-border-radius: 8px; -fx-border-width: 1px; -fx-padding: 6 16 6 14; -fx-cursor: hand;"));
+        AnimationHelper.applyButtonPress(btnLogout);
+
+        HBox logoutContent = new HBox(6);
+        logoutContent.setAlignment(Pos.CENTER);
+        SVGPath logoutIcon = SvgIcons.createOutlineIcon(SvgIcons.LOG_OUT, 0.75, Color.web("#B91C1C"));
+        Label lblLogoutText = new Label("Đăng xuất");
+        lblLogoutText.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #B91C1C;");
+        logoutContent.getChildren().addAll(logoutIcon, lblLogoutText);
+        btnLogout.setGraphic(logoutContent);
+        btnLogout.setOnAction(e -> {
+            if (onLogoutCallback != null) onLogoutCallback.run();
+        });
+
+        topBar.getChildren().addAll(titleBox, spacer, searchBox, btnFloatingCart, btnLogout);
 
         // Catalog Grid inside ScrollPane
         itemsGridPane.setHgap(12);
@@ -551,4 +600,7 @@ public class ClientView extends BorderPane {
     public Button getCartButton() { return btnFloatingCart; }
     public Label getCartBadge() { return lblCartBadge; }
     public Button getFloorPlanButton() { return btnFloorPlan; }
+    public Button getLogoutButton() { return btnLogout; }
+    public Button getSidebarLogoutButton() { return btnSidebarLogout; }
+    public void setOnLogout(Runnable callback) { this.onLogoutCallback = callback; }
 }

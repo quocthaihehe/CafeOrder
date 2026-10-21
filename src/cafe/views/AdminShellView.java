@@ -211,15 +211,36 @@ public class AdminShellView extends BorderPane {
         lblRole.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 600; -fx-text-fill: #6F695F;");
         profTexts.getChildren().addAll(lblName, lblRole);
 
-        Button btnLogoutQuick = new Button("Thoát");
-        btnLogoutQuick.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 5 9 5 9; -fx-cursor: hand;");
+        Button btnLogoutQuick = new Button("Đăng xuất");
+        btnLogoutQuick.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 5 10 5 10; -fx-cursor: hand;");
         btnLogoutQuick.setOnAction(e -> {
             if (onLogoutCallback != null) onLogoutCallback.run();
         });
 
         profileCard.getChildren().addAll(avaPane, profTexts, btnLogoutQuick);
 
-        sidebar.getChildren().addAll(brandBox, navList, spacer, profileCard);
+        // Nút Đăng xuất Quản trị chuyên biệt ở chân Sidebar
+        Button btnAdminLogout = new Button();
+        btnAdminLogout.setMaxWidth(Double.MAX_VALUE);
+        btnAdminLogout.setAlignment(Pos.CENTER);
+        btnAdminLogout.setPrefHeight(38);
+        btnAdminLogout.setStyle("-fx-background-color: #FFFFFF; -fx-text-fill: #B91C1C; -fx-border-color: #FECACA; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-cursor: hand; -fx-padding: 8 14 8 14;");
+        btnAdminLogout.setOnMouseEntered(e -> btnAdminLogout.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-border-color: #F87171; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-cursor: hand; -fx-padding: 8 14 8 14;"));
+        btnAdminLogout.setOnMouseExited(e -> btnAdminLogout.setStyle("-fx-background-color: #FFFFFF; -fx-text-fill: #B91C1C; -fx-border-color: #FECACA; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-cursor: hand; -fx-padding: 8 14 8 14;"));
+        AnimationHelper.applyButtonPress(btnAdminLogout);
+
+        HBox adminLogoutContent = new HBox(8);
+        adminLogoutContent.setAlignment(Pos.CENTER);
+        SVGPath adminLogoutIcon = SvgIcons.createOutlineIcon(SvgIcons.LOG_OUT, 0.75, Color.web("#B91C1C"));
+        Label lblAdminLogout = new Label("Đăng xuất Quản trị");
+        lblAdminLogout.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #B91C1C;");
+        adminLogoutContent.getChildren().addAll(adminLogoutIcon, lblAdminLogout);
+        btnAdminLogout.setGraphic(adminLogoutContent);
+        btnAdminLogout.setOnAction(e -> {
+            if (onLogoutCallback != null) onLogoutCallback.run();
+        });
+
+        sidebar.getChildren().addAll(brandBox, navList, spacer, profileCard, btnAdminLogout);
         return sidebar;
     }
 
@@ -406,11 +427,11 @@ public class AdminShellView extends BorderPane {
         HBox.setHgrow(sp, Priority.ALWAYS);
 
         Button btnGoKds = new Button("☕ Màn pha chế KDS (" + serverService.getActiveOrders().size() + ")");
-        btnGoKds.setStyle("-fx-background-color: #EAE4DA; -fx-text-fill: #112823; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 8 14 8 14; -fx-cursor: hand;");
+        btnGoKds.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 38px; -fx-padding: 8 16 8 16; -fx-cursor: hand;");
         btnGoKds.setOnAction(e -> switchTab(4));
 
         Button btnCreate = new Button("+ Tạo đơn tại quầy");
-        btnCreate.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 8 16 8 16; -fx-cursor: hand;");
+        btnCreate.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 38px; -fx-padding: 8 16 8 16; -fx-cursor: hand;");
         AnimationHelper.applyButtonPress(btnCreate);
         btnCreate.setOnAction(e -> switchTab(2));
 
@@ -547,9 +568,10 @@ public class AdminShellView extends BorderPane {
         boolean active = modeCode.equals(currentChartMode);
         Button btn = new Button(text);
         btn.setStyle(
-            "-fx-background-color: " + (active ? "#112823" : "#F4EFE6") + "; " +
+            "-fx-background-color: " + (active ? "#112823" : "#F5EFEB") + "; " +
             "-fx-text-fill: " + (active ? "#FFFFFF" : "#57534E") + "; " +
-            "-fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-padding: 5 10 5 10; -fx-cursor: hand;"
+            "-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; " +
+            "-fx-background-radius: 8px; -fx-padding: 6 12 6 12; -fx-pref-height: 34px; -fx-cursor: hand;"
         );
         btn.setOnAction(e -> {
             currentChartMode = modeCode;
@@ -776,16 +798,16 @@ public class AdminShellView extends BorderPane {
         String st = status != null ? status.toUpperCase() : "PENDING";
         if (st.contains("PREPARING") || st.contains("ĐANG PHA")) {
             badge.setText("● Đang pha chế");
-            badge.setStyle("-fx-background-color: #FEF3C7; -fx-text-fill: #B45309; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 999px; -fx-padding: 3 10 3 10; -fx-alignment: center;");
+            badge.setStyle("-fx-background-color: #FEF3C7; -fx-text-fill: #B45309; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 4 10 4 10; -fx-alignment: center;");
         } else if (st.contains("READY") || st.contains("DONE") || st.contains("PAID") || st.contains("HOÀN")) {
             badge.setText("● Hoàn tất / Đã thu");
-            badge.setStyle("-fx-background-color: #DCFCE7; -fx-text-fill: #15803D; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 999px; -fx-padding: 3 10 3 10; -fx-alignment: center;");
+            badge.setStyle("-fx-background-color: #DCFCE7; -fx-text-fill: #15803D; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 4 10 4 10; -fx-alignment: center;");
         } else if (st.contains("CANCEL")) {
             badge.setText("✕ Đã hủy");
-            badge.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 999px; -fx-padding: 3 10 3 10; -fx-alignment: center;");
+            badge.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 4 10 4 10; -fx-alignment: center;");
         } else {
             badge.setText("● Chờ pha chế");
-            badge.setStyle("-fx-background-color: #E0F2FE; -fx-text-fill: #0369A1; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 999px; -fx-padding: 3 10 3 10; -fx-alignment: center;");
+            badge.setStyle("-fx-background-color: #E0F2FE; -fx-text-fill: #0369A1; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-padding: 4 10 4 10; -fx-alignment: center;");
         }
         return badge;
     }
@@ -890,8 +912,8 @@ public class AdminShellView extends BorderPane {
                 for (int i = 0; i < fBtns.size(); i++) {
                     boolean act = filters[i][0].equals(statusFilter[0]);
                     fBtns.get(i).setStyle(act
-                        ? "-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 999px; -fx-padding: 6 14 6 14; -fx-cursor: hand;"
-                        : "-fx-background-color: #EAE4DA; -fx-text-fill: #57534E; -fx-font-size: 12px; -fx-font-weight: 600; -fx-background-radius: 999px; -fx-padding: 6 14 6 14; -fx-cursor: hand;");
+                        ? "-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 34px; -fx-padding: 6 14 6 14; -fx-cursor: hand;"
+                        : "-fx-background-color: #F5EFEB; -fx-text-fill: #57534E; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 600; -fx-background-radius: 8px; -fx-pref-height: 34px; -fx-padding: 6 14 6 14; -fx-cursor: hand;");
                 }
                 if (renderRows[0] != null) renderRows[0].run();
             });
@@ -976,14 +998,18 @@ public class AdminShellView extends BorderPane {
                 actions.setAlignment(Pos.CENTER_LEFT);
 
                 Button btnPrint = new Button("🖨 In phiếu");
-                btnPrint.setStyle("-fx-background-color: #EAE4DA; -fx-text-fill: #112823; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-cursor: hand;");
+                btnPrint.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;");
+                btnPrint.setOnMouseEntered(e -> btnPrint.setStyle("-fx-background-color: #EAE4DA; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;"));
+                btnPrint.setOnMouseExited(e -> btnPrint.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;"));
                 btnPrint.setOnAction(ev -> {
                     Stage stg = parentStage != null ? parentStage : null;
                     OrderSuccessDialog.showReceiptForOrder(stg, o, "Tiền mặt / VietQR");
                 });
 
                 Button btnDone = new Button("✓ Hoàn tất");
-                btnDone.setStyle("-fx-background-color: #DCFCE7; -fx-text-fill: #15803D; -fx-font-size: 11px; -fx-font-weight: 800; -fx-background-radius: 6px; -fx-cursor: hand;");
+                btnDone.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;");
+                btnDone.setOnMouseEntered(e -> btnDone.setStyle("-fx-background-color: #DCFCE7; -fx-text-fill: #15803D; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;"));
+                btnDone.setOnMouseExited(e -> btnDone.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;"));
                 btnDone.setOnAction(ev -> {
                     serverService.updateOrderStatus(o.getOrderId(), "READY");
                     renderRows[0].run();
@@ -991,7 +1017,9 @@ public class AdminShellView extends BorderPane {
                 });
 
                 Button btnCancel = new Button("✕ Hủy");
-                btnCancel.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-cursor: hand;");
+                btnCancel.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #57534E; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;");
+                btnCancel.setOnMouseEntered(e -> btnCancel.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;"));
+                btnCancel.setOnMouseExited(e -> btnCancel.setStyle("-fx-background-color: #F5EFEB; -fx-text-fill: #57534E; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 32px; -fx-padding: 4 10 4 10; -fx-cursor: hand;"));
                 btnCancel.setOnAction(ev -> {
                     serverService.cancelOrder(o.getOrderId());
                     renderRows[0].run();
@@ -1036,14 +1064,14 @@ public class AdminShellView extends BorderPane {
             final String stCode = stationCodes[i];
             Button b = new Button(stName);
             b.setStyle(i == 0
-                ? "-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-background-radius: 999px; -fx-padding: 5 14 5 14; -fx-cursor: hand;"
-                : "-fx-background-color: #EAE4DA; -fx-text-fill: #57534E; -fx-font-size: 11.5px; -fx-font-weight: 600; -fx-background-radius: 999px; -fx-padding: 5 14 5 14; -fx-cursor: hand;");
+                ? "-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 34px; -fx-padding: 6 14 6 14; -fx-cursor: hand;"
+                : "-fx-background-color: #F5EFEB; -fx-text-fill: #57534E; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 600; -fx-background-radius: 8px; -fx-pref-height: 34px; -fx-padding: 6 14 6 14; -fx-cursor: hand;");
             b.setOnAction(e -> {
                 for (Button btn : stBtns) {
                     boolean act = btn == b;
                     btn.setStyle(act
-                        ? "-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-background-radius: 999px; -fx-padding: 5 14 5 14; -fx-cursor: hand;"
-                        : "-fx-background-color: #EAE4DA; -fx-text-fill: #57534E; -fx-font-size: 11.5px; -fx-font-weight: 600; -fx-background-radius: 999px; -fx-padding: 5 14 5 14; -fx-cursor: hand;");
+                        ? "-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 34px; -fx-padding: 6 14 6 14; -fx-cursor: hand;"
+                        : "-fx-background-color: #F5EFEB; -fx-text-fill: #57534E; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 600; -fx-background-radius: 8px; -fx-pref-height: 34px; -fx-padding: 6 14 6 14; -fx-cursor: hand;");
                 }
                 cafe.controllers.ServerController.setStationFilter(stCode);
                 showToastNotification("Đang lọc KDS theo trạm: " + stName);

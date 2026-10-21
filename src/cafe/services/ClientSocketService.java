@@ -225,6 +225,16 @@ public class ClientSocketService {
                             });
                             break;
 
+                        case PING:
+                            if (out != null) {
+                                out.print(MessageProtocol.toJson(new MessageProtocol.PongMessage()));
+                                out.flush();
+                            }
+                            break;
+
+                        case PONG:
+                            break;
+
                         default:
                             break;
                     }

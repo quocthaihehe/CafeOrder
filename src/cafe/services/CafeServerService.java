@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -205,7 +206,19 @@ public class CafeServerService {
         public final PrintWriter writer;
         public volatile int currentTable;
         public volatile String deviceType;
+        public volatile long connectedAt;
         public volatile long lastHeartbeat;
+        public volatile long lastPingSentAt = 0;
+        public volatile long rttLatencyMs = 1;
+        public final AtomicLong packetsReceived = new AtomicLong(0);
+        public final AtomicLong bytesReceived = new AtomicLong(0);
+        public final AtomicLong packetsSent = new AtomicLong(0);
+        public final AtomicLong bytesSent = new AtomicLong(0);
+
+        // Rate-limiting / Anti-Spam (15 req/sec)
+        private final java.util.Queue<Long> recentRequestTimes = new java.util.concurrent.ConcurrentLinkedQueue<>();
+        public volatile boolean isThrottled = false;
+        public final AtomicInteger throttledCount = new AtomicInteger(0);
 
         public ClientSession(String sessionId, Socket socket, PrintWriter writer, int currentTable, String deviceType) {
             this.sessionId = sessionId;
@@ -213,14 +226,61 @@ public class CafeServerService {
             this.writer = writer;
             this.currentTable = currentTable;
             this.deviceType = deviceType;
-            this.lastHeartbeat = System.currentTimeMillis();
+            this.connectedAt = System.currentTimeMillis();
+            this.lastHeartbeat = this.connectedAt;
         }
 
         public synchronized void send(String jsonLine) {
             if (writer != null) {
                 writer.print(jsonLine);
                 writer.flush();
+                packetsSent.incrementAndGet();
+                if (jsonLine != null) {
+                    bytesSent.addAndGet(jsonLine.getBytes(StandardCharsets.UTF_8).length);
+                }
             }
+        }
+
+        public void recordIncoming(String rawLine) {
+            packetsReceived.incrementAndGet();
+            if (rawLine != null) {
+                bytesReceived.addAndGet(rawLine.getBytes(StandardCharsets.UTF_8).length);
+            }
+        }
+
+        public boolean checkRateLimit() {
+            long now = System.currentTimeMillis();
+            recentRequestTimes.add(now);
+            while (!recentRequestTimes.isEmpty() && (now - recentRequestTimes.peek() > 1000L)) {
+                recentRequestTimes.poll();
+            }
+            if (recentRequestTimes.size() > 15) {
+                isThrottled = true;
+                throttledCount.incrementAndGet();
+                return false;
+            } else {
+                isThrottled = false;
+                return true;
+            }
+        }
+
+        public void sendPingProbe() {
+            lastPingSentAt = System.currentTimeMillis();
+            send(MessageProtocol.toJson(new MessageProtocol.PingMessage()));
+        }
+
+        public void recordPong() {
+            if (lastPingSentAt > 0) {
+                long rtt = System.currentTimeMillis() - lastPingSentAt;
+                rttLatencyMs = Math.max(1, rtt);
+            }
+        }
+
+        public String getRemoteAddress() {
+            if (socket != null && socket.getRemoteSocketAddress() != null) {
+                return socket.getRemoteSocketAddress().toString().replace("/", "");
+            }
+            return "127.0.0.1";
         }
     }
 
@@ -244,6 +304,90 @@ public class CafeServerService {
         if (callback != null) this.serverLogListeners.add(callback);
     }
 
+    public List<ClientSession> getActiveSessionsList() {
+        return new java.util.ArrayList<>(activeSessions.values());
+    }
+
+    public boolean pingSession(String sessionId) {
+        ClientSession session = activeSessions.get(sessionId);
+        if (session != null) {
+            session.sendPingProbe();
+            return true;
+        }
+        return false;
+    }
+
+    public void pingAllSessions() {
+        for (ClientSession session : activeSessions.values()) {
+            session.sendPingProbe();
+        }
+    }
+
+    public boolean kickSession(String sessionId) {
+        ClientSession session = activeSessions.remove(sessionId);
+        if (session != null) {
+            try {
+                unbindTableSubscriber(session.currentTable, sessionId);
+                if (session.socket != null && !session.socket.isClosed()) {
+                    session.socket.close();
+                }
+                log("Đã chủ động ngắt kết nối thiết bị #" + sessionId + " (Bàn " + session.currentTable + ")");
+                return true;
+            } catch (Exception ignored) {}
+        }
+        return false;
+    }
+
+    public long getTotalBytesReceived() {
+        long total = 0;
+        for (ClientSession s : activeSessions.values()) {
+            total += s.bytesReceived.get();
+        }
+        return total;
+    }
+
+    public long getTotalBytesSent() {
+        long total = 0;
+        for (ClientSession s : activeSessions.values()) {
+            total += s.bytesSent.get();
+        }
+        return total;
+    }
+
+    public long getTotalPacketsReceived() {
+        long total = 0;
+        for (ClientSession s : activeSessions.values()) {
+            total += s.packetsReceived.get();
+        }
+        return total;
+    }
+
+    public long getTotalPacketsSent() {
+        long total = 0;
+        for (ClientSession s : activeSessions.values()) {
+            total += s.packetsSent.get();
+        }
+        return total;
+    }
+
+    public long getAverageRttMs() {
+        if (activeSessions.isEmpty()) return 0;
+        long total = 0;
+        int count = 0;
+        for (ClientSession s : activeSessions.values()) {
+            total += s.rttLatencyMs;
+            count++;
+        }
+        return count > 0 ? total / count : 0;
+    }
+
+    public int getActiveServerPort() {
+        if (serverSocket != null && !serverSocket.isClosed()) {
+            return serverSocket.getLocalPort();
+        }
+        return cafe.utils.NetworkConfig.getServerPort();
+    }
+
     public void start(int port) {
         if (isRunning) return;
         isRunning = true;
@@ -253,6 +397,23 @@ public class CafeServerService {
             try {
                 serverSocket = new ServerSocket(port);
                 log("Máy chủ KDS pha chế & Quản trị CoffeePOS đã mở cổng " + port + ". Đang sẵn sàng đón nhận đơn.");
+
+                // Luồng giám sát RTT Ping định kỳ
+                Thread pingMonitorThread = new Thread(() -> {
+                    while (isRunning) {
+                        try {
+                            Thread.sleep(8000);
+                            if (isRunning && !activeSessions.isEmpty()) {
+                                pingAllSessions();
+                            }
+                        } catch (InterruptedException ignored) {
+                            break;
+                        } catch (Exception ignored) {}
+                    }
+                });
+                pingMonitorThread.setName("Network-PingMonitor");
+                pingMonitorThread.setDaemon(true);
+                pingMonitorThread.start();
 
                 while (isRunning) {
                     Socket clientSocket = serverSocket.accept();
@@ -290,12 +451,23 @@ public class CafeServerService {
             String line;
             while ((line = in.readLine()) != null) {
                 if (line.trim().isEmpty()) continue;
+                session.recordIncoming(line);
+
+                if (!session.checkRateLimit()) {
+                    log("[BẢO VỆ MẠNG] Thiết bị #" + sessionId + " (Bàn " + session.currentTable + ") vượt ngưỡng tần suất (>15 req/s). Kích hoạt Rate-limiting!");
+                    continue;
+                }
+
                 MessageType type = MessageProtocol.getMessageType(line);
                 if (type == null) continue;
 
                 session.lastHeartbeat = System.currentTimeMillis();
 
                 switch (type) {
+                    case PONG:
+                        session.recordPong();
+                        break;
+
                     case HELLO:
                         MessageProtocol.HelloMessage hello = MessageProtocol.fromJson(line, MessageProtocol.HelloMessage.class);
                         int registeredTable = hello.table;

@@ -4,6 +4,7 @@ import cafe.models.CartModel;
 import cafe.utils.AnimationHelper;
 import cafe.utils.CurrencyFormatter;
 import cafe.utils.SvgIcons;
+import javafx.animation.PauseTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -12,12 +13,15 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.util.Duration;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -26,14 +30,15 @@ import java.util.function.Consumer;
 
 /**
  * PaymentDialog - Hộp thoại Thanh toán chuẩn hóa:
- * - Thiết kế 2 cột cân đối, hiển thị trọn vẹn 100% nội dung trên 1 màn hình duy nhất, KHÔNG CẦN CUỘN.
- * - Tích hợp mã VietQR MB Bank sắc nét ở cột bên phải.
+ * - Thiết kế Fintech VietQR 2 cột cân đối, không cần cuộn, tương thích mọi màn hình.
+ * - Mã VietQR MB Bank sắc nét, viền bo sạch đẹp, không viền lem.
+ * - Tích hợp nút 1-click sao chép Số tài khoản và Nội dung chuyển khoản.
  * - Chuẩn hóa toàn bộ số và kiểu chữ đồng nhất (Segoe UI / Inter, chống số to số nhỏ).
  */
 public class PaymentDialog extends Stage {
     private static final String FONT_FAMILY = "-fx-font-family: 'Segoe UI', 'Inter', -apple-system, sans-serif;";
-    private static final String STYLE_LABEL = FONT_FAMILY + " -fx-font-size: 12.5px; -fx-font-weight: 500; -fx-text-fill: #57534E;";
-    private static final String STYLE_VALUE = FONT_FAMILY + " -fx-font-size: 13.5px; -fx-font-weight: 700; -fx-text-fill: #1C1917;";
+    private static final String STYLE_LABEL = FONT_FAMILY + " -fx-font-size: 12px; -fx-font-weight: 500; -fx-text-fill: #57534E;";
+    private static final String STYLE_VALUE = FONT_FAMILY + " -fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #1C1917;";
     private static final String STYLE_TOTAL_LABEL = FONT_FAMILY + " -fx-font-size: 13.5px; -fx-font-weight: 700; -fx-text-fill: #1C1917;";
     private static final String STYLE_TOTAL_VALUE = FONT_FAMILY + " -fx-font-size: 17px; -fx-font-weight: 800; -fx-text-fill: #112823;";
 
@@ -41,7 +46,7 @@ public class PaymentDialog extends Stage {
     private final CartModel cartModel;
     private final Consumer<String> onConfirmed;
 
-    private String selectedMethod = "VIETQR"; // Mặc định chọn VietQR để thấy ngay mã QR
+    private String selectedMethod = "VIETQR"; // Mặc định chọn VietQR
     private final List<HBox> methodCards = new ArrayList<>();
     private final StackPane rightDetailPane = new StackPane();
 
@@ -70,14 +75,14 @@ public class PaymentDialog extends Stage {
             "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.22), 24, 0.12, 0, 8);"
         );
         root.setPadding(new Insets(16, 20, 18, 20));
-        root.setPrefWidth(600);
-        root.setMaxWidth(620);
-        root.setPrefHeight(470);
-        root.setMaxHeight(490);
+        root.setPrefWidth(660);
+        root.setMaxWidth(680);
+        root.setPrefHeight(510);
+        root.setMaxHeight(525);
 
         AnimationHelper.playDialogEntrance(root);
 
-        // 1. Header: Back ←, "Thanh toán", Badge Bàn 05, Nút đóng [X]
+        // 1. Header: Back ←, "Thanh toán đơn hàng", Badge Bàn 05, Nút đóng [X]
         HBox headerRow = new HBox(10);
         headerRow.setAlignment(Pos.CENTER_LEFT);
         headerRow.setStyle("-fx-cursor: move;");
@@ -93,7 +98,7 @@ public class PaymentDialog extends Stage {
         Region spHeader = new Region();
         HBox.setHgrow(spHeader, Priority.ALWAYS);
 
-        String tblStr = "Bàn " + (tableNumber < 10 ? "0" + tableNumber : tableNumber);
+        String tblStr = (tableNumber <= 0 ? "Mang về" : "Bàn " + (tableNumber < 10 ? "0" + tableNumber : tableNumber));
         Label lblTableBadge = new Label(tblStr);
         lblTableBadge.setStyle(FONT_FAMILY + " -fx-background-color: #EBE5DB; -fx-text-fill: #563521; -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-padding: 3 9 3 9;");
 
@@ -104,15 +109,15 @@ public class PaymentDialog extends Stage {
 
         headerRow.getChildren().addAll(btnBack, lblTitle, spHeader, lblTableBadge, btnClose);
 
-        // 2. Main 2-Column Body Layout (Cột trái: Chọn phương thức & Tổng tiền | Cột phải: Khung QR & Chi tiết)
+        // 2. Main 2-Column Body Layout (Cột trái: Chọn phương thức & Tổng tiền | Cột phải: VietQR Fintech Card)
         HBox mainColumns = new HBox(16);
         mainColumns.setAlignment(Pos.TOP_LEFT);
         VBox.setVgrow(mainColumns, Priority.ALWAYS);
 
-        // === CỘT TRÁI (260px) ===
+        // === CỘT TRÁI (285px) ===
         VBox leftCol = new VBox(10);
-        leftCol.setPrefWidth(265);
-        leftCol.setMinWidth(260);
+        leftCol.setPrefWidth(285);
+        leftCol.setMinWidth(280);
 
         Label lblSection = new Label("Chọn phương thức thanh toán");
         lblSection.setStyle(FONT_FAMILY + " -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-text-fill: #112823;");
@@ -150,7 +155,7 @@ public class PaymentDialog extends Stage {
         HBox.setHgrow(spDisc, Priority.ALWAYS);
         String discText = cartModel.getDiscountAmount() > 0 ? "- " + CurrencyFormatter.format(cartModel.getDiscountAmount()) : "0 đ";
         Label lblDiscV = new Label(discText);
-        lblDiscV.setStyle(cartModel.getDiscountAmount() > 0 ? (FONT_FAMILY + " -fx-font-size: 13.5px; -fx-font-weight: 700; -fx-text-fill: #15803D;") : STYLE_VALUE);
+        lblDiscV.setStyle(cartModel.getDiscountAmount() > 0 ? (FONT_FAMILY + " -fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #15803D;") : STYLE_VALUE);
         rowDisc.getChildren().addAll(lblDiscT, spDisc, lblDiscV);
 
         HBox rowTotal = new HBox();
@@ -191,7 +196,7 @@ public class PaymentDialog extends Stage {
 
         leftCol.getChildren().addAll(lblSection, methodsBox, summaryBox, btnConfirm);
 
-        // === CỘT PHẢI (Chi tiết VietQR / Hướng dẫn thanh toán) ===
+        // === CỘT PHẢI (VietQR Fintech Card & Chi tiết) ===
         rightDetailPane.setAlignment(Pos.CENTER);
         HBox.setHgrow(rightDetailPane, Priority.ALWAYS);
         rightDetailPane.getChildren().add(buildVietQrDetailPanel());
@@ -268,69 +273,103 @@ public class PaymentDialog extends Stage {
     }
 
     /**
-     * Khung hiển thị chi tiết mã QR VietQR (MB Bank) trơn tru, tràn viền không khoảng trắng thừa
+     * Khung hiển thị chi tiết mã QR VietQR phong cách Fintech Card sang trọng, sắc nét
      */
     private VBox buildVietQrDetailPanel() {
-        VBox qrBox = new VBox(8);
-        qrBox.setAlignment(Pos.CENTER);
-        qrBox.setPadding(new Insets(12, 14, 10, 14));
-        qrBox.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 12px; -fx-border-color: #E2DDD5; -fx-border-radius: 12px; -fx-border-width: 1px; -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.04), 8, 0.05, 0, 2);");
-        VBox.setVgrow(qrBox, Priority.ALWAYS);
+        VBox card = new VBox(0);
+        card.setAlignment(Pos.TOP_CENTER);
+        card.setStyle(
+            "-fx-background-color: #FFFFFF; " +
+            "-fx-background-radius: 12px; " +
+            "-fx-border-color: #DDE2E5; " +
+            "-fx-border-radius: 12px; " +
+            "-fx-border-width: 1px; " +
+            "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.06), 10, 0.08, 0, 3);"
+        );
+        VBox.setVgrow(card, Priority.ALWAYS);
 
-        // Header huy hiệu ngân hàng
-        HBox bankHeader = new HBox(6);
-        bankHeader.setAlignment(Pos.CENTER);
-        bankHeader.setPadding(new Insets(4, 10, 4, 10));
-        bankHeader.setStyle("-fx-background-color: #F5EFEB; -fx-background-radius: 20px;");
+        // 1. Header Banner MB Bank Gradient
+        HBox bankHeader = new HBox(8);
+        bankHeader.setAlignment(Pos.CENTER_LEFT);
+        bankHeader.setPadding(new Insets(8, 12, 8, 12));
+        bankHeader.setStyle("-fx-background-color: linear-gradient(to right, #001A5E, #003399); -fx-background-radius: 11px 11px 0 0;");
 
-        Label lblBankIcon = new Label("⚡");
-        lblBankIcon.setStyle("-fx-font-size: 11px;");
-        Label lblBankTitle = new Label("Quét mã VietQR 24/7 • MB Bank");
-        lblBankTitle.setStyle(FONT_FAMILY + " -fx-font-size: 11.5px; -fx-font-weight: 800; -fx-text-fill: #112823;");
-        bankHeader.getChildren().addAll(lblBankIcon, lblBankTitle);
+        Label mbLogoBadge = new Label("MB");
+        mbLogoBadge.setStyle(FONT_FAMILY + " -fx-background-color: #FFFFFF; -fx-text-fill: #003399; -fx-font-size: 11px; -fx-font-weight: 900; -fx-padding: 1 5; -fx-background-radius: 4px;");
 
-        // Khung ảnh QR code MB Bank bo góc tràn viền không viền trắng thừa
-        StackPane qrImageWrapper = new StackPane();
-        qrImageWrapper.setAlignment(Pos.CENTER);
-        qrImageWrapper.setStyle("-fx-background-color: transparent; -fx-padding: 0;");
+        Label lblBankTitle = new Label("NGÂN HÀNG QUÂN ĐỘI");
+        lblBankTitle.setStyle(FONT_FAMILY + " -fx-font-size: 11px; -fx-font-weight: 800; -fx-text-fill: #FFFFFF; -fx-letter-spacing: 0.5px;");
+
+        Region spH = new Region();
+        HBox.setHgrow(spH, Priority.ALWAYS);
+
+        Label lblVietQrBadge = new Label("VietQR • Napas 24/7");
+        lblVietQrBadge.setStyle(FONT_FAMILY + " -fx-background-color: rgba(255,255,255,0.18); -fx-text-fill: #FFFFFF; -fx-font-size: 10px; -fx-font-weight: 700; -fx-padding: 2 6; -fx-background-radius: 4px;");
+
+        bankHeader.getChildren().addAll(mbLogoBadge, lblBankTitle, spH, lblVietQrBadge);
+
+        // 2. Body Card
+        VBox body = new VBox(6);
+        body.setAlignment(Pos.CENTER);
+        body.setPadding(new Insets(8, 12, 8, 12));
+        VBox.setVgrow(body, Priority.ALWAYS);
+
+        // SỐ TIỀN CẦN THANH TOÁN (To, rõ, màu xanh ngọc sang trọng)
+        HBox amountRow = new HBox(6);
+        amountRow.setAlignment(Pos.BASELINE_CENTER);
+        Label lblAmtTitle = new Label("Số tiền:");
+        lblAmtTitle.setStyle(FONT_FAMILY + " -fx-font-size: 11.5px; -fx-font-weight: 600; -fx-text-fill: #6B7280;");
+        Label lblAmtVal = new Label(CurrencyFormatter.format(cartModel.getTotalAmount()));
+        lblAmtVal.setStyle(FONT_FAMILY + " -fx-font-size: 17px; -fx-font-weight: 900; -fx-text-fill: #047857;");
+        amountRow.getChildren().addAll(lblAmtTitle, lblAmtVal);
+
+        // KHUNG MÃ QR SẮC NÉT (Bọc trong container trắng viền mỏng bo góc)
+        StackPane qrFrame = new StackPane();
+        qrFrame.setAlignment(Pos.CENTER);
+        qrFrame.setPadding(new Insets(4));
+        qrFrame.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #E2DDD5; -fx-border-radius: 8px; -fx-background-radius: 8px;");
 
         ImageView qrView = new ImageView();
         try {
-            InputStream is = getClass().getResourceAsStream("/cafe/resources/images/vietqr_mb.png");
+            InputStream is = getClass().getResourceAsStream("/cafe/resources/images/vietqr_clean.png");
+            if (is == null) {
+                is = getClass().getResourceAsStream("/cafe/resources/images/vietqr_mb.png");
+            }
             if (is != null) {
                 Image img = new Image(is);
                 qrView.setImage(img);
-                qrView.setFitWidth(152);
+                qrView.setFitWidth(138);
+                qrView.setFitHeight(138);
                 qrView.setPreserveRatio(true);
                 qrView.setSmooth(true);
             }
         } catch (Exception ignored) {}
 
-        Rectangle clip = new Rectangle(152, 185);
-        clip.setArcWidth(12);
-        clip.setArcHeight(12);
-        qrView.setClip(clip);
-        qrImageWrapper.getChildren().add(qrView);
+        qrFrame.getChildren().add(qrView);
 
-        // Bảng thông tin thanh toán chuẩn hóa font
-        VBox infoGrid = new VBox(3.5);
-        infoGrid.setPadding(new Insets(6, 10, 6, 10));
-        infoGrid.setStyle("-fx-background-color: #FAF7F2; -fx-background-radius: 8px;");
+        // Huy hiệu trạng thái quét mã
+        Label lblScanStatus = new Label("🟢 Sẵn sàng quét mã • Tự động đối soát");
+        lblScanStatus.setStyle(FONT_FAMILY + " -fx-font-size: 10.5px; -fx-font-weight: 700; -fx-text-fill: #065F46; -fx-background-color: #ECFDF5; -fx-background-radius: 20px; -fx-padding: 2 8;");
 
-        String memoText = "BAN " + (tableNumber < 10 ? "0" + tableNumber : tableNumber) + " CAFE";
+        // BẢNG THÔNG TIN THANH TOÁN KÈM NÚT 1-CLICK SAO CHÉP
+        VBox infoGrid = new VBox(3);
+        infoGrid.setPadding(new Insets(6, 8, 6, 8));
+        infoGrid.setStyle("-fx-background-color: #F8FAFC; -fx-background-radius: 8px; -fx-border-color: #E2E8F0; -fx-border-radius: 8px; -fx-border-width: 1px;");
+
+        String memoText = (tableNumber <= 0 ? "CAFE MANG VE" : "BAN " + (tableNumber < 10 ? "0" + tableNumber : tableNumber) + " CAFE");
+
         infoGrid.getChildren().addAll(
-            createDetailRow("Ngân hàng:", "MB Bank (Quân Đội)"),
-            createDetailRow("Chủ tài khoản:", "BREW & BEAN SPECIALTY"),
-            createDetailRow("Số tài khoản:", "0909 888 999"),
-            createDetailRow("Số tiền chuyển:", CurrencyFormatter.format(cartModel.getTotalAmount())),
-            createDetailRow("Nội dung CK:", memoText)
+            createDetailRowPlain("Chủ tài khoản:", "BREW & BEAN SPECIALTY"),
+            createDetailRowWithCopy("Số tài khoản:", "0909 888 999", "0909888999"),
+            createDetailRowWithCopy("Nội dung CK:", memoText, memoText)
         );
 
-        Label lblGuide = new Label("Mở app Ngân hàng / Ví điện tử bất kỳ để quét mã.");
-        lblGuide.setStyle(FONT_FAMILY + " -fx-font-size: 10.5px; -fx-text-fill: #78716C; -fx-font-style: italic;");
+        Label lblGuide = new Label("Mở app MB Bank, VCB, MoMo... bất kỳ để quét mã");
+        lblGuide.setStyle(FONT_FAMILY + " -fx-font-size: 10px; -fx-text-fill: #64748B; -fx-font-style: italic;");
 
-        qrBox.getChildren().addAll(bankHeader, qrImageWrapper, infoGrid, lblGuide);
-        return qrBox;
+        body.getChildren().addAll(amountRow, qrFrame, lblScanStatus, infoGrid, lblGuide);
+        card.getChildren().addAll(bankHeader, body);
+        return card;
     }
 
     private VBox buildCashDetailPanel() {
@@ -377,17 +416,56 @@ public class PaymentDialog extends Stage {
         return box;
     }
 
-    private HBox createDetailRow(String label, String value) {
+    private HBox createDetailRowPlain(String label, String value) {
         HBox row = new HBox(6);
         row.setAlignment(Pos.CENTER_LEFT);
 
         Label lbl = new Label(label);
-        lbl.setStyle(FONT_FAMILY + " -fx-font-size: 11.5px; -fx-font-weight: 500; -fx-text-fill: #57534E; -fx-min-width: 95px;");
+        lbl.setStyle(FONT_FAMILY + " -fx-font-size: 11px; -fx-font-weight: 500; -fx-text-fill: #64748B; -fx-min-width: 80px;");
 
         Label val = new Label(value);
-        val.setStyle(FONT_FAMILY + " -fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #1C1917;");
+        val.setStyle(FONT_FAMILY + " -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #1E293B;");
 
         row.getChildren().addAll(lbl, val);
         return row;
+    }
+
+    private HBox createDetailRowWithCopy(String label, String value, String copyValue) {
+        HBox row = new HBox(6);
+        row.setAlignment(Pos.CENTER_LEFT);
+
+        Label lbl = new Label(label);
+        lbl.setStyle(FONT_FAMILY + " -fx-font-size: 11px; -fx-font-weight: 500; -fx-text-fill: #64748B; -fx-min-width: 80px;");
+
+        Label val = new Label(value);
+        val.setStyle(FONT_FAMILY + " -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #1E293B;");
+        HBox.setHgrow(val, Priority.ALWAYS);
+
+        Button btnCopy = new Button("📋 Chép");
+        btnCopy.setStyle(FONT_FAMILY + " -fx-background-color: #E2E8F0; -fx-text-fill: #334155; -fx-font-size: 10px; -fx-font-weight: 700; -fx-background-radius: 4px; -fx-padding: 2 6; -fx-cursor: hand;");
+        btnCopy.setOnAction(e -> copyToClipboard(copyValue, btnCopy));
+
+        row.getChildren().addAll(lbl, val, btnCopy);
+        return row;
+    }
+
+    private void copyToClipboard(String text, Button btn) {
+        try {
+            Clipboard clipboard = Clipboard.getSystemClipboard();
+            ClipboardContent content = new ClipboardContent();
+            content.putString(text);
+            clipboard.setContent(content);
+
+            String orig = btn.getText();
+            btn.setText("✓ Đã chép");
+            btn.setStyle(FONT_FAMILY + " -fx-background-color: #ECFDF5; -fx-text-fill: #065F46; -fx-font-size: 10px; -fx-font-weight: 700; -fx-background-radius: 4px; -fx-padding: 2 6;");
+
+            PauseTransition pause = new PauseTransition(Duration.seconds(2));
+            pause.setOnFinished(ev -> {
+                btn.setText(orig);
+                btn.setStyle(FONT_FAMILY + " -fx-background-color: #E2E8F0; -fx-text-fill: #334155; -fx-font-size: 10px; -fx-font-weight: 700; -fx-background-radius: 4px; -fx-padding: 2 6; -fx-cursor: hand;");
+            });
+            pause.play();
+        } catch (Exception ignored) {}
     }
 }

@@ -186,6 +186,7 @@ public class AdminShellView extends BorderPane {
         navButtons.add(createSidebarBtn(8, "Nhân sự & Phân quyền", "nhan-vien.png", SvgIcons.USER, "👥"));
         navButtons.add(createSidebarBtn(9, "Báo cáo Tài chính", "bao-cao.png", SvgIcons.ORDERS, "📈"));
         navButtons.add(createSidebarBtn(10, "Cài đặt hệ thống", "cai-dat.png", SvgIcons.SETTINGS, "⚙️"));
+        navButtons.add(createSidebarBtn(11, "Hạ tầng & Mạng", "cai-dat.png", SvgIcons.SETTINGS, "🌐"));
 
         navList.getChildren().addAll(navButtons);
 
@@ -380,10 +381,15 @@ public class AdminShellView extends BorderPane {
                 centerContent.getChildren().add(AdminSubViews.styleInputs(AdminSubViews.buildFinancialReportsView(this::showToastNotification)));
                 break;
             case 10:
-            default:
                 centerContent.getChildren().add(AdminSubViews.styleInputs(AdminSubViews.buildSystemSettingsView(st, this::showToastNotification, () -> {
                     if (posEmbeddedMenuController != null) posEmbeddedMenuController.refreshCatalog();
                 }, onLogoutCallback)));
+                break;
+            case 11:
+                centerContent.getChildren().add(AdminSubViews.styleInputs(AdminSubViews.buildNetworkTelemetryView(st, this::showToastNotification)));
+                break;
+            default:
+                renderDashboardTab();
                 break;
         }
     }

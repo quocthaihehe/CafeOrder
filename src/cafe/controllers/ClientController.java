@@ -1,6 +1,7 @@
 package cafe.controllers;
 
 import cafe.models.*;
+import cafe.models.MenuItem;
 import cafe.services.ClientSocketService;
 import cafe.utils.CurrencyFormatter;
 import cafe.views.CartModalDialog;
@@ -9,6 +10,13 @@ import cafe.views.ItemDetailDialog;
 import cafe.views.OrderSuccessDialog;
 import cafe.views.PaymentDialog;
 import javafx.stage.Stage;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.SVGPath;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -161,40 +169,10 @@ public class ClientController {
         socketService.setOnSessionKickedReceived(kickMsg -> {
             cartModel.clear();
             view.updateCartBadge(0);
-            javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
-            alert.initOwner(primaryStage);
-            alert.setTitle("Phiên Làm Việc Đã Bị Ngắt");
-            alert.setHeaderText("NGẮT KẾT NỐI TỪ QUẢN TRỊ VIÊN");
-            alert.setContentText(kickMsg != null && kickMsg.reason != null 
-                ? kickMsg.reason 
-                : "Phiên làm việc của bạn đã bị ngắt bởi Quản trị viên hệ thống!");
-            alert.showAndWait();
-
-            if (onLogout != null) {
-                onLogout.run();
-            } else if (onBackToFloorPlan != null) {
-                onBackToFloorPlan.run();
-            } else {
-                primaryStage.close();
-                Stage loginStage = new Stage();
-                cafe.views.LoginView loginView = new cafe.views.LoginView();
-                new LoginController(loginStage, loginView, socketService);
-                javafx.geometry.Rectangle2D bounds = javafx.stage.Screen.getPrimary().getVisualBounds();
-                javafx.scene.Scene scene = cafe.utils.WindowChromeHelper.createWindowScene(
-                    loginStage,
-                    loginView,
-                    "Đăng Nhập • Brew & Bean CAFE",
-                    bounds.getWidth(),
-                    bounds.getHeight(),
-                    true,
-                    () -> {
-                        socketService.disconnect();
-                        System.exit(0);
-                    }
-                );
-                loginStage.setScene(scene);
-                loginStage.show();
-            }
+            String reason = (kickMsg != null && kickMsg.reason != null)
+                ? kickMsg.reason
+                : "Phiên làm việc của bạn đã bị ngắt bởi Quản trị viên hệ thống!";
+            showCustomKickDialog(reason);
         });
 
         socketService.setOnErrorOccurred(errMsg -> {
@@ -430,5 +408,114 @@ public class ClientController {
 
     public void refreshCatalog() {
         refreshMenuCatalog();
+    }
+    private void showCustomKickDialog(String reason) {
+        Stage modal = new Stage();
+        modal.initOwner(primaryStage);
+        modal.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        modal.initStyle(javafx.stage.StageStyle.TRANSPARENT);
+
+        VBox root = new VBox(16);
+        root.setAlignment(Pos.CENTER);
+        root.setPadding(new Insets(28, 24, 24, 24));
+        root.setPrefWidth(460);
+        root.setMaxWidth(460);
+        root.setStyle(
+            "-fx-background-color: #FFFFFF; " +
+            "-fx-background-radius: 18px; " +
+            "-fx-border-color: #DFD7CA; " +
+            "-fx-border-radius: 18px; " +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.28), 32, 0.2, 0, 10);"
+        );
+
+        Circle circle = new Circle(30, Color.web("#FEE2E2"));
+        circle.setStroke(Color.web("#FECACA"));
+        circle.setStrokeWidth(1.5);
+        SVGPath iconShield = cafe.utils.SvgIcons.createOutlineIcon(cafe.utils.SvgIcons.LOCK, 1.0, Color.web("#B91C1C"));
+        StackPane iconPane = new StackPane(circle, iconShield);
+
+        Label lblTitle = new Label("Phiên Làm Việc Đã Bị Ngắt");
+        lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+
+        VBox msgBox = new VBox(6);
+        msgBox.setPadding(new Insets(12, 14, 12, 14));
+        msgBox.setStyle("-fx-background-color: #FBF9F5; -fx-border-color: #EFEAE2; -fx-border-radius: 10px; -fx-background-radius: 10px;");
+
+        Label lblMsgHeader = new Label("LÝ DO TỪ MÁY CHỦ QUẢN TRỊ:");
+        lblMsgHeader.setStyle("-fx-font-size: 11px; -fx-font-weight: 800; -fx-text-fill: #92400E; -fx-letter-spacing: 0.5px;");
+
+        Label lblReason = new Label(reason != null && !reason.trim().isEmpty() ? reason : "Phiên làm việc của bạn đã bị ngắt bởi Quản trị viên hệ thống!");
+        lblReason.setWrapText(true);
+        lblReason.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 500; -fx-text-fill: #57534E; -fx-line-spacing: 2px;");
+        msgBox.getChildren().addAll(lblMsgHeader, lblReason);
+
+        String nowStr = new java.text.SimpleDateFormat("HH:mm:ss").format(new java.util.Date());
+        Label lblMeta = new Label("Thời gian: " + nowStr + " • Thiết bị: Bàn " + (tableNumber < 10 ? "0" + tableNumber : tableNumber) + " • Trạng thái: Ngắt kết nối an toàn");
+        lblMeta.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #8C827A; -fx-alignment: center;");
+
+        HBox actions = new HBox(10);
+        actions.setAlignment(Pos.CENTER);
+
+        Button btnBack = new Button("🚪 Trở Về Đăng Nhập");
+        btnBack.setStyle("-fx-background-color: #EAE4DA; -fx-text-fill: #1C1917; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 10 16 10 16; -fx-cursor: hand;");
+        cafe.utils.AnimationHelper.applyButtonPress(btnBack);
+
+        Button btnReAuth = new Button("⟳ Gửi Yêu Cầu Nối Lại");
+        btnReAuth.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 800; -fx-background-radius: 8px; -fx-padding: 10 18 10 18; -fx-cursor: hand;");
+        cafe.utils.AnimationHelper.applyButtonPress(btnReAuth);
+
+        Runnable performExit = () -> {
+            modal.close();
+            if (onLogout != null) {
+                onLogout.run();
+            } else if (onBackToFloorPlan != null) {
+                onBackToFloorPlan.run();
+            } else {
+                primaryStage.close();
+                Stage loginStage = new Stage();
+                cafe.views.LoginView loginView = new cafe.views.LoginView();
+                new LoginController(loginStage, loginView, socketService);
+                javafx.geometry.Rectangle2D bounds = javafx.stage.Screen.getPrimary().getVisualBounds();
+                javafx.scene.Scene scene = cafe.utils.WindowChromeHelper.createWindowScene(
+                    loginStage,
+                    loginView,
+                    "Đăng Nhập • Brew & Bean CAFE",
+                    bounds.getWidth(),
+                    bounds.getHeight(),
+                    true,
+                    () -> {
+                        socketService.disconnect();
+                        System.exit(0);
+                    }
+                );
+                loginStage.setScene(scene);
+                loginStage.show();
+            }
+        };
+
+        btnBack.setOnAction(e -> performExit.run());
+
+        btnReAuth.setOnAction(e -> {
+            btnReAuth.setDisable(true);
+            btnReAuth.setText("⏳ Đang gửi yêu cầu...");
+            new Thread(() -> {
+                socketService.sendReconnectRequest(
+                    "DEVICE-" + (tableNumber < 10 ? "0" + tableNumber : tableNumber),
+                    tableNumber,
+                    "KIOSK",
+                    "Thiết bị Bàn " + tableNumber + " yêu cầu cấp lại phiên sau khi bị ngắt"
+                );
+                javafx.application.Platform.runLater(performExit);
+            }, "Kick-Reauth-Thread").start();
+        });
+
+        actions.getChildren().addAll(btnBack, btnReAuth);
+        root.getChildren().addAll(iconPane, lblTitle, msgBox, lblMeta, actions);
+
+        cafe.utils.WindowChromeHelper.makeDraggable(modal, root);
+        javafx.scene.Scene scene = new javafx.scene.Scene(root);
+        scene.setFill(Color.TRANSPARENT);
+        modal.setScene(scene);
+        modal.showAndWait();
     }
 }

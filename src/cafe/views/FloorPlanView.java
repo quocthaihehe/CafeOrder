@@ -497,9 +497,9 @@ public class FloorPlanView extends BorderPane {
         HBox actionTools = new HBox(6);
         actionTools.setAlignment(Pos.CENTER_RIGHT);
 
-        Button btnRefresh = createToolButton("⟳", "lam-moi.png");
-        btnRefresh.setTooltip(new javafx.scene.control.Tooltip("Làm mới dữ liệu bàn"));
-        btnRefresh.setPrefWidth(36);
+        Button btnRefresh = createToolButton("", "lam-moi.png");
+        btnRefresh.setTooltip(new javafx.scene.control.Tooltip("Làm mới sơ đồ bàn"));
+        btnRefresh.setPrefWidth(38);
         btnRefresh.setOnAction(e -> {
             syncStatusesFromServer();
             renderFloorPlan();
@@ -507,10 +507,10 @@ public class FloorPlanView extends BorderPane {
             showStaffToast("Đã đồng bộ trạng thái bàn mới nhất từ máy chủ.");
         });
 
-        Button btnTransfer = createToolButton("⇄ Chuyển", "chuyen-ban.png");
+        Button btnTransfer = createToolButton("Chuyển bàn", "chuyen-ban.png");
         btnTransfer.setOnAction(e -> showTransferTableModal(selectedTable));
 
-        Button btnMerge = createToolButton("⧉ Gộp", "tach-gop-ban.png");
+        Button btnMerge = createToolButton("Gộp bàn", "tach-gop-ban.png");
         btnMerge.setOnAction(e -> showMergeTableModal(selectedTable));
 
         actionTools.getChildren().addAll(btnRefresh, btnTransfer, btnMerge);
@@ -1429,9 +1429,15 @@ VBox summaryBox = new VBox(6);
         HBox content = new HBox(6);
         content.setAlignment(Pos.CENTER);
         Node icon = cafe.utils.IconHelper.getIcon("staff", iconFileName, null, "⚙", 15, Color.web("#112823"));
-        Label lbl = new Label(title);
-        lbl.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 600; -fx-text-fill: #292722;");
-        content.getChildren().addAll(icon, lbl);
+        content.getChildren().add(icon);
+
+        if (title != null && !title.trim().isEmpty()) {
+            Label lbl = new Label(title);
+            lbl.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 600; -fx-text-fill: #292722;");
+            content.getChildren().add(lbl);
+        } else {
+            btn.setPadding(new Insets(5, 8, 5, 8));
+        }
         btn.setGraphic(content);
 
         btn.setOnMouseEntered(e -> btn.setStyle("-fx-background-color: #F8F4EE; -fx-background-radius: 6px; -fx-border-color: #112823; -fx-border-radius: 6px; -fx-border-width: 1px; -fx-cursor: hand;"));

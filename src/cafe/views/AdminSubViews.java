@@ -1788,6 +1788,8 @@ public class AdminSubViews {
         scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent; -fx-border-color: transparent;");
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
 
+        final boolean[] isMeasuringPing = new boolean[]{false};
+        final java.util.Map<String, Label> sessionRttLabels = new java.util.concurrent.ConcurrentHashMap<>();
         Runnable[] renderRows = new Runnable[1];
         renderRows[0] = () -> {
             // Render Pending Reconnect Requests
@@ -1914,6 +1916,7 @@ public class AdminSubViews {
                 long rtt = s.rttLatencyMs;
                 Label rRtt = new Label();
                 rRtt.setPrefWidth(110);
+                sessionRttLabels.put(s.sessionId, rRtt);
                 if (rtt <= 10) {
                     rRtt.setText("🟢 " + rtt + " ms");
                     rRtt.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #047857;");
@@ -1955,11 +1958,13 @@ public class AdminSubViews {
                 Button btnPingSingle = new Button("⚡ Ping");
                 btnPingSingle.setStyle("-fx-background-color: #E0E7FF; -fx-text-fill: #3730A3; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 4px; -fx-cursor: hand; -fx-padding: 3 8;");
                 btnPingSingle.setOnAction(ev -> {
+                    isMeasuringPing[0] = true;
                     btnPingSingle.setText("⏳ Đang đo...");
                     btnPingSingle.setDisable(true);
                     server.sendPingWithCallback(s.sessionId, (rttVal) -> Platform.runLater(() -> {
                         btnPingSingle.setText("⚡ Ping");
                         btnPingSingle.setDisable(false);
+                        isMeasuringPing[0] = false;
                         if (rttVal >= 0) {
                             rRtt.setText(rttVal + " ms");
                             if (rttVal < 20) {
@@ -1997,9 +2002,61 @@ public class AdminSubViews {
         };
 
         btnPingAll.setOnAction(e -> {
-            server.pingAllSessions();
-            if (toastCallback != null) toastCallback.accept("Đã phát sóng thăm dò Ping (ICMP probe) đến " + server.getActiveSessions().size() + " phiên!");
-            renderRows[0].run();
+            List<CafeServerService.ClientSession> sessions = server.getActiveSessionsList();
+            if (sessions.isEmpty()) {
+                if (toastCallback != null) toastCallback.accept("Chưa có thiết bị nào kết nối để đo Ping.");
+                return;
+            }
+            isMeasuringPing[0] = true;
+            btnPingAll.setText("⏳ Đang đo toàn mạng...");
+            btnPingAll.setDisable(true);
+
+            java.util.concurrent.atomic.AtomicInteger pendingResponses = new java.util.concurrent.atomic.AtomicInteger(sessions.size());
+            java.util.List<Long> latencies = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+            for (CafeServerService.ClientSession s : sessions) {
+                server.sendPingWithCallback(s.sessionId, (rttVal) -> Platform.runLater(() -> {
+                    Label targetLbl = sessionRttLabels.get(s.sessionId);
+                    if (targetLbl != null) {
+                        if (rttVal >= 0) {
+                            latencies.add(rttVal);
+                            targetLbl.setText(rttVal + " ms");
+                            if (rttVal < 20) {
+                                targetLbl.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #047857; -fx-background-color: #ECFDF5; -fx-background-radius: 4px; -fx-padding: 2 6;");
+                            } else if (rttVal <= 80) {
+                                targetLbl.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #B45309; -fx-background-color: #FEF3C7; -fx-background-radius: 4px; -fx-padding: 2 6;");
+                            } else {
+                                targetLbl.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #DC2626; -fx-background-color: #FEE2E2; -fx-background-radius: 4px; -fx-padding: 2 6;");
+                            }
+                        } else {
+                            targetLbl.setText("Timeout ⚠️");
+                            targetLbl.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #DC2626; -fx-background-color: #FEE2E2; -fx-background-radius: 4px; -fx-padding: 2 6;");
+                        }
+                    }
+                    if (pendingResponses.decrementAndGet() == 0) {
+                        isMeasuringPing[0] = false;
+                        btnPingAll.setText("📡  Ping toàn bộ thiết bị");
+                        btnPingAll.setDisable(false);
+                        long avg = latencies.isEmpty() ? 0 : Math.round(latencies.stream().mapToLong(Long::longValue).average().orElse(0));
+                        lblKpiRttVal.setText(avg + " ms");
+                        if (toastCallback != null) {
+                            toastCallback.accept("⚡ Đã đo độ trễ " + latencies.size() + "/" + sessions.size() + " thiết bị: RTT trung bình " + avg + " ms");
+                        }
+                    }
+                }));
+            }
+
+            // Safety timeout 1600ms
+            new Thread(() -> {
+                try { Thread.sleep(1600); } catch (InterruptedException ignored) {}
+                Platform.runLater(() -> {
+                    if (isMeasuringPing[0]) {
+                        isMeasuringPing[0] = false;
+                        btnPingAll.setText("📡  Ping toàn bộ thiết bị");
+                        btnPingAll.setDisable(false);
+                    }
+                });
+            }, "PingAll-Safety-Thread").start();
         });
 
         btnRefresh.setOnAction(e -> {
@@ -2020,7 +2077,9 @@ public class AdminSubViews {
         infoBox.getChildren().addAll(c1, c2, c3);
 
         // Auto-refresh timer: 3 seconds
-        Timeline timer = new Timeline(new KeyFrame(Duration.seconds(3), ev -> renderRows[0].run()));
+        Timeline timer = new Timeline(new KeyFrame(Duration.seconds(3), ev -> {
+            if (!isMeasuringPing[0]) renderRows[0].run();
+        }));
         timer.setCycleCount(Timeline.INDEFINITE);
         timer.play();
 

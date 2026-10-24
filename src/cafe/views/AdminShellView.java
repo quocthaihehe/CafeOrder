@@ -390,7 +390,7 @@ public class AdminShellView extends BorderPane {
                 centerContent.getChildren().add(AdminSubViews.styleInputs(AdminSubViews.buildStaffRbacView(st, this::showToastNotification)));
                 break;
             case 9:
-                centerContent.getChildren().add(AdminSubViews.styleInputs(AdminSubViews.buildFinancialReportsView(this::showToastNotification)));
+                centerContent.getChildren().add(AdminSubViews.styleInputs(AdminSubViews.buildFinancialReportsView(st, this::showToastNotification)));
                 break;
             case 10:
                 centerContent.getChildren().add(AdminSubViews.styleInputs(AdminSubViews.buildSystemSettingsView(st, this::showToastNotification, () -> {

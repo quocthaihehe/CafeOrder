@@ -1,0 +1,50 @@
+[
+  {
+    "staffId": 1,
+    "username": "admin",
+    "fullName": "Nguyễn Minh Luân",
+    "role": "OWNER",
+    "status": "ACTIVE",
+    "password": "123456"
+  },
+  {
+    "staffId": 2,
+    "username": "manager",
+    "fullName": "Nguyễn Hoàng Khang",
+    "role": "MANAGER",
+    "status": "ACTIVE",
+    "password": "123456"
+  },
+  {
+    "staffId": 3,
+    "username": "cashier1",
+    "fullName": "Nguyễn Minh Luân",
+    "role": "CASHIER",
+    "status": "ACTIVE",
+    "password": "123456"
+  },
+  {
+    "staffId": 4,
+    "username": "waiter",
+    "fullName": "Lê Quốc Bảo",
+    "role": "WAITER",
+    "status": "ACTIVE",
+    "password": "123456"
+  },
+  {
+    "staffId": 5,
+    "username": "barista1",
+    "fullName": "Phạm Thu Hà",
+    "role": "BARISTA",
+    "status": "ACTIVE",
+    "password": "123456"
+  },
+  {
+    "staffId": 6,
+    "username": "barista2",
+    "fullName": "Đặng Gia Huy",
+    "role": "BARISTA",
+    "status": "ACTIVE",
+    "password": "123456"
+  }
+]

@@ -14,15 +14,21 @@ public class MessageProtocol {
         public int table;
         public String sessionId;
         public String deviceType; // "KIOSK", "STAFF_PAD", "KDS"
+        public String staffUsername;
 
         public HelloMessage(int table) {
             this(table, null, "KIOSK");
         }
 
         public HelloMessage(int table, String sessionId, String deviceType) {
+            this(table, sessionId, deviceType, null);
+        }
+
+        public HelloMessage(int table, String sessionId, String deviceType, String staffUsername) {
             this.table = table;
             this.sessionId = sessionId;
             this.deviceType = deviceType != null ? deviceType : "KIOSK";
+            this.staffUsername = staffUsername;
         }
     }
 
@@ -130,6 +136,23 @@ public class MessageProtocol {
             this.itemId = itemId;
             this.inStock = inStock;
             this.itemName = itemName;
+        }
+    }
+
+    public static class StaffStatusBroadcastMessage {
+        public String type = MessageType.STAFF_STATUS_BROADCAST.name();
+        public int staffId;
+        public String username;
+        public String status; // "ACTIVE" or "LOCKED"
+        public String role;
+
+        public StaffStatusBroadcastMessage() {}
+
+        public StaffStatusBroadcastMessage(int staffId, String username, String status, String role) {
+            this.staffId = staffId;
+            this.username = username;
+            this.status = status;
+            this.role = role;
         }
     }
 

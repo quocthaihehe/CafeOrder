@@ -206,6 +206,7 @@ public class CafeServerService {
         public final PrintWriter writer;
         public volatile int currentTable;
         public volatile String deviceType;
+        public volatile String authenticatedUsername;
         public volatile long connectedAt;
         public volatile long lastHeartbeat;
         public volatile long lastPingSentAt = 0;
@@ -540,8 +541,10 @@ public class CafeServerService {
         activeInstance = this;
 
         Thread serverThread = new Thread(() -> {
+            ServerSocket thisSocket = null;
             try {
                 serverSocket = new ServerSocket(port);
+                thisSocket = serverSocket;
                 log("Máy chủ KDS pha chế & Quản trị CoffeePOS đã mở cổng " + port + ". Đang sẵn sàng đón nhận đơn.");
 
                 // Luồng giám sát RTT Ping định kỳ
@@ -561,18 +564,20 @@ public class CafeServerService {
                 pingMonitorThread.setDaemon(true);
                 pingMonitorThread.start();
 
-                while (isRunning) {
-                    Socket clientSocket = serverSocket.accept();
+                while (isRunning && serverSocket == thisSocket && !thisSocket.isClosed()) {
+                    Socket clientSocket = thisSocket.accept();
                     clientSocket.setTcpNoDelay(true);
                     clientSocket.setKeepAlive(true);
                     clientPool.submit(() -> handleClientConnection(clientSocket));
                 }
             } catch (IOException e) {
-                if (isRunning) {
+                if (isRunning && serverSocket == thisSocket) {
                     log("Lỗi Server Socket: " + e.getMessage());
                 }
             } finally {
-                stop();
+                if (serverSocket == thisSocket) {
+                    stop();
+                }
             }
         });
         serverThread.setName("KDS-AcceptorThread");
@@ -581,7 +586,63 @@ public class CafeServerService {
     }
 
     public void start() {
-        start(DEFAULT_PORT);
+        start(cafe.utils.NetworkConfig.getServerPort());
+    }
+
+    public synchronized boolean restartServer(int newPort) {
+        if (!cafe.utils.NetworkConfig.isValidPort(newPort)) return false;
+        try {
+            log("Đang cấu hình lại Máy chủ Socket sang cổng " + newPort + "...");
+            ServerSocket old = this.serverSocket;
+            ServerSocket nextSocket = new ServerSocket(newPort);
+            this.serverSocket = nextSocket;
+
+            cafe.utils.NetworkConfig.saveConfig(cafe.utils.NetworkConfig.getServerHost(), newPort);
+
+            if (old != null && !old.isClosed()) {
+                try { old.close(); } catch (IOException ignored) {}
+            }
+
+            Thread newAcceptor = new Thread(() -> {
+                try {
+                    while (isRunning && serverSocket == nextSocket && !nextSocket.isClosed()) {
+                        Socket clientSocket = nextSocket.accept();
+                        clientSocket.setTcpNoDelay(true);
+                        clientSocket.setKeepAlive(true);
+                        clientPool.submit(() -> handleClientConnection(clientSocket));
+                    }
+                } catch (IOException e) {
+                    if (isRunning && serverSocket == nextSocket) {
+                        log("Lỗi Server Socket (cổng " + newPort + "): " + e.getMessage());
+                    }
+                }
+            }, "KDS-AcceptorThread-" + newPort);
+            newAcceptor.setDaemon(true);
+            newAcceptor.start();
+
+            log("✅ Máy chủ KDS đã chuyển sang lắng nghe trên cổng mới " + newPort + " thành công!");
+            return true;
+        } catch (IOException ex) {
+            log("❌ Không thể mở cổng mới " + newPort + ": " + ex.getMessage());
+            return false;
+        }
+    }
+
+    public void broadcastStaffStatus(int staffId, String username, String status, String role) {
+        MessageProtocol.StaffStatusBroadcastMessage msg = new MessageProtocol.StaffStatusBroadcastMessage(staffId, username, status, role);
+        String json = MessageProtocol.toJson(msg);
+        for (ClientSession session : activeSessions.values()) {
+            session.send(json);
+            if ("LOCKED".equalsIgnoreCase(status) && session.authenticatedUsername != null && session.authenticatedUsername.equalsIgnoreCase(username)) {
+                log("Tài khoản '" + username + "' đã bị Khóa bởi Quản trị viên -> Ngắt kết nối phiên #" + session.sessionId);
+                session.send(MessageProtocol.toJson(new MessageProtocol.SessionKickedMessage(
+                    session.sessionId,
+                    "Tài khoản '" + username + "' đã bị KHÓA bởi Quản trị viên hệ thống! Phiên làm việc lập tức bị ngắt.",
+                    3600000L
+                )));
+                kickSession(session.sessionId);
+            }
+        }
     }
 
     private void handleClientConnection(Socket socket) {
@@ -648,6 +709,9 @@ public class CafeServerService {
                         int registeredTable = hello.table;
                         session.currentTable = registeredTable;
                         if (hello.deviceType != null) session.deviceType = hello.deviceType;
+                        if (hello.staffUsername != null && !hello.staffUsername.trim().isEmpty()) {
+                            session.authenticatedUsername = hello.staffUsername.trim();
+                        }
 
                         // Đăng ký bảng định tuyến bàn
                         bindTableSubscriber(registeredTable, sessionId);

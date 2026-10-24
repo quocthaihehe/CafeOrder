@@ -472,7 +472,7 @@ public class LoginView extends HBox {
             serverStatusBadge.setStyle("-fx-background-color: #DCFCE7; -fx-border-color: #BBF7D0; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-padding: 5 10 5 10;");
         } else {
             lblServerDot.setStyle("-fx-text-fill: #DC2626; -fx-font-size: 11px;");
-            lblServerStatusText.setText("Máy chủ: Chưa kết nối (Server đang tắt)");
+            lblServerStatusText.setText("Máy chủ: Chưa kết nối (" + host + ":" + port + ")");
             lblServerStatusText.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #DC2626;");
             btnRetryConnection.setVisible(true);
             btnRetryConnection.setManaged(true);

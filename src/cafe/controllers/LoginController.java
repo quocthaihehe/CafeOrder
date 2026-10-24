@@ -152,13 +152,21 @@ public class LoginController {
             return;
         }
 
+        StaffModel staffLookup = DatabaseManager.findStaffByUsername(account);
+        if (staffLookup != null) {
+            if (!"ACTIVE".equalsIgnoreCase(staffLookup.getStatus())) {
+                view.showError("🔒 Tài khoản '" + staffLookup.getUsername() + "' (" + staffLookup.getFullName() + ") hiện đang bị KHÓA bởi Quản trị viên!\nVui lòng liên hệ Quản lý để mở khóa.");
+                return;
+            }
+        }
+
         int potentialTable = parseTableNumber(account);
 
         // =====================================================================
         // NHÁNH 1: KHÁCH HÀNG (CUSTOMER KIOSK TẠI BÀN)
-        // Điều kiện: Nhập số bàn (VD: 5, 05, Ban 5...) và mật khẩu để trống hoặc gõ số bàn
+        // Điều kiện: Nhập số bàn và không trùng tài khoản nhân sự
         // =====================================================================
-        if (potentialTable > 0 && (password.isEmpty() || password.equalsIgnoreCase(account))) {
+        if (potentialTable > 0 && staffLookup == null && (password.isEmpty() || password.equalsIgnoreCase(account))) {
             boolean connected = socketService.connect(potentialTable);
             if (connected) {
                 stopServerPoll();
@@ -172,27 +180,31 @@ public class LoginController {
 
         // =====================================================================
         // NHÁNH 2: NHÂN VIÊN / QUẢN TRỊ (STAFF / MANAGER POS)
-        // Điều kiện: Đăng nhập tài khoản Staff đối chiếu với SQL Server / Fallback
         // =====================================================================
-        StaffModel staff = DatabaseManager.authenticateStaff(account, password);
-        if (staff != null) {
-            int table = (potentialTable > 0) ? potentialTable : 5;
-            boolean connected = socketService.connectStaff(table);
-            if (connected) {
-                stopServerPoll();
-                this.activeTableNumber = table;
-                if (staff.isManager() || "admin".equalsIgnoreCase(staff.getUsername())) {
-                    openAdminDashboard(staff);
+        if (staffLookup != null) {
+            StaffModel staff = DatabaseManager.authenticateStaff(account, password);
+            if (staff != null) {
+                int table = (potentialTable > 0) ? potentialTable : 5;
+                boolean connected = socketService.connectStaff(table, staff.getUsername());
+                if (connected) {
+                    stopServerPoll();
+                    this.activeTableNumber = table;
+                    if (staff.isManager() || "admin".equalsIgnoreCase(staff.getUsername())) {
+                        openAdminDashboard(staff);
+                    } else {
+                        openFloorPlan(table, staff);
+                    }
                 } else {
-                    openFloorPlan(table, staff);
+                    view.showError("Không thể kết nối đến quầy pha chế! Vui lòng kiểm tra lại Server.");
                 }
+                return;
             } else {
-                view.showError("Không thể kết nối đến quầy pha chế! Vui lòng kiểm tra lại Server.");
+                view.showError("Mật khẩu không chính xác! Vui lòng kiểm tra lại.");
+                return;
             }
-            return;
         }
 
-        // Nếu người dùng nhập số bàn nhưng có mật khẩu không khớp nhân viên
+        // Nếu người dùng nhập số bàn nhưng có mật khẩu không khớp
         if (potentialTable > 0) {
             boolean connected = socketService.connect(potentialTable);
             if (connected) {
@@ -203,7 +215,7 @@ public class LoginController {
             }
         }
 
-        view.showError("Tài khoản hoặc mật khẩu không chính xác!");
+        view.showError("Tài khoản '" + account + "' không tồn tại trong hệ thống!");
     }
 
     private int parseTableNumber(String input) {
@@ -337,6 +349,18 @@ public class LoginController {
 
         socketService.setOnTableStatusReceived((tableNum, status) -> {
             floorPlanView.setTableStatus(tableNum, status);
+        });
+
+        socketService.setOnSessionKickedReceived(kickMsg -> {
+            javafx.application.Platform.runLater(() -> {
+                String reason = (kickMsg != null && kickMsg.reason != null)
+                    ? kickMsg.reason
+                    : "Phiên làm việc đã bị ngắt bởi Quản trị viên!";
+                socketService.disconnect();
+                socketService.warmupConnectAsync();
+                returnToLoginView();
+                view.showError("🔒 " + reason);
+            });
         });
 
         String title = "Sơ Đồ Bàn & Phục Vụ • Brew & Bean CAFE (" + (staff != null ? staff.getFullName() : "Nhân viên") + ")";

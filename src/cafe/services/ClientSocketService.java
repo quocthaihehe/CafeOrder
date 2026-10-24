@@ -30,6 +30,7 @@ public class ClientSocketService {
     private final String localSessionId = UUID.randomUUID().toString().substring(0, 8);
     private int activeTableNumber = 5;
     private String deviceType = "KIOSK"; // "KIOSK" or "STAFF_PAD"
+    private String authenticatedStaffUsername = null;
 
     // Callbacks
     private Consumer<Boolean> onConnectionStateChanged;
@@ -171,7 +172,7 @@ public class ClientSocketService {
         }
 
         // Gửi gói tin HELLO tức thì (0ms) trên kết nối đã mở sẵn
-        MessageProtocol.HelloMessage hello = new MessageProtocol.HelloMessage(tableNumber, localSessionId, this.deviceType);
+        MessageProtocol.HelloMessage hello = new MessageProtocol.HelloMessage(tableNumber, localSessionId, this.deviceType, this.authenticatedStaffUsername);
         out.print(MessageProtocol.toJson(hello));
         out.flush();
 
@@ -190,6 +191,11 @@ public class ClientSocketService {
     }
 
     public boolean connectStaff(int tableNumber) {
+        return connectStaff(tableNumber, null);
+    }
+
+    public boolean connectStaff(int tableNumber, String staffUsername) {
+        this.authenticatedStaffUsername = staffUsername;
         return connect(DEFAULT_HOST, DEFAULT_PORT, tableNumber, "STAFF_PAD");
     }
 
@@ -279,6 +285,26 @@ public class ClientSocketService {
                             dispatch(() -> {
                                 if (onStockStatusReceived != null) onStockStatusReceived.accept(stockMsg);
                             });
+                            break;
+
+                        case STAFF_STATUS_BROADCAST:
+                            MessageProtocol.StaffStatusBroadcastMessage staffMsg = MessageProtocol.fromJson(rawJson, MessageProtocol.StaffStatusBroadcastMessage.class);
+                            cafe.services.DatabaseManager.setStaffStatus(staffMsg.staffId, staffMsg.status);
+                            if ("LOCKED".equalsIgnoreCase(staffMsg.status) && authenticatedStaffUsername != null && authenticatedStaffUsername.equalsIgnoreCase(staffMsg.username)) {
+                                isKickedByAdmin = true;
+                                running = false;
+                                try {
+                                    if (socket != null && !socket.isClosed()) socket.close();
+                                } catch (IOException ignored) {}
+                                MessageProtocol.SessionKickedMessage kickMsg = new MessageProtocol.SessionKickedMessage(
+                                    localSessionId,
+                                    "Tài khoản '" + staffMsg.username + "' đã bị KHÓA bởi Quản trị viên hệ thống!",
+                                    3600000L
+                                );
+                                dispatch(() -> {
+                                    if (onSessionKickedReceived != null) onSessionKickedReceived.accept(kickMsg);
+                                });
+                            }
                             break;
 
                         case SESSION_KICKED:

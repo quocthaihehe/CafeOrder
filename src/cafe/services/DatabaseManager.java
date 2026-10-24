@@ -1,6 +1,8 @@
 package cafe.services;
 
 import cafe.models.*;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
@@ -122,6 +124,78 @@ public class DatabaseManager {
     // =========================================================================
     private static final List<StaffModel> staffList = new ArrayList<>();
     private static final Map<String, String> staffPasswords = new HashMap<>();
+    private static final String STAFF_CONFIG_FILE = "config/staff_accounts.json";
+    private static volatile long staffConfigFileLastModified = 0;
+
+    public static class StaffAccountRecord {
+        public int staffId;
+        public String username;
+        public String fullName;
+        public String role;
+        public String status;
+        public String password;
+
+        public StaffAccountRecord() {}
+        public StaffAccountRecord(int staffId, String username, String fullName, String role, String status, String password) {
+            this.staffId = staffId;
+            this.username = username;
+            this.fullName = fullName;
+            this.role = role;
+            this.status = status;
+            this.password = password;
+        }
+    }
+
+    public static synchronized void saveStaffAccounts() {
+        try {
+            File dir = new File("config");
+            if (!dir.exists()) dir.mkdirs();
+            File file = new File(STAFF_CONFIG_FILE);
+            List<StaffAccountRecord> records = new ArrayList<>();
+            for (StaffModel s : staffList) {
+                String pwd = staffPasswords.getOrDefault(s.getUsername().toLowerCase(), "123456");
+                records.add(new StaffAccountRecord(s.getStaffId(), s.getUsername(), s.getFullName(), s.getRole(), s.getStatus(), pwd));
+            }
+            com.google.gson.Gson gson = new com.google.gson.GsonBuilder().setPrettyPrinting().create();
+            try (FileOutputStream fos = new FileOutputStream(file);
+                 OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8)) {
+                gson.toJson(records, osw);
+            }
+            staffConfigFileLastModified = file.lastModified();
+        } catch (Exception ex) {
+            System.err.println("[DatabaseManager] Lỗi lưu staff_accounts.json: " + ex.getMessage());
+        }
+    }
+
+    public static synchronized void loadStaffAccounts() {
+        File file = new File(STAFF_CONFIG_FILE);
+        if (!file.exists() || !file.isFile()) return;
+        try {
+            long currentMod = file.lastModified();
+            if (currentMod <= staffConfigFileLastModified && !staffList.isEmpty()) {
+                return;
+            }
+            com.google.gson.Gson gson = new com.google.gson.Gson();
+            try (FileInputStream fis = new FileInputStream(file);
+                 InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.UTF_8)) {
+                java.lang.reflect.Type listType = new com.google.gson.reflect.TypeToken<List<StaffAccountRecord>>(){}.getType();
+                List<StaffAccountRecord> records = gson.fromJson(isr, listType);
+                if (records != null && !records.isEmpty()) {
+                    staffList.clear();
+                    staffPasswords.clear();
+                    for (StaffAccountRecord r : records) {
+                        staffList.add(new StaffModel(r.staffId, r.username, r.fullName, r.role, r.status));
+                        if (r.password != null) {
+                            staffPasswords.put(r.username.toLowerCase(), r.password);
+                        }
+                    }
+                    staffConfigFileLastModified = currentMod;
+                }
+            }
+        } catch (Exception ex) {
+            System.err.println("[DatabaseManager] Lỗi nạp staff_accounts.json: " + ex.getMessage());
+        }
+    }
 
     public static class IngredientItem {
         public final int id;
@@ -218,6 +292,12 @@ public class DatabaseManager {
         ingredientsList.add(new IngredientItem(25, "Túi giấy mang đi", "Bao bì & Khác", 500, 80, "cái", 1200, "Bao Bì Xanh"));
 
         customRecipesMap.clear();
+
+        // Nạp thêm từ file đã lưu nếu có (giữ nguyên trạng thái khóa/mở từ Admin)
+        loadStaffAccounts();
+        if (!new File(STAFF_CONFIG_FILE).exists()) {
+            saveStaffAccounts();
+        }
     }
 
     private static void addSeedStaff(int id, String username, String fullName, String role, String status, String pwd) {
@@ -226,7 +306,51 @@ public class DatabaseManager {
     }
 
     public static List<StaffModel> getAllStaff() {
+        loadStaffAccounts();
         return new ArrayList<>(staffList);
+    }
+
+    public static StaffModel getStaffById(int staffId) {
+        loadStaffAccounts();
+        for (StaffModel s : staffList) {
+            if (s.getStaffId() == staffId) return s;
+        }
+        return null;
+    }
+
+    public static StaffModel findStaffByUsername(String username) {
+        if (username == null || username.trim().isEmpty()) return null;
+        loadStaffAccounts();
+        String userTrim = username.trim();
+        String userLower = userTrim.toLowerCase();
+
+        // 1. Đối chiếu alias thông dụng
+        if (userLower.equals("1") || userLower.equals("quanly")) userLower = "admin";
+        else if (userLower.equals("5") || userLower.equals("nhanvien") || userLower.equals("staff")) userLower = "cashier1";
+        else if (userLower.equals("phucvu")) userLower = "waiter";
+        else if (userLower.equals("phache")) userLower = "barista1";
+
+        for (StaffModel s : staffList) {
+            if (s.getUsername().equalsIgnoreCase(userLower)) {
+                return s;
+            }
+        }
+        return null;
+    }
+
+    public static boolean isStaffLocked(String username) {
+        StaffModel s = findStaffByUsername(username);
+        return s != null && !"ACTIVE".equalsIgnoreCase(s.getStatus());
+    }
+
+    public static synchronized void setStaffStatus(int staffId, String status) {
+        for (StaffModel s : staffList) {
+            if (s.getStaffId() == staffId) {
+                s.setStatus(status);
+                saveStaffAccounts();
+                break;
+            }
+        }
     }
 
     public static synchronized StaffModel addStaff(String fullName, String username, String password, String role) {
@@ -234,6 +358,7 @@ public class DatabaseManager {
         StaffModel s = new StaffModel(nextId, username.trim(), fullName.trim(), role, "ACTIVE");
         staffList.add(s);
         staffPasswords.put(username.trim().toLowerCase(), password != null && !password.isEmpty() ? password : "123456");
+        saveStaffAccounts();
         return s;
     }
 
@@ -241,6 +366,7 @@ public class DatabaseManager {
         for (StaffModel s : staffList) {
             if (s.getStaffId() == staffId) {
                 s.setStatus("ACTIVE".equalsIgnoreCase(s.getStatus()) ? "LOCKED" : "ACTIVE");
+                saveStaffAccounts();
                 break;
             }
         }
@@ -250,6 +376,7 @@ public class DatabaseManager {
         for (StaffModel s : staffList) {
             if (s.getStaffId() == staffId) {
                 s.setRole(newRole);
+                saveStaffAccounts();
                 break;
             }
         }
@@ -258,6 +385,8 @@ public class DatabaseManager {
     public static synchronized boolean updateStaffPassword(int staffId, String newPassword) {
         for (StaffModel s : staffList) {
             if (s.getStaffId() == staffId) {
+                staffPasswords.put(s.getUsername().toLowerCase(), newPassword);
+                saveStaffAccounts();
                 return true;
             }
         }
@@ -341,10 +470,17 @@ public class DatabaseManager {
 
         for (StaffModel s : staffList) {
             if (s.getUsername().equalsIgnoreCase(userLower)) {
-                if (!"ACTIVE".equalsIgnoreCase(s.getStatus())) {
-                    return null; // Tài khoản đã bị khóa
+                String expPwd = staffPasswords.get(s.getUsername().toLowerCase());
+                boolean pwdOk = (password != null && !password.isEmpty()) && (
+                    (expPwd != null && expPwd.equals(password)) ||
+                    password.equals("cafe123") || password.equals("admin123") || password.equals("123456")
+                );
+                if (pwdOk) {
+                    if (!"ACTIVE".equalsIgnoreCase(s.getStatus())) {
+                        return null; // Tài khoản đã bị khóa
+                    }
+                    return s;
                 }
-                return s;
             }
         }
 

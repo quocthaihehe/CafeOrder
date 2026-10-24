@@ -16,9 +16,12 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import javafx.application.Platform;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -1205,8 +1208,15 @@ public class AdminSubViews {
                 );
                 btnStatus.setOnAction(ev -> {
                     DatabaseManager.toggleStaffStatus(s.getStaffId());
+                    StaffModel updated = DatabaseManager.getStaffById(s.getStaffId());
+                    if (updated != null) {
+                        CafeServerService.getInstance().broadcastStaffStatus(
+                            updated.getStaffId(), updated.getUsername(), updated.getStatus(), updated.getRole()
+                        );
+                    }
                     renderStaff[0].run();
-                    if (toastCallback != null) toastCallback.accept("Đã thay đổi trạng thái tài khoản " + s.getUsername());
+                    String stDesc = (updated != null && "ACTIVE".equalsIgnoreCase(updated.getStatus())) ? "Đang hoạt động" : "Đã khóa";
+                    if (toastCallback != null) toastCallback.accept("Đã cập nhật trạng thái " + s.getUsername() + " -> " + stDesc);
                 });
 
                 row.getChildren().addAll(lId, lName, lUser, cboRole, lAccess, btnStatus);
@@ -1275,6 +1285,10 @@ public class AdminSubViews {
     // TAB 9: BÁO CÁO TÀI CHÍNH & KẾ TOÁN ĐỘNG (DYNAMIC PERIOD + CSV EXPORT)
     // =========================================================================
     public static VBox buildFinancialReportsView(Consumer<String> toastCallback) {
+        return buildFinancialReportsView(null, toastCallback);
+    }
+
+    public static VBox buildFinancialReportsView(Stage parentStage, Consumer<String> toastCallback) {
         VBox root = new VBox(14);
         VBox.setVgrow(root, Priority.ALWAYS);
 
@@ -1350,6 +1364,8 @@ public class AdminSubViews {
         ledgerCard.getChildren().addAll(ledgerHeader, scroll);
 
         final List<String[]> currentCsvRows = new ArrayList<>();
+        final double[] financialTotals = new double[4]; // gross, cogs, opex, net
+        final int[] totalOrderCount = new int[1];
 
         Runnable renderFinancials = () -> {
             ledgerRows.getChildren().clear();
@@ -1393,6 +1409,7 @@ public class AdminSubViews {
             double sumCogs = 0;
             double sumOpex = 0;
             double sumNet = 0;
+            int orderCountSum = 0;
 
             for (String[] r : data) {
                 double gross = Double.parseDouble(r[2]);
@@ -1400,6 +1417,11 @@ public class AdminSubViews {
                 double opex = Double.parseDouble(r[4]);
                 double net = gross - cogs - opex;
                 double pct = gross > 0 ? (net / gross) * 100.0 : 0;
+
+                try {
+                    String cleanOrders = r[1].replaceAll("[^0-9]", "");
+                    if (!cleanOrders.isEmpty()) orderCountSum += Integer.parseInt(cleanOrders);
+                } catch (Exception ignored) {}
 
                 sumGross += gross;
                 sumCogs += cogs;
@@ -1433,6 +1455,12 @@ public class AdminSubViews {
                 ledgerRows.getChildren().add(row);
             }
 
+            financialTotals[0] = sumGross;
+            financialTotals[1] = sumCogs;
+            financialTotals[2] = sumOpex;
+            financialTotals[3] = sumNet;
+            totalOrderCount[0] = orderCountSum;
+
             lblGrossRev.setText(CurrencyFormatter.formatVND(sumGross));
             lblCogs.setText(CurrencyFormatter.formatVND(sumCogs));
             lblOpex.setText(CurrencyFormatter.formatVND(sumOpex));
@@ -1458,16 +1486,60 @@ public class AdminSubViews {
 
         btnExportCsv.setOnAction(e -> {
             try {
-                File outFile = new File("BaoCaoTaiChinh_BrewAndBean.csv");
-                try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(outFile), StandardCharsets.UTF_8))) {
-                    pw.write('\ufeff'); // UTF-8 BOM for Excel
-                    pw.println("Ky hach toan,So don hang,Doanh thu gop (VND),Gia von COGS (VND),Chi phi van hanh (VND),Loi nhuan rong (VND),Ty suat lai");
-                    for (String[] r : currentCsvRows) {
-                        pw.println(String.join(",", r));
-                    }
+                FileChooser fileChooser = new FileChooser();
+                fileChooser.setTitle("Xuất Báo Cáo Tài Chính & Kế Toán (CSV / Excel)");
+                String sanitizedPeriod = currentPeriod[0].replaceAll("[^a-zA-Z0-9]", "_");
+                String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmm").format(new Date());
+                fileChooser.setInitialFileName("BaoCaoTaiChinh_" + sanitizedPeriod + "_" + timeStamp + ".csv");
+                fileChooser.getExtensionFilters().addAll(
+                    new FileChooser.ExtensionFilter("Tệp CSV hỗ trợ Excel (*.csv)", "*.csv"),
+                    new FileChooser.ExtensionFilter("Tất cả tệp (*.*)", "*.*")
+                );
+
+                Stage targetStage = parentStage;
+                if (targetStage == null && btnExportCsv.getScene() != null && btnExportCsv.getScene().getWindow() instanceof Stage) {
+                    targetStage = (Stage) btnExportCsv.getScene().getWindow();
                 }
+
+                File selectedFile = fileChooser.showSaveDialog(targetStage);
+                if (selectedFile == null) return; // Người dùng hủy chọn
+
+                try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(selectedFile), StandardCharsets.UTF_8))) {
+                    pw.write('\ufeff'); // UTF-8 BOM cho Excel
+                    pw.println("\"BÁO CÁO TÀI CHÍNH & KẾ TOÁN HOẠT ĐỘNG - " + DatabaseManager.brandName + "\"");
+                    pw.println("\"Kỳ hạch toán: " + currentPeriod[0] + "\"");
+                    pw.println("\"Thời điểm xuất báo cáo: " + new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date()) + "\"");
+                    pw.println("");
+                    pw.println("\"Kỳ hạch toán\",\"Số đơn hàng\",\"Doanh thu gộp (VNĐ)\",\"Giá vốn COGS (VNĐ)\",\"Chi phí vận hành (VNĐ)\",\"Lợi nhuận ròng (VNĐ)\",\"Tỷ suất lãi (%)\"");
+                    for (String[] r : currentCsvRows) {
+                        StringBuilder sb = new StringBuilder();
+                        for (int i = 0; i < r.length; i++) {
+                            if (i > 0) sb.append(",");
+                            sb.append("\"").append(r[i].replace("\"", "\"\"")).append("\"");
+                        }
+                        pw.println(sb.toString());
+                    }
+                    pw.println("");
+                    // Dòng tổng kết Grand Total
+                    double gross = financialTotals[0];
+                    double cogs = financialTotals[1];
+                    double opex = financialTotals[2];
+                    double net = financialTotals[3];
+                    double pct = gross > 0 ? (net / gross) * 100.0 : 0;
+                    pw.println("\"TỔNG CỘNG\",\"" + totalOrderCount[0] + " đơn (Toàn kỳ)\",\"" + (long) gross + "\",\"" + (long) cogs + "\",\"" + (long) opex + "\",\"" + (long) net + "\",\"" + String.format("%.1f%%", pct) + "\"");
+                }
+
                 if (toastCallback != null) {
-                    toastCallback.accept("Đã xuất báo cáo thành công ra file: " + outFile.getAbsolutePath());
+                    toastCallback.accept("✅ Đã xuất báo cáo thành công ra tệp: " + selectedFile.getName());
+                }
+
+                if (java.awt.Desktop.isDesktopSupported()) {
+                    try {
+                        java.awt.Desktop desktop = java.awt.Desktop.getDesktop();
+                        if (desktop.isSupported(java.awt.Desktop.Action.OPEN)) {
+                            desktop.open(selectedFile);
+                        }
+                    } catch (Exception ignored) {}
                 }
             } catch (Exception ex) {
                 if (toastCallback != null) toastCallback.accept("Lỗi xuất CSV: " + ex.getMessage());
@@ -1553,7 +1625,7 @@ public class AdminSubViews {
         statusBox.setPadding(new Insets(14));
         statusBox.setStyle("-fx-background-color: #F8F5F0; -fx-background-radius: 10px;");
         statusBox.getChildren().addAll(
-            new Label("● Máy chủ Socket KDS: Đang hoạt động (" + cafe.utils.NetworkConfig.getServerHost() + ":" + cafe.utils.NetworkConfig.getServerPort() + ")"),
+            new Label("● Máy chủ Socket KDS: Đang hoạt động (" + cafe.utils.NetworkConfig.getServerHost() + ":" + CafeServerService.getInstance().getActiveServerPort() + ")"),
             new Label("● Kết nối SQL Server Pool: Sẵn sàng (Non-blocking Warmup)"),
             new Label("● Máy in hóa đơn nhiệt: Khổ K80 (80mm Editorial Slip)"),
             new Label("● Phiên bản hệ thống: Brew & Bean Enterprise POS v4.0")
@@ -1702,13 +1774,19 @@ public class AdminSubViews {
         Region spHeader = new Region();
         HBox.setHgrow(spHeader, Priority.ALWAYS);
 
+        final Runnable[] renderRows = new Runnable[1];
+        Label lblKpiPortVal = new Label(String.valueOf(server.getActiveServerPort()));
+
         Button btnPingAll = new Button("📡  Ping toàn bộ thiết bị");
         btnPingAll.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-weight: 700; -fx-font-size: 12.5px; -fx-background-radius: 8px; -fx-padding: 8 16 8 16; -fx-cursor: hand;");
         AnimationHelper.applyButtonPress(btnPingAll);
 
         Button btnPortConfig = new Button("⚙️  Đổi Cổng Mạng");
         btnPortConfig.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #D6CEBE; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-weight: 700; -fx-font-size: 12.5px; -fx-text-fill: #112823; -fx-padding: 8 14 8 14; -fx-cursor: hand;");
-        btnPortConfig.setOnAction(e -> showNetworkPortModal(parentStage, toastCallback));
+        btnPortConfig.setOnAction(e -> showNetworkPortModal(parentStage, toastCallback, () -> {
+            lblKpiPortVal.setText(String.valueOf(server.getActiveServerPort()));
+            renderRows[0].run();
+        }));
 
         Button btnRefresh = new Button("🔄  Làm mới");
         btnRefresh.setStyle("-fx-background-color: #FAF6F0; -fx-border-color: #E2DDD5; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-weight: 700; -fx-font-size: 12.5px; -fx-text-fill: #4A453E; -fx-padding: 8 14 8 14; -fx-cursor: hand;");
@@ -1718,7 +1796,6 @@ public class AdminSubViews {
         // 2. Metric KPI Cards (4 Cards)
         HBox kpiRow = new HBox(12);
 
-        Label lblKpiPortVal = new Label(String.valueOf(server.getActiveServerPort()));
         VBox cardPort = createMiniKpiCard("CỔNG LẮNG NGHE (TCP)", lblKpiPortVal, "#1E3A8A");
 
         Label lblKpiSessionsVal = new Label(server.getActiveSessions().size() + " phiên");
@@ -1790,7 +1867,6 @@ public class AdminSubViews {
 
         final boolean[] isMeasuringPing = new boolean[]{false};
         final java.util.Map<String, Label> sessionRttLabels = new java.util.concurrent.ConcurrentHashMap<>();
-        Runnable[] renderRows = new Runnable[1];
         renderRows[0] = () -> {
             // Render Pending Reconnect Requests
             java.util.List<CafeServerService.ReconnectRequestEntry> reqs = server.getPendingReconnectRequests();
@@ -2115,6 +2191,10 @@ public class AdminSubViews {
     }
 
     public static void showNetworkPortModal(Stage owner, Consumer<String> toastCallback) {
+        showNetworkPortModal(owner, toastCallback, null);
+    }
+
+    public static void showNetworkPortModal(Stage owner, Consumer<String> toastCallback, Runnable onPortChanged) {
         Stage modal = createModal(owner, "Cấu hình Cổng Mạng Socket");
         VBox root = new VBox(14);
         root.setPrefWidth(420);
@@ -2132,7 +2212,8 @@ public class AdminSubViews {
         Label lblPort = new Label("Cổng Socket TCP (Mặc định khuyến nghị: 8888):");
         lblPort.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #112823;");
 
-        TextField txtPort = new TextField(String.valueOf(cafe.utils.NetworkConfig.getServerPort()));
+        int activePort = CafeServerService.getInstance().getActiveServerPort();
+        TextField txtPort = new TextField(String.valueOf(activePort));
         txtPort.setStyle(INPUT_STYLE);
 
         Label lblHost = new Label("Địa chỉ Máy chủ IP (Mặc định: 127.0.0.1 hoặc IP mạng LAN):");
@@ -2141,9 +2222,9 @@ public class AdminSubViews {
         TextField txtHost = new TextField(cafe.utils.NetworkConfig.getServerHost());
         txtHost.setStyle(INPUT_STYLE);
 
-        Label lblNotice = new Label("Lưu ý: Thay đổi cổng mạng sẽ lưu vào file cấu hình hệ thống. Cần khởi động lại Máy chủ để lắng nghe trên cổng mới.");
+        Label lblNotice = new Label("Lưu ý: Thay đổi cổng mạng sẽ lưu vào file config/network.properties và Máy chủ sẽ lập tức chuyển sang lắng nghe trên cổng mới.");
         lblNotice.setWrapText(true);
-        lblNotice.setStyle("-fx-font-size: 11px; -fx-text-fill: #B45309; -fx-background-color: #FEF3C7; -fx-padding: 8 10; -fx-background-radius: 6px;");
+        lblNotice.setStyle("-fx-font-size: 11px; -fx-text-fill: #065F46; -fx-background-color: #ECFDF5; -fx-padding: 8 10; -fx-background-radius: 6px;");
 
         form.getChildren().addAll(lblPort, txtPort, lblHost, txtHost, lblNotice);
 
@@ -2164,11 +2245,19 @@ public class AdminSubViews {
                     return;
                 }
                 String host = txtHost.getText().trim();
-                cafe.utils.NetworkConfig.setServerPort(port);
-                if (!host.isEmpty()) {
-                    cafe.utils.NetworkConfig.setServerHost(host);
+                if (host.isEmpty()) host = "127.0.0.1";
+                cafe.utils.NetworkConfig.saveConfig(host, port);
+                boolean ok = CafeServerService.getInstance().restartServer(port);
+                if (onPortChanged != null) {
+                    onPortChanged.run();
                 }
-                if (toastCallback != null) toastCallback.accept("Đã cập nhật cấu hình mạng thành công: " + host + ":" + port);
+                if (toastCallback != null) {
+                    if (ok) {
+                        toastCallback.accept("✅ Đã chuyển đổi thành công sang cổng " + port + "! Máy chủ đang lắng nghe.");
+                    } else {
+                        toastCallback.accept("⚠️ Đã lưu cấu hình cổng " + port + " nhưng chưa mở được ngay (kiểm tra xung đột cổng).");
+                    }
+                }
                 modal.close();
             } catch (NumberFormatException ex) {
                 if (toastCallback != null) toastCallback.accept("Cổng mạng phải là số nguyên hợp lệ!");

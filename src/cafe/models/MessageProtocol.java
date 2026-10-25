@@ -330,6 +330,137 @@ public class MessageProtocol {
         public long timestamp = System.currentTimeMillis();
     }
 
+    public static class SessionSnapshotDto {
+        public String sessionId;
+        public int currentTable;
+        public String deviceType;
+        public String remoteAddress;
+        public long rttLatencyMs;
+        public long packetsReceived;
+        public long packetsSent;
+        public long bytesReceived;
+        public long bytesSent;
+        public boolean isThrottled;
+        public long throttledCount;
+        public String authenticatedUsername;
+
+        public SessionSnapshotDto() {}
+
+        public SessionSnapshotDto(String sessionId, int currentTable, String deviceType, String remoteAddress,
+                                  long rttLatencyMs, long packetsReceived, long packetsSent,
+                                  long bytesReceived, long bytesSent, boolean isThrottled,
+                                  long throttledCount, String authenticatedUsername) {
+            this.sessionId = sessionId;
+            this.currentTable = currentTable;
+            this.deviceType = deviceType;
+            this.remoteAddress = remoteAddress;
+            this.rttLatencyMs = rttLatencyMs;
+            this.packetsReceived = packetsReceived;
+            this.packetsSent = packetsSent;
+            this.bytesReceived = bytesReceived;
+            this.bytesSent = bytesSent;
+            this.isThrottled = isThrottled;
+            this.throttledCount = throttledCount;
+            this.authenticatedUsername = authenticatedUsername;
+        }
+    }
+
+    public static class ReconnectRequestDto {
+        public String deviceId;
+        public int tableNumber;
+        public String deviceType;
+        public String ip;
+        public long requestTime;
+        public String note;
+
+        public ReconnectRequestDto() {}
+
+        public ReconnectRequestDto(String deviceId, int tableNumber, String deviceType, String ip, long requestTime, String note) {
+            this.deviceId = deviceId;
+            this.tableNumber = tableNumber;
+            this.deviceType = deviceType;
+            this.ip = ip;
+            this.requestTime = requestTime;
+            this.note = note;
+        }
+    }
+
+    public static class AdminGetTelemetryMessage {
+        public String type = MessageType.ADMIN_GET_TELEMETRY.name();
+        public long timestamp = System.currentTimeMillis();
+    }
+
+    public static class AdminTelemetrySnapshotMessage {
+        public String type = MessageType.ADMIN_TELEMETRY_SNAPSHOT.name();
+        public int activePort;
+        public String lanIp;
+        public long avgRttMs;
+        public long totalBytesReceived;
+        public long totalBytesSent;
+        public List<SessionSnapshotDto> sessions;
+        public List<ReconnectRequestDto> pendingRequests;
+
+        public AdminTelemetrySnapshotMessage() {}
+
+        public AdminTelemetrySnapshotMessage(int activePort, String lanIp, long avgRttMs,
+                                             long totalBytesReceived, long totalBytesSent,
+                                             List<SessionSnapshotDto> sessions,
+                                             List<ReconnectRequestDto> pendingRequests) {
+            this.activePort = activePort;
+            this.lanIp = lanIp;
+            this.avgRttMs = avgRttMs;
+            this.totalBytesReceived = totalBytesReceived;
+            this.totalBytesSent = totalBytesSent;
+            this.sessions = sessions;
+            this.pendingRequests = pendingRequests;
+        }
+    }
+
+    public static class AdminCommandMessage {
+        public String type = MessageType.ADMIN_COMMAND.name();
+        public String action; // PING_SINGLE, PING_ALL, KICK_SESSION, APPROVE_RECONNECT, REJECT_RECONNECT, TOGGLE_STOCK_86, REBIND_PORT, UPDATE_ORDER_STATUS, STAFF_STATUS
+        public String targetId;
+        public String param1;
+        public boolean flag;
+
+        public AdminCommandMessage() {}
+
+        public AdminCommandMessage(String action, String targetId, String param1, boolean flag) {
+            this.action = action;
+            this.targetId = targetId;
+            this.param1 = param1;
+            this.flag = flag;
+        }
+    }
+
+    public static class AdminPingResultMessage {
+        public String type = MessageType.ADMIN_PING_RESULT.name();
+        public String sessionId;
+        public long rttMs;
+        public long avgRttMs;
+        public boolean success;
+
+        public AdminPingResultMessage() {}
+
+        public AdminPingResultMessage(String sessionId, long rttMs, long avgRttMs, boolean success) {
+            this.sessionId = sessionId;
+            this.rttMs = rttMs;
+            this.avgRttMs = avgRttMs;
+            this.success = success;
+        }
+    }
+
+    public static class OrdersSnapshotSyncMessage {
+        public String type = MessageType.ORDERS_SNAPSHOT_SYNC.name();
+        public List<Order> orders;
+
+        public OrdersSnapshotSyncMessage() {}
+
+        public OrdersSnapshotSyncMessage(List<Order> orders) {
+            this.orders = orders;
+        }
+    }
+
     public static String toJson(Object message) {
         return gson.toJson(message) + "\n";
     }

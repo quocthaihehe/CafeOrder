@@ -141,4 +141,41 @@ public class NetworkConfig {
     public static boolean isValidPort(int port) {
         return port >= 1024 && port <= 65535;
     }
+
+    /**
+     * Tự động phát hiện địa chỉ IPv4 LAN thực tế của máy đang chạy (VD: 192.168.1.x),
+     * bỏ qua loopback (127.0.0.1) và các card mạng ảo (VMware/VirtualBox/WSL) nếu có card Wi-Fi/Ethernet thật.
+     */
+    public static String getLocalLanIp() {
+        String fallbackIp = null;
+        try {
+            java.util.Enumeration<java.net.NetworkInterface> interfaces = java.net.NetworkInterface.getNetworkInterfaces();
+            while (interfaces != null && interfaces.hasMoreElements()) {
+                java.net.NetworkInterface ni = interfaces.nextElement();
+                if (!ni.isUp() || ni.isLoopback()) continue;
+                String display = (ni.getDisplayName() != null ? ni.getDisplayName() : "").toLowerCase();
+                String name = (ni.getName() != null ? ni.getName() : "").toLowerCase();
+                boolean isVirtual = display.contains("virtual") || display.contains("vmware")
+                        || display.contains("vbox") || display.contains("wsl")
+                        || display.contains("hyper-v") || name.contains("vethernet");
+                java.util.Enumeration<java.net.InetAddress> addrs = ni.getInetAddresses();
+                while (addrs.hasMoreElements()) {
+                    java.net.InetAddress addr = addrs.nextElement();
+                    if (addr instanceof java.net.Inet4Address && !addr.isLoopbackAddress()) {
+                        String ip = addr.getHostAddress();
+                        if (addr.isSiteLocalAddress() && !isVirtual) {
+                            return ip;
+                        }
+                        if (fallbackIp == null) {
+                            fallbackIp = ip;
+                        }
+                    }
+                }
+            }
+            if (fallbackIp != null) return fallbackIp;
+            return java.net.InetAddress.getLocalHost().getHostAddress();
+        } catch (Exception ignored) {
+            return "127.0.0.1";
+        }
+    }
 }

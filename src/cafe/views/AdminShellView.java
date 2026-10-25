@@ -89,6 +89,15 @@ public class AdminShellView extends BorderPane {
     public void attachClientContext(Stage stage, ClientSocketService socketService) {
         this.parentStage = stage;
         this.clientSocketService = socketService;
+        if (this.clientSocketService != null) {
+            this.clientSocketService.requestAdminTelemetry();
+            this.clientSocketService.addOrderStatusListener(upd -> Platform.runLater(() -> {
+                if (currentTab == 1 || currentTab == 3 || currentTab == 9) switchTab(currentTab);
+            }));
+            this.clientSocketService.addOrderAckListener(ack -> Platform.runLater(() -> {
+                if (currentTab == 1 || currentTab == 3 || currentTab == 9) switchTab(currentTab);
+            }));
+        }
         ensureEmbeddedCounterPosReady();
     }
 

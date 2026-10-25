@@ -16,6 +16,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -1759,6 +1760,10 @@ public class AdminSubViews {
         VBox.setVgrow(root, Priority.ALWAYS);
 
         CafeServerService server = CafeServerService.getInstance();
+        cafe.services.ClientSocketService clientSock = cafe.services.ClientSocketService.getActiveInstance();
+        if (!server.isServerRunning() && clientSock != null) {
+            clientSock.requestAdminTelemetry();
+        }
 
         // 1. Header
         HBox header = new HBox(12);
@@ -1777,19 +1782,54 @@ public class AdminSubViews {
         final Runnable[] renderRows = new Runnable[1];
         Label lblKpiPortVal = new Label(String.valueOf(server.getActiveServerPort()));
 
-        Button btnPingAll = new Button("📡  Ping toàn bộ thiết bị");
-        btnPingAll.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-weight: 700; -fx-font-size: 12.5px; -fx-background-radius: 8px; -fx-padding: 8 16 8 16; -fx-cursor: hand;");
+        // Nút Ping toàn bộ thiết bị (Dùng icon ha-tang-mang.png chuẩn, không dùng emoji)
+        Button btnPingAll = new Button();
+        HBox pingAllGraphic = new HBox(6);
+        pingAllGraphic.setAlignment(Pos.CENTER);
+        javafx.scene.Node pingAllIcon = cafe.utils.IconHelper.getIcon("admin", "ha-tang-mang.png", cafe.utils.SvgIcons.SETTINGS, "", 15, Color.WHITE);
+        Label lblPingAllText = new Label("Ping toàn bộ thiết bị");
+        lblPingAllText.setStyle("-fx-text-fill: #FFFFFF; -fx-font-weight: 700; -fx-font-size: 12.5px;");
+        lblPingAllText.setMinWidth(Region.USE_PREF_SIZE);
+        pingAllGraphic.getChildren().addAll(pingAllIcon, lblPingAllText);
+        btnPingAll.setGraphic(pingAllGraphic);
+        btnPingAll.setMinWidth(Region.USE_PREF_SIZE);
+        btnPingAll.setStyle("-fx-background-color: #112823; -fx-background-radius: 8px; -fx-padding: 8 16 8 16; -fx-cursor: hand;");
         AnimationHelper.applyButtonPress(btnPingAll);
 
-        Button btnPortConfig = new Button("⚙️  Đổi Cổng Mạng");
-        btnPortConfig.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #D6CEBE; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-weight: 700; -fx-font-size: 12.5px; -fx-text-fill: #112823; -fx-padding: 8 14 8 14; -fx-cursor: hand;");
+        // Nút Đổi Cổng Mạng (Dùng icon cai-dat.png chuẩn)
+        Button btnPortConfig = new Button();
+        HBox portCfgGraphic = new HBox(6);
+        portCfgGraphic.setAlignment(Pos.CENTER);
+        javafx.scene.Node portCfgIcon = cafe.utils.IconHelper.getIcon("admin", "cai-dat.png", cafe.utils.SvgIcons.SETTINGS, "", 15, Color.web("#112823"));
+        Label lblPortCfgText = new Label("Đổi Cổng Mạng");
+        lblPortCfgText.setStyle("-fx-text-fill: #112823; -fx-font-weight: 700; -fx-font-size: 12.5px;");
+        lblPortCfgText.setMinWidth(Region.USE_PREF_SIZE);
+        portCfgGraphic.getChildren().addAll(portCfgIcon, lblPortCfgText);
+        btnPortConfig.setGraphic(portCfgGraphic);
+        btnPortConfig.setMinWidth(Region.USE_PREF_SIZE);
+        btnPortConfig.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #D6CEBE; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 8 14 8 14; -fx-cursor: hand;");
+        AnimationHelper.applyButtonPress(btnPortConfig);
         btnPortConfig.setOnAction(e -> showNetworkPortModal(parentStage, toastCallback, () -> {
             lblKpiPortVal.setText(String.valueOf(server.getActiveServerPort()));
+            if (!server.isServerRunning() && clientSock != null) {
+                clientSock.requestAdminTelemetry();
+            }
             renderRows[0].run();
         }));
 
-        Button btnRefresh = new Button("🔄  Làm mới");
-        btnRefresh.setStyle("-fx-background-color: #FAF6F0; -fx-border-color: #E2DDD5; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-weight: 700; -fx-font-size: 12.5px; -fx-text-fill: #4A453E; -fx-padding: 8 14 8 14; -fx-cursor: hand;");
+        // Nút Làm mới (Dùng icon staff/lam-moi.png chuẩn)
+        Button btnRefresh = new Button();
+        HBox refreshGraphic = new HBox(6);
+        refreshGraphic.setAlignment(Pos.CENTER);
+        javafx.scene.Node refreshIcon = cafe.utils.IconHelper.getIcon("staff", "lam-moi.png", cafe.utils.SvgIcons.SETTINGS, "", 14, Color.web("#4A453E"));
+        Label lblRefreshText = new Label("Làm mới");
+        lblRefreshText.setStyle("-fx-text-fill: #4A453E; -fx-font-weight: 700; -fx-font-size: 12.5px;");
+        lblRefreshText.setMinWidth(Region.USE_PREF_SIZE);
+        refreshGraphic.getChildren().addAll(refreshIcon, lblRefreshText);
+        btnRefresh.setGraphic(refreshGraphic);
+        btnRefresh.setMinWidth(Region.USE_PREF_SIZE);
+        btnRefresh.setStyle("-fx-background-color: #FAF6F0; -fx-border-color: #E2DDD5; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 8 14 8 14; -fx-cursor: hand;");
+        AnimationHelper.applyButtonPress(btnRefresh);
 
         header.getChildren().addAll(titleBox, spHeader, btnPingAll, btnPortConfig, btnRefresh);
 
@@ -1798,7 +1838,7 @@ public class AdminSubViews {
 
         VBox cardPort = createMiniKpiCard("CỔNG LẮNG NGHE (TCP)", lblKpiPortVal, "#1E3A8A");
 
-        Label lblKpiSessionsVal = new Label(server.getActiveSessions().size() + " phiên");
+        Label lblKpiSessionsVal = new Label("0 phiên");
         VBox cardSessions = createMiniKpiCard("THIẾT BỊ TRỰC TUYẾN", lblKpiSessionsVal, "#047857");
 
         Label lblKpiRttVal = new Label(server.getAverageRttMs() + " ms");
@@ -1832,10 +1872,15 @@ public class AdminSubViews {
         Region spSessions = new Region();
         HBox.setHgrow(spSessions, Priority.ALWAYS);
 
-        Label lblSecBadge = new Label("🛡️ Anti-Spam Rate-Limiting: 15 req/s (BẬT)");
-        lblSecBadge.setStyle("-fx-background-color: #ECFDF5; -fx-text-fill: #065F46; -fx-font-size: 11px; -fx-font-weight: 700; -fx-padding: 4 10; -fx-background-radius: 20px;");
+        HBox secBadge = new HBox(6);
+        secBadge.setAlignment(Pos.CENTER_LEFT);
+        secBadge.setStyle("-fx-background-color: #ECFDF5; -fx-padding: 4 10; -fx-background-radius: 20px;");
+        Circle secDot = new Circle(4, Color.web("#065F46"));
+        Label lblSecBadge = new Label("Anti-Spam Rate-Limiting: 15 req/s (BẬT)");
+        lblSecBadge.setStyle("-fx-text-fill: #065F46; -fx-font-size: 11px; -fx-font-weight: 700;");
+        secBadge.getChildren().addAll(secDot, lblSecBadge);
 
-        sessionsCardHeader.getChildren().addAll(lblSessionsTitle, spSessions, lblSecBadge);
+        sessionsCardHeader.getChildren().addAll(lblSessionsTitle, spSessions, secBadge);
 
         // Table Header
         HBox tblHeader = new HBox(8);
@@ -1867,10 +1912,26 @@ public class AdminSubViews {
 
         final boolean[] isMeasuringPing = new boolean[]{false};
         final java.util.Map<String, Label> sessionRttLabels = new java.util.concurrent.ConcurrentHashMap<>();
+
         renderRows[0] = () -> {
+            // Lấy dữ liệu từ Server trực tiếp hoặc từ Snapshot Socket gửi về
+            java.util.List<cafe.models.MessageProtocol.SessionSnapshotDto> sessionDtos = new java.util.ArrayList<>();
+            java.util.List<cafe.models.MessageProtocol.ReconnectRequestDto> reqDtos = new java.util.ArrayList<>();
+
+            if (server.isServerRunning()) {
+                cafe.models.MessageProtocol.AdminTelemetrySnapshotMessage localSnap = server.buildTelemetrySnapshotMessage();
+                if (localSnap.sessions != null) sessionDtos.addAll(localSnap.sessions);
+                if (localSnap.pendingRequests != null) reqDtos.addAll(localSnap.pendingRequests);
+            } else {
+                cafe.models.MessageProtocol.AdminTelemetrySnapshotMessage remoteSnap = server.getRemoteTelemetrySnapshot();
+                if (remoteSnap != null) {
+                    if (remoteSnap.sessions != null) sessionDtos.addAll(remoteSnap.sessions);
+                    if (remoteSnap.pendingRequests != null) reqDtos.addAll(remoteSnap.pendingRequests);
+                }
+            }
+
             // Render Pending Reconnect Requests
-            java.util.List<CafeServerService.ReconnectRequestEntry> reqs = server.getPendingReconnectRequests();
-            if (reqs == null || reqs.isEmpty()) {
+            if (reqDtos.isEmpty()) {
                 pendingCard.getChildren().clear();
                 pendingCard.setVisible(false);
                 pendingCard.setManaged(false);
@@ -1881,16 +1942,17 @@ public class AdminSubViews {
 
                 HBox pendingHeader = new HBox(8);
                 pendingHeader.setAlignment(Pos.CENTER_LEFT);
-                Label lblPendingTitle = new Label("⚠️ YÊU CẦU NỐI LẠI PHIÊN ĐANG CHỜ DUYỆT (" + reqs.size() + ")");
+                Circle warnDot = new Circle(4.5, Color.web("#D97706"));
+                Label lblPendingTitle = new Label("YÊU CẦU NỐI LẠI PHIÊN ĐANG CHỜ DUYỆT (" + reqDtos.size() + ")");
                 lblPendingTitle.setStyle("-fx-font-size: 13px; -fx-font-weight: 800; -fx-text-fill: #92400E;");
                 Region spPending = new Region();
                 HBox.setHgrow(spPending, Priority.ALWAYS);
                 Label lblPendingHint = new Label("Thiết bị bị ngắt kết nối yêu cầu khôi phục quyền truy cập");
                 lblPendingHint.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #B45309;");
-                pendingHeader.getChildren().addAll(lblPendingTitle, spPending, lblPendingHint);
+                pendingHeader.getChildren().addAll(warnDot, lblPendingTitle, spPending, lblPendingHint);
                 pendingCard.getChildren().add(pendingHeader);
 
-                for (CafeServerService.ReconnectRequestEntry req : reqs) {
+                for (cafe.models.MessageProtocol.ReconnectRequestDto req : reqDtos) {
                     HBox reqRow = new HBox(10);
                     reqRow.setAlignment(Pos.CENTER_LEFT);
                     reqRow.setPadding(new Insets(8, 12, 8, 12));
@@ -1913,21 +1975,31 @@ public class AdminSubViews {
                     lblNote.setStyle("-fx-font-size: 12px; -fx-text-fill: #374151;");
                     HBox.setHgrow(lblNote, Priority.ALWAYS);
 
-                    Button btnApprove = new Button("✔ Phê duyệt");
+                    Button btnApprove = new Button("Phê duyệt");
+                    btnApprove.setMinWidth(Region.USE_PREF_SIZE);
                     btnApprove.setStyle("-fx-background-color: #DCFCE7; -fx-text-fill: #15803D; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-padding: 4 10 4 10; -fx-cursor: hand;");
                     btnApprove.setOnAction(ev -> {
-                        boolean ok = server.approveReconnectRequest(req.deviceId);
-                        if (ok && toastCallback != null) {
+                        if (server.isServerRunning()) {
+                            server.approveReconnectRequest(req.deviceId);
+                        } else if (clientSock != null) {
+                            clientSock.sendAdminCommand("APPROVE_RECONNECT", req.deviceId, "", false);
+                        }
+                        if (toastCallback != null) {
                             toastCallback.accept("Đã phê duyệt cấp lại phiên cho thiết bị: " + req.deviceId);
                         }
                         renderRows[0].run();
                     });
 
-                    Button btnReject = new Button("✕ Từ chối");
+                    Button btnReject = new Button("Từ chối");
+                    btnReject.setMinWidth(Region.USE_PREF_SIZE);
                     btnReject.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-padding: 4 10 4 10; -fx-cursor: hand;");
                     btnReject.setOnAction(ev -> {
-                        boolean ok = server.rejectReconnectRequest(req.deviceId, "Quản trị viên từ chối cấp phiên");
-                        if (ok && toastCallback != null) {
+                        if (server.isServerRunning()) {
+                            server.rejectReconnectRequest(req.deviceId, "Quản trị viên từ chối cấp phiên");
+                        } else if (clientSock != null) {
+                            clientSock.sendAdminCommand("REJECT_RECONNECT", req.deviceId, "Quản trị viên từ chối cấp phiên", false);
+                        }
+                        if (toastCallback != null) {
                             toastCallback.accept("Đã từ chối cấp lại phiên cho thiết bị: " + req.deviceId);
                         }
                         renderRows[0].run();
@@ -1939,34 +2011,31 @@ public class AdminSubViews {
             }
 
             rowsContainer.getChildren().clear();
-            List<CafeServerService.ClientSession> sessions = server.getActiveSessionsList();
 
             lblKpiPortVal.setText(String.valueOf(server.getActiveServerPort()));
-            lblKpiSessionsVal.setText(sessions.size() + " phiên");
+            lblKpiSessionsVal.setText(sessionDtos.size() + " phiên");
             lblKpiRttVal.setText(server.getAverageRttMs() + " ms");
             double kb = (server.getTotalBytesReceived() + server.getTotalBytesSent()) / 1024.0;
             lblKpiTrafficVal.setText(String.format("%.1f KB", kb));
 
-            if (sessions.isEmpty()) {
+            if (sessionDtos.isEmpty()) {
                 VBox emptyBox = new VBox(10);
                 emptyBox.setAlignment(Pos.CENTER);
                 emptyBox.setPadding(new Insets(36, 12, 36, 12));
 
-                Label lblEmptyIcon = new Label("📡");
-                lblEmptyIcon.setStyle("-fx-font-size: 32px;");
-
+                javafx.scene.Node emptyNetIcon = cafe.utils.IconHelper.getIcon("admin", "ha-tang-mang.png", cafe.utils.SvgIcons.SETTINGS, "", 32, Color.web("#A8A29E"));
                 Label lblEmptyTitle = new Label("Chưa có thiết bị Kiosk hoặc Staff nào kết nối tới Server");
                 lblEmptyTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: 700; -fx-text-fill: #57534E;");
 
                 Label lblEmptySub = new Label("Mở ứng dụng Client (Giao diện Kiosk) hoặc Tablet nhân viên để bắt đầu giao tiếp qua Socket TCP trên cổng " + server.getActiveServerPort());
                 lblEmptySub.setStyle("-fx-font-size: 12px; -fx-text-fill: #A8A29E;");
 
-                emptyBox.getChildren().addAll(lblEmptyIcon, lblEmptyTitle, lblEmptySub);
+                emptyBox.getChildren().addAll(emptyNetIcon, lblEmptyTitle, lblEmptySub);
                 rowsContainer.getChildren().add(emptyBox);
                 return;
             }
 
-            for (CafeServerService.ClientSession s : sessions) {
+            for (cafe.models.MessageProtocol.SessionSnapshotDto s : sessionDtos) {
                 HBox row = new HBox(8);
                 row.setAlignment(Pos.CENTER_LEFT);
                 row.setPadding(new Insets(8, 12, 8, 12));
@@ -1985,31 +2054,26 @@ public class AdminSubViews {
                 rDevice.setPrefWidth(110);
                 rDevice.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 600; -fx-text-fill: #4B5563;");
 
-                Label rIp = new Label(s.getRemoteAddress());
+                Label rIp = new Label(s.remoteAddress != null ? s.remoteAddress : "127.0.0.1");
                 rIp.setPrefWidth(160);
                 rIp.setStyle("-fx-font-family: monospace; -fx-font-size: 11.5px; -fx-text-fill: #374151;");
 
                 long rtt = s.rttLatencyMs;
-                Label rRtt = new Label();
+                Label rRtt = new Label(rtt + " ms");
                 rRtt.setPrefWidth(110);
+                String rttColor = rtt <= 20 ? "#047857" : (rtt <= 80 ? "#D97706" : "#DC2626");
+                Circle rttDot = new Circle(4, Color.web(rttColor));
+                rRtt.setGraphic(rttDot);
+                rRtt.setGraphicTextGap(5);
+                rRtt.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: " + rttColor + ";");
                 sessionRttLabels.put(s.sessionId, rRtt);
-                if (rtt <= 10) {
-                    rRtt.setText("🟢 " + rtt + " ms");
-                    rRtt.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #047857;");
-                } else if (rtt <= 50) {
-                    rRtt.setText("🟡 " + rtt + " ms");
-                    rRtt.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #D97706;");
-                } else {
-                    rRtt.setText("🔴 " + rtt + " ms");
-                    rRtt.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #DC2626;");
-                }
 
-                Label rPkts = new Label(s.packetsReceived.get() + " / " + s.packetsSent.get());
+                Label rPkts = new Label(s.packetsReceived + " / " + s.packetsSent);
                 rPkts.setPrefWidth(120);
                 rPkts.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #4B5563;");
 
-                double inKb = s.bytesReceived.get() / 1024.0;
-                double outKb = s.bytesSent.get() / 1024.0;
+                double inKb = s.bytesReceived / 1024.0;
+                double outKb = s.bytesSent / 1024.0;
                 Label rBytes = new Label(String.format("%.1f / %.1f KB", inKb, outKb));
                 rBytes.setPrefWidth(130);
                 rBytes.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #4B5563;");
@@ -2017,10 +2081,16 @@ public class AdminSubViews {
                 Label rStatus = new Label();
                 rStatus.setPrefWidth(130);
                 if (s.isThrottled) {
-                    rStatus.setText("⚠️ Throttled (" + s.throttledCount.get() + ")");
+                    Circle stDot = new Circle(4, Color.web("#DC2626"));
+                    rStatus.setGraphic(stDot);
+                    rStatus.setGraphicTextGap(5);
+                    rStatus.setText("Throttled (" + s.throttledCount + ")");
                     rStatus.setStyle("-fx-font-size: 11px; -fx-font-weight: 800; -fx-text-fill: #DC2626; -fx-background-color: #FEE2E2; -fx-background-radius: 4px; -fx-padding: 2 6;");
                 } else {
-                    rStatus.setText("🟢 Đang kết nối");
+                    Circle stDot = new Circle(4, Color.web("#047857"));
+                    rStatus.setGraphic(stDot);
+                    rStatus.setGraphicTextGap(5);
+                    rStatus.setText("Đang kết nối");
                     rStatus.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #047857; -fx-background-color: #ECFDF5; -fx-background-radius: 4px; -fx-padding: 2 6;");
                 }
 
@@ -2031,44 +2101,50 @@ public class AdminSubViews {
                 actionsBox.setAlignment(Pos.CENTER_RIGHT);
                 actionsBox.setPrefWidth(140);
 
-                Button btnPingSingle = new Button("⚡ Ping");
-                btnPingSingle.setStyle("-fx-background-color: #E0E7FF; -fx-text-fill: #3730A3; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 4px; -fx-cursor: hand; -fx-padding: 3 8;");
+                Button btnPingSingle = new Button("Ping");
+                btnPingSingle.setMinWidth(Region.USE_PREF_SIZE);
+                btnPingSingle.setStyle("-fx-background-color: #E0E7FF; -fx-text-fill: #3730A3; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 4px; -fx-cursor: hand; -fx-padding: 3 9;");
                 btnPingSingle.setOnAction(ev -> {
                     isMeasuringPing[0] = true;
-                    btnPingSingle.setText("⏳ Đang đo...");
+                    btnPingSingle.setText("Đang đo...");
                     btnPingSingle.setDisable(true);
-                    server.sendPingWithCallback(s.sessionId, (rttVal) -> Platform.runLater(() -> {
-                        btnPingSingle.setText("⚡ Ping");
-                        btnPingSingle.setDisable(false);
-                        isMeasuringPing[0] = false;
-                        if (rttVal >= 0) {
-                            rRtt.setText(rttVal + " ms");
-                            if (rttVal < 20) {
-                                rRtt.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #047857; -fx-background-color: #ECFDF5; -fx-background-radius: 4px; -fx-padding: 2 6;");
-                                if (toastCallback != null) toastCallback.accept("⚡ Phản hồi từ Phiên #" + s.sessionId + " (Bàn " + s.currentTable + "): " + rttVal + " ms (Rất tốt - Cực ổn định)");
-                            } else if (rttVal <= 80) {
-                                rRtt.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #B45309; -fx-background-color: #FEF3C7; -fx-background-radius: 4px; -fx-padding: 2 6;");
-                                if (toastCallback != null) toastCallback.accept("⚡ Phản hồi từ Phiên #" + s.sessionId + " (Bàn " + s.currentTable + "): " + rttVal + " ms (Bình thường)");
+                    if (server.isServerRunning()) {
+                        server.sendPingWithCallback(s.sessionId, (rttVal) -> Platform.runLater(() -> {
+                            btnPingSingle.setText("Ping");
+                            btnPingSingle.setDisable(false);
+                            isMeasuringPing[0] = false;
+                            if (rttVal >= 0) {
+                                rRtt.setText(rttVal + " ms");
+                                if (toastCallback != null) toastCallback.accept("Phản hồi từ Phiên #" + s.sessionId + " (Bàn " + s.currentTable + "): " + rttVal + " ms");
                             } else {
-                                rRtt.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #DC2626; -fx-background-color: #FEE2E2; -fx-background-radius: 4px; -fx-padding: 2 6;");
-                                if (toastCallback != null) toastCallback.accept("⚠️ Phản hồi từ Phiên #" + s.sessionId + " (Bàn " + s.currentTable + "): " + rttVal + " ms (Mạng lag / Chậm)");
+                                rRtt.setText("Timeout");
+                                if (toastCallback != null) toastCallback.accept("Phiên #" + s.sessionId + " không phản hồi gói tin Ping (Timeout)!");
                             }
-                        } else {
-                            rRtt.setText("Timeout ⚠️");
-                            rRtt.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #DC2626; -fx-background-color: #FEE2E2; -fx-background-radius: 4px; -fx-padding: 2 6;");
-                            if (toastCallback != null) toastCallback.accept("⚠️ Phiên #" + s.sessionId + " không phản hồi gói tin Ping (Request Timeout)!");
-                        }
-                    }));
+                        }));
+                    } else if (clientSock != null) {
+                        clientSock.sendAdminCommand("PING_SINGLE", s.sessionId, "", false);
+                        new Thread(() -> {
+                            try { Thread.sleep(900); } catch (InterruptedException ignored) {}
+                            Platform.runLater(() -> {
+                                btnPingSingle.setText("Ping");
+                                btnPingSingle.setDisable(false);
+                                isMeasuringPing[0] = false;
+                            });
+                        }).start();
+                    }
                 });
 
-                Button btnKick = new Button("🚫 Kick");
-                btnKick.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #991B1B; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 4px; -fx-cursor: hand; -fx-padding: 3 8;");
+                Button btnKick = new Button("Kick");
+                btnKick.setMinWidth(Region.USE_PREF_SIZE);
+                btnKick.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #991B1B; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 4px; -fx-cursor: hand; -fx-padding: 3 9;");
                 btnKick.setOnAction(ev -> {
-                    boolean ok = server.kickSession(s.sessionId);
-                    if (ok) {
-                        if (toastCallback != null) toastCallback.accept("Đã ngắt kết nối phiên #" + s.sessionId);
+                    if (server.isServerRunning()) {
+                        server.kickSession(s.sessionId);
                         Platform.runLater(renderRows[0]::run);
+                    } else if (clientSock != null) {
+                        clientSock.sendAdminCommand("KICK_SESSION", s.sessionId, "Ngắt bởi Quản trị viên", false);
                     }
+                    if (toastCallback != null) toastCallback.accept("Đã ngắt kết nối phiên #" + s.sessionId);
                 });
 
                 actionsBox.getChildren().addAll(btnPingSingle, btnKick);
@@ -2077,14 +2153,55 @@ public class AdminSubViews {
             }
         };
 
+        if (clientSock != null) {
+            clientSock.addTelemetryListener(snap -> Platform.runLater(renderRows[0]::run));
+            clientSock.addPingResultListener(pingRes -> Platform.runLater(() -> {
+                isMeasuringPing[0] = false;
+                lblPingAllText.setText("Ping toàn bộ thiết bị");
+                btnPingAll.setDisable(false);
+                if ("ALL".equalsIgnoreCase(pingRes.sessionId)) {
+                    lblKpiRttVal.setText(pingRes.avgRttMs + " ms");
+                    if (toastCallback != null) {
+                        toastCallback.accept("Đã đo độ trễ toàn mạng: RTT trung bình " + pingRes.avgRttMs + " ms");
+                    }
+                } else {
+                    Label targetLbl = sessionRttLabels.get(pingRes.sessionId);
+                    if (targetLbl != null && pingRes.rttMs >= 0) {
+                        targetLbl.setText(pingRes.rttMs + " ms");
+                    }
+                    if (toastCallback != null) {
+                        toastCallback.accept(pingRes.success
+                            ? "Phản hồi từ Phiên #" + pingRes.sessionId + ": " + pingRes.rttMs + " ms"
+                            : "Phiên #" + pingRes.sessionId + " không phản hồi gói tin Ping!");
+                    }
+                }
+                renderRows[0].run();
+            }));
+        }
+
         btnPingAll.setOnAction(e -> {
+            if (!server.isServerRunning() && clientSock != null) {
+                isMeasuringPing[0] = true;
+                lblPingAllText.setText("Đang đo toàn mạng...");
+                btnPingAll.setDisable(true);
+                clientSock.sendAdminCommand("PING_ALL", "ALL", "", false);
+                new Thread(() -> {
+                    try { Thread.sleep(1500); } catch (InterruptedException ignored) {}
+                    Platform.runLater(() -> {
+                        isMeasuringPing[0] = false;
+                        lblPingAllText.setText("Ping toàn bộ thiết bị");
+                        btnPingAll.setDisable(false);
+                    });
+                }).start();
+                return;
+            }
             List<CafeServerService.ClientSession> sessions = server.getActiveSessionsList();
             if (sessions.isEmpty()) {
                 if (toastCallback != null) toastCallback.accept("Chưa có thiết bị nào kết nối để đo Ping.");
                 return;
             }
             isMeasuringPing[0] = true;
-            btnPingAll.setText("⏳ Đang đo toàn mạng...");
+            lblPingAllText.setText("Đang đo toàn mạng...");
             btnPingAll.setDisable(true);
 
             java.util.concurrent.atomic.AtomicInteger pendingResponses = new java.util.concurrent.atomic.AtomicInteger(sessions.size());
@@ -2093,51 +2210,30 @@ public class AdminSubViews {
             for (CafeServerService.ClientSession s : sessions) {
                 server.sendPingWithCallback(s.sessionId, (rttVal) -> Platform.runLater(() -> {
                     Label targetLbl = sessionRttLabels.get(s.sessionId);
-                    if (targetLbl != null) {
-                        if (rttVal >= 0) {
-                            latencies.add(rttVal);
-                            targetLbl.setText(rttVal + " ms");
-                            if (rttVal < 20) {
-                                targetLbl.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #047857; -fx-background-color: #ECFDF5; -fx-background-radius: 4px; -fx-padding: 2 6;");
-                            } else if (rttVal <= 80) {
-                                targetLbl.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #B45309; -fx-background-color: #FEF3C7; -fx-background-radius: 4px; -fx-padding: 2 6;");
-                            } else {
-                                targetLbl.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #DC2626; -fx-background-color: #FEE2E2; -fx-background-radius: 4px; -fx-padding: 2 6;");
-                            }
-                        } else {
-                            targetLbl.setText("Timeout ⚠️");
-                            targetLbl.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #DC2626; -fx-background-color: #FEE2E2; -fx-background-radius: 4px; -fx-padding: 2 6;");
-                        }
+                    if (targetLbl != null && rttVal >= 0) {
+                        latencies.add(rttVal);
+                        targetLbl.setText(rttVal + " ms");
                     }
                     if (pendingResponses.decrementAndGet() == 0) {
                         isMeasuringPing[0] = false;
-                        btnPingAll.setText("📡  Ping toàn bộ thiết bị");
+                        lblPingAllText.setText("Ping toàn bộ thiết bị");
                         btnPingAll.setDisable(false);
                         long avg = latencies.isEmpty() ? 0 : Math.round(latencies.stream().mapToLong(Long::longValue).average().orElse(0));
                         lblKpiRttVal.setText(avg + " ms");
                         if (toastCallback != null) {
-                            toastCallback.accept("⚡ Đã đo độ trễ " + latencies.size() + "/" + sessions.size() + " thiết bị: RTT trung bình " + avg + " ms");
+                            toastCallback.accept("Đã đo độ trễ " + latencies.size() + "/" + sessions.size() + " thiết bị: RTT trung bình " + avg + " ms");
                         }
                     }
                 }));
             }
-
-            // Safety timeout 1600ms
-            new Thread(() -> {
-                try { Thread.sleep(1600); } catch (InterruptedException ignored) {}
-                Platform.runLater(() -> {
-                    if (isMeasuringPing[0]) {
-                        isMeasuringPing[0] = false;
-                        btnPingAll.setText("📡  Ping toàn bộ thiết bị");
-                        btnPingAll.setDisable(false);
-                    }
-                });
-            }, "PingAll-Safety-Thread").start();
         });
 
         btnRefresh.setOnAction(e -> {
+            if (!server.isServerRunning() && clientSock != null) {
+                clientSock.requestAdminTelemetry();
+            }
             renderRows[0].run();
-            if (toastCallback != null) toastCallback.accept("Đã cập nhật bảng số liệu mạng!");
+            if (toastCallback != null) toastCallback.accept("Đã cập nhật bảng số liệu mạng từ máy chủ!");
         });
 
         sessionsCard.getChildren().addAll(sessionsCardHeader, tblHeader, scrollPane);
@@ -2154,7 +2250,12 @@ public class AdminSubViews {
 
         // Auto-refresh timer: 3 seconds
         Timeline timer = new Timeline(new KeyFrame(Duration.seconds(3), ev -> {
-            if (!isMeasuringPing[0]) renderRows[0].run();
+            if (!isMeasuringPing[0]) {
+                if (!server.isServerRunning() && clientSock != null) {
+                    clientSock.requestAdminTelemetry();
+                }
+                renderRows[0].run();
+            }
         }));
         timer.setCycleCount(Timeline.INDEFINITE);
         timer.play();

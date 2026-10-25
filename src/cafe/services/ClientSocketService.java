@@ -17,8 +17,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class ClientSocketService {
-    private static final String DEFAULT_HOST = cafe.utils.NetworkConfig.getServerHost();
-    private static final int DEFAULT_PORT = cafe.utils.NetworkConfig.getServerPort();
+    private static String defaultHost() { return cafe.utils.NetworkConfig.getServerHost(); }
+    private static int defaultPort() { return cafe.utils.NetworkConfig.getServerPort(); }
     private static volatile ClientSocketService activeInstance;
 
     public ClientSocketService() {
@@ -49,6 +49,49 @@ public class ClientSocketService {
     private final java.util.List<BiConsumer<Integer, String>> tableStatusListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
     private final java.util.List<Consumer<MessageProtocol.OrderStatusUpdateMessage>> orderStatusListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
     private final java.util.List<Consumer<MessageProtocol.OrderAckMessage>> orderAckListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private final java.util.List<Consumer<MessageProtocol.AdminTelemetrySnapshotMessage>> telemetryListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private final java.util.List<Consumer<MessageProtocol.AdminPingResultMessage>> pingResultListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    public void addTelemetryListener(Consumer<MessageProtocol.AdminTelemetrySnapshotMessage> listener) {
+        if (listener != null && !telemetryListeners.contains(listener)) {
+            telemetryListeners.add(listener);
+        }
+    }
+
+    public void addPingResultListener(Consumer<MessageProtocol.AdminPingResultMessage> listener) {
+        if (listener != null && !pingResultListeners.contains(listener)) {
+            pingResultListeners.add(listener);
+        }
+    }
+
+    public boolean requestAdminTelemetry() {
+        if (!isConnected()) {
+            openSocketInternal(defaultHost(), defaultPort());
+        }
+        if (isConnected() && out != null) {
+            try {
+                out.print(MessageProtocol.toJson(new MessageProtocol.AdminGetTelemetryMessage()));
+                out.flush();
+                return true;
+            } catch (Exception ignored) {}
+        }
+        return false;
+    }
+
+    public boolean sendAdminCommand(String action, String targetId, String param1, boolean flag) {
+        if (!isConnected()) {
+            openSocketInternal(defaultHost(), defaultPort());
+        }
+        if (isConnected() && out != null) {
+            try {
+                MessageProtocol.AdminCommandMessage cmd = new MessageProtocol.AdminCommandMessage(action, targetId, param1, flag);
+                out.print(MessageProtocol.toJson(cmd));
+                out.flush();
+                return true;
+            } catch (Exception ignored) {}
+        }
+        return false;
+    }
 
     public void addTableStatusListener(BiConsumer<Integer, String> listener) {
         if (listener != null && !tableStatusListeners.contains(listener)) {
@@ -137,7 +180,7 @@ public class ClientSocketService {
     public boolean sendReconnectRequest(String deviceId, int tableNumber, String deviceType, String note) {
         this.isKickedByAdmin = false;
         if (!isConnected()) {
-            openSocketInternal(DEFAULT_HOST, DEFAULT_PORT);
+            openSocketInternal(defaultHost(), defaultPort());
         }
         if (isConnected() && out != null) {
             MessageProtocol.ReconnectRequestMessage req = new MessageProtocol.ReconnectRequestMessage(
@@ -158,7 +201,7 @@ public class ClientSocketService {
         Thread t = new Thread(() -> {
             synchronized (this) {
                 if (!isConnected()) {
-                    openSocketInternal(DEFAULT_HOST, DEFAULT_PORT);
+                    openSocketInternal(defaultHost(), defaultPort());
                 }
             }
         }, "Socket-Warmup");
@@ -198,7 +241,7 @@ public class ClientSocketService {
     }
 
     public synchronized boolean tryConnectToServer() {
-        return openSocketInternal(DEFAULT_HOST, DEFAULT_PORT);
+        return openSocketInternal(defaultHost(), defaultPort());
     }
 
     public synchronized boolean connect(String host, int port, int tableNumber, String devType) {
@@ -232,7 +275,7 @@ public class ClientSocketService {
     }
 
     public boolean connect(int tableNumber) {
-        return connect(DEFAULT_HOST, DEFAULT_PORT, tableNumber, "KIOSK");
+        return connect(defaultHost(), defaultPort(), tableNumber, "KIOSK");
     }
 
     public boolean connectStaff(int tableNumber) {
@@ -241,7 +284,7 @@ public class ClientSocketService {
 
     public boolean connectStaff(int tableNumber, String staffUsername) {
         this.authenticatedStaffUsername = staffUsername;
-        return connect(DEFAULT_HOST, DEFAULT_PORT, tableNumber, "STAFF_PAD");
+        return connect(defaultHost(), defaultPort(), tableNumber, "STAFF_PAD");
     }
 
     public void switchTable(int newTable) {
@@ -344,9 +387,42 @@ public class ClientSocketService {
 
                         case STOCK_STATUS_BROADCAST:
                             MessageProtocol.StockStatusBroadcastMessage stockMsg = MessageProtocol.fromJson(rawJson, MessageProtocol.StockStatusBroadcastMessage.class);
+                            if (stockMsg != null) {
+                                for (cafe.models.MenuItem mi : cafe.models.MenuRepository.getAllItems()) {
+                                    if (mi.getId() == stockMsg.itemId || (stockMsg.itemName != null && mi.getName().equalsIgnoreCase(stockMsg.itemName))) {
+                                        mi.setInStock(stockMsg.inStock);
+                                    }
+                                }
+                            }
                             dispatch(() -> {
                                 if (onStockStatusReceived != null) onStockStatusReceived.accept(stockMsg);
                             });
+                            break;
+
+                        case ORDERS_SNAPSHOT_SYNC:
+                            MessageProtocol.OrdersSnapshotSyncMessage ordSnap = MessageProtocol.fromJson(rawJson, MessageProtocol.OrdersSnapshotSyncMessage.class);
+                            if (ordSnap != null && ordSnap.orders != null) {
+                                CafeServerService.getInstance().applyRemoteOrdersSnapshot(ordSnap.orders);
+                            }
+                            break;
+
+                        case ADMIN_TELEMETRY_SNAPSHOT:
+                            MessageProtocol.AdminTelemetrySnapshotMessage teleSnap = MessageProtocol.fromJson(rawJson, MessageProtocol.AdminTelemetrySnapshotMessage.class);
+                            if (teleSnap != null) {
+                                CafeServerService.getInstance().applyRemoteTelemetrySnapshot(teleSnap);
+                                dispatch(() -> {
+                                    for (Consumer<MessageProtocol.AdminTelemetrySnapshotMessage> l : telemetryListeners) l.accept(teleSnap);
+                                });
+                            }
+                            break;
+
+                        case ADMIN_PING_RESULT:
+                            MessageProtocol.AdminPingResultMessage pingRes = MessageProtocol.fromJson(rawJson, MessageProtocol.AdminPingResultMessage.class);
+                            if (pingRes != null) {
+                                dispatch(() -> {
+                                    for (Consumer<MessageProtocol.AdminPingResultMessage> l : pingResultListeners) l.accept(pingRes);
+                                });
+                            }
                             break;
 
                         case STAFF_STATUS_BROADCAST:

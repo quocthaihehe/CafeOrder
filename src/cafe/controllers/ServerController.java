@@ -74,13 +74,23 @@ public class ServerController {
             view.setLatestLog(logMsg);
         });
 
-        // Auto-refresh KDS elapsed wait time SLA badges every 15 seconds
+        serverService.setOnTableConnectionChanged((tbl, connected) -> {
+            javafx.application.Platform.runLater(() -> {
+                view.updateNetworkInfo(serverService.getActiveServerPort(), serverService.getActiveSessions().size());
+            });
+        });
+
+        // Auto-refresh KDS elapsed wait time SLA badges & live session count
         javafx.animation.Timeline slaTimer = new javafx.animation.Timeline(
-            new javafx.animation.KeyFrame(javafx.util.Duration.seconds(15), e -> refreshTicketBoard())
+            new javafx.animation.KeyFrame(javafx.util.Duration.seconds(3), e -> {
+                view.updateNetworkInfo(serverService.getActiveServerPort(), serverService.getActiveSessions().size());
+                refreshTicketBoard();
+            })
         );
         slaTimer.setCycleCount(javafx.animation.Animation.INDEFINITE);
         slaTimer.play();
 
+        view.updateNetworkInfo(serverService.getActiveServerPort(), serverService.getActiveSessions().size());
         refreshTicketBoard();
     }
 

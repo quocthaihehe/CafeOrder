@@ -490,7 +490,92 @@ public class CafeServerService {
         return false;
     }
 
+    private volatile MessageProtocol.AdminTelemetrySnapshotMessage remoteTelemetrySnapshot;
+
+    public MessageProtocol.AdminTelemetrySnapshotMessage getRemoteTelemetrySnapshot() {
+        return remoteTelemetrySnapshot;
+    }
+
+    public void applyRemoteTelemetrySnapshot(MessageProtocol.AdminTelemetrySnapshotMessage snap) {
+        if (isRunning || snap == null) return;
+        this.remoteTelemetrySnapshot = snap;
+        notifyReconnectRequestsChanged();
+    }
+
+    public synchronized void applyRemoteOrdersSnapshot(java.util.List<Order> orders) {
+        if (isRunning || orders == null) return;
+        for (Order o : orders) {
+            if (o != null) {
+                activeOrders.put(o.getOrderId(), o);
+                String st = o.getStatus() != null ? o.getStatus().toUpperCase() : "QUEUED";
+                if (o.getTable() > 0 && !"PAID".equals(st) && !"CANCELLED".equals(st)) {
+                    tableStatuses.put(o.getTable(), "OCCUPIED");
+                }
+            }
+        }
+        dispatch(() -> {
+            if (!orders.isEmpty()) {
+                for (Consumer<Order> l : orderReceivedListeners) l.accept(orders.get(0));
+            }
+            for (BiConsumer<Integer, String> l : orderStatusChangedListeners) l.accept(-1, "SYNC");
+        });
+    }
+
+    public MessageProtocol.AdminTelemetrySnapshotMessage buildTelemetrySnapshotMessage() {
+        java.util.List<MessageProtocol.SessionSnapshotDto> sList = new java.util.ArrayList<>();
+        for (ClientSession s : activeSessions.values()) {
+            sList.add(new MessageProtocol.SessionSnapshotDto(
+                s.sessionId,
+                s.currentTable,
+                s.deviceType,
+                s.getRemoteAddress(),
+                s.rttLatencyMs,
+                s.packetsReceived.get(),
+                s.packetsSent.get(),
+                s.bytesReceived.get(),
+                s.bytesSent.get(),
+                s.isThrottled,
+                s.throttledCount.get(),
+                s.authenticatedUsername
+            ));
+        }
+        java.util.List<MessageProtocol.ReconnectRequestDto> rList = new java.util.ArrayList<>();
+        for (ReconnectRequestEntry r : pendingReconnectRequests) {
+            rList.add(new MessageProtocol.ReconnectRequestDto(
+                r.deviceId, r.tableNumber, r.deviceType, r.ip, r.requestTime, r.note
+            ));
+        }
+        return new MessageProtocol.AdminTelemetrySnapshotMessage(
+            getActiveServerPort(),
+            cafe.utils.NetworkConfig.getLocalLanIp(),
+            getAverageRttMs(),
+            getTotalBytesReceived(),
+            getTotalBytesSent(),
+            sList,
+            rList
+        );
+    }
+
+    public void broadcastTelemetryToAllSessions() {
+        if (!isRunning) return;
+        String json = MessageProtocol.toJson(buildTelemetrySnapshotMessage());
+        for (ClientSession s : activeSessions.values()) {
+            s.send(json);
+        }
+    }
+
+    public void broadcastOrdersSnapshotToAllSessions() {
+        if (!isRunning) return;
+        String json = MessageProtocol.toJson(new MessageProtocol.OrdersSnapshotSyncMessage(getAllOrdersNewestFirst()));
+        for (ClientSession s : activeSessions.values()) {
+            s.send(json);
+        }
+    }
+
     public long getTotalBytesReceived() {
+        if (!isRunning && remoteTelemetrySnapshot != null) {
+            return remoteTelemetrySnapshot.totalBytesReceived;
+        }
         long total = 0;
         for (ClientSession s : activeSessions.values()) {
             total += s.bytesReceived.get();
@@ -499,6 +584,9 @@ public class CafeServerService {
     }
 
     public long getTotalBytesSent() {
+        if (!isRunning && remoteTelemetrySnapshot != null) {
+            return remoteTelemetrySnapshot.totalBytesSent;
+        }
         long total = 0;
         for (ClientSession s : activeSessions.values()) {
             total += s.bytesSent.get();
@@ -523,6 +611,9 @@ public class CafeServerService {
     }
 
     public long getAverageRttMs() {
+        if (!isRunning && remoteTelemetrySnapshot != null) {
+            return remoteTelemetrySnapshot.avgRttMs;
+        }
         if (activeSessions.isEmpty()) return 0;
         long total = 0;
         int count = 0;
@@ -536,6 +627,9 @@ public class CafeServerService {
     public int getActiveServerPort() {
         if (serverSocket != null && !serverSocket.isClosed()) {
             return serverSocket.getLocalPort();
+        }
+        if (!isRunning && remoteTelemetrySnapshot != null && remoteTelemetrySnapshot.activePort > 0) {
+            return remoteTelemetrySnapshot.activePort;
         }
         return cafe.utils.NetworkConfig.getServerPort();
     }
@@ -596,6 +690,14 @@ public class CafeServerService {
 
     public synchronized boolean restartServer(int newPort) {
         if (!cafe.utils.NetworkConfig.isValidPort(newPort)) return false;
+        if (!isRunning) {
+            cafe.utils.NetworkConfig.saveConfig(cafe.utils.NetworkConfig.getServerHost(), newPort);
+            ClientSocketService clientSock = ClientSocketService.getActiveInstance();
+            if (clientSock != null) {
+                clientSock.sendAdminCommand("REBIND_PORT", String.valueOf(newPort), "", false);
+            }
+            return true;
+        }
         try {
             log("Đang cấu hình lại Máy chủ Socket sang cổng " + newPort + "...");
             ServerSocket old = this.serverSocket;
@@ -634,6 +736,12 @@ public class CafeServerService {
     }
 
     public void broadcastStaffStatus(int staffId, String username, String status, String role) {
+        if (!isRunning) {
+            ClientSocketService clientSock = ClientSocketService.getActiveInstance();
+            if (clientSock != null) {
+                clientSock.sendAdminCommand("STAFF_STATUS", String.valueOf(staffId), (username != null ? username : "") + "|" + (status != null ? status : "ACTIVE") + "|" + (role != null ? role : ""), "LOCKED".equalsIgnoreCase(status));
+            }
+        }
         MessageProtocol.StaffStatusBroadcastMessage msg = new MessageProtocol.StaffStatusBroadcastMessage(staffId, username, status, role);
         String json = MessageProtocol.toJson(msg);
         for (ClientSession session : activeSessions.values()) {
@@ -776,6 +884,17 @@ public class CafeServerService {
                         log("Thiết bị #" + sessionId + " chuyển trọng tâm phục vụ: Bàn " + oldTable + " -> Bàn " + newTable);
                         break;
 
+                    case ADMIN_GET_TELEMETRY:
+                        session.send(MessageProtocol.toJson(buildTelemetrySnapshotMessage()));
+                        break;
+
+                    case ADMIN_COMMAND:
+                        MessageProtocol.AdminCommandMessage adminCmd = MessageProtocol.fromJson(line, MessageProtocol.AdminCommandMessage.class);
+                        if (adminCmd != null && adminCmd.action != null) {
+                            handleAdminCommandFromClient(session, adminCmd);
+                        }
+                        break;
+
                     case PING:
                         session.send(MessageProtocol.toJson(new MessageProtocol.PongMessage()));
                         break;
@@ -847,8 +966,9 @@ public class CafeServerService {
                             for (Consumer<Order> l : orderReceivedListeners) l.accept(newOrder);
                         });
 
-                        // 3. Broadcast trạng thái bàn sang OCCUPIED cho tất cả các máy trạm sơ đồ bàn
+                        // 3. Broadcast trạng thái bàn sang OCCUPIED & đồng bộ danh sách đơn cho toàn bộ máy trạm
                         broadcastTableStatus(orderMsg.table, "OCCUPIED");
+                        broadcastOrdersSnapshotToAllSessions();
 
                         // 4. Bất đồng bộ lưu bền vững vào SQL Server qua worker riêng, không chặn socket
                         final Order orderToSave = newOrder;
@@ -927,6 +1047,98 @@ public class CafeServerService {
                 t, st, tOrders, res
             );
             session.send(MessageProtocol.toJson(msg));
+        }
+        session.send(MessageProtocol.toJson(new MessageProtocol.OrdersSnapshotSyncMessage(getAllOrdersNewestFirst())));
+        session.send(MessageProtocol.toJson(buildTelemetrySnapshotMessage()));
+    }
+
+    private void handleAdminCommandFromClient(ClientSession adminSession, MessageProtocol.AdminCommandMessage cmd) {
+        String act = cmd.action.toUpperCase();
+        switch (act) {
+            case "PING_SINGLE": {
+                final String targetSid = cmd.targetId;
+                sendPingWithCallback(targetSid, rtt -> {
+                    boolean ok = rtt != null && rtt >= 0;
+                    long val = ok ? rtt : -1L;
+                    adminSession.send(MessageProtocol.toJson(
+                        new MessageProtocol.AdminPingResultMessage(targetSid, val, getAverageRttMs(), ok)
+                    ));
+                    broadcastTelemetryToAllSessions();
+                });
+                break;
+            }
+            case "PING_ALL": {
+                java.util.List<ClientSession> list = getActiveSessionsList();
+                if (list.isEmpty()) {
+                    adminSession.send(MessageProtocol.toJson(new MessageProtocol.AdminPingResultMessage("ALL", 0, 0, true)));
+                    break;
+                }
+                java.util.concurrent.atomic.AtomicInteger rem = new java.util.concurrent.atomic.AtomicInteger(list.size());
+                for (ClientSession s : list) {
+                    sendPingWithCallback(s.sessionId, rtt -> {
+                        if (rem.decrementAndGet() == 0) {
+                            long avg = getAverageRttMs();
+                            adminSession.send(MessageProtocol.toJson(new MessageProtocol.AdminPingResultMessage("ALL", avg, avg, true)));
+                            broadcastTelemetryToAllSessions();
+                        }
+                    });
+                }
+                break;
+            }
+            case "KICK_SESSION":
+                kickSession(cmd.targetId);
+                broadcastTelemetryToAllSessions();
+                break;
+            case "APPROVE_RECONNECT":
+                approveReconnectRequest(cmd.targetId);
+                broadcastTelemetryToAllSessions();
+                break;
+            case "REJECT_RECONNECT":
+                rejectReconnectRequest(cmd.targetId, cmd.param1);
+                broadcastTelemetryToAllSessions();
+                break;
+            case "TOGGLE_STOCK_86": {
+                boolean inStock = !cmd.flag;
+                int itemId = -1;
+                try { itemId = Integer.parseInt(cmd.param1); } catch (Exception ignored) {}
+                for (cafe.models.MenuItem mi : cafe.models.MenuRepository.getAllItems()) {
+                    if (mi.getId() == itemId || (cmd.targetId != null && mi.getName().equalsIgnoreCase(cmd.targetId))) {
+                        mi.setInStock(inStock);
+                        broadcastStockStatus(mi.getId(), inStock, mi.getName());
+                        break;
+                    }
+                }
+                break;
+            }
+            case "REBIND_PORT": {
+                try {
+                    int newPort = Integer.parseInt(cmd.targetId);
+                    restartServer(newPort);
+                    broadcastTelemetryToAllSessions();
+                } catch (Exception ignored) {}
+                break;
+            }
+            case "UPDATE_ORDER_STATUS": {
+                try {
+                    int oid = Integer.parseInt(cmd.targetId);
+                    updateOrderStatus(oid, cmd.param1);
+                } catch (Exception ignored) {}
+                break;
+            }
+            case "STAFF_STATUS": {
+                try {
+                    int sid = Integer.parseInt(cmd.targetId);
+                    String[] parts = cmd.param1 != null ? cmd.param1.split("\\|", -1) : new String[]{"", "ACTIVE", ""};
+                    String uname = parts.length > 0 ? parts[0] : "";
+                    String st = parts.length > 1 ? parts[1] : "ACTIVE";
+                    String role = parts.length > 2 ? parts[2] : "";
+                    DatabaseManager.setStaffStatus(sid, st);
+                    broadcastStaffStatus(sid, uname, st, role);
+                } catch (Exception ignored) {}
+                break;
+            }
+            default:
+                break;
         }
     }
 
@@ -1012,6 +1224,12 @@ public class CafeServerService {
     }
 
     public boolean updateOrderStatus(int orderId, String newStatus) {
+        if (!isRunning) {
+            ClientSocketService clientSock = ClientSocketService.getActiveInstance();
+            if (clientSock != null) {
+                clientSock.sendAdminCommand("UPDATE_ORDER_STATUS", String.valueOf(orderId), newStatus, false);
+            }
+        }
         Order order = activeOrders.get(orderId);
         if (order != null) {
             order.setStatus(newStatus);
@@ -1106,6 +1324,12 @@ public class CafeServerService {
     }
 
     public void broadcastStockStatus(int itemId, boolean inStock, String itemName) {
+        if (!isRunning) {
+            ClientSocketService clientSock = ClientSocketService.getActiveInstance();
+            if (clientSock != null) {
+                clientSock.sendAdminCommand("TOGGLE_STOCK_86", itemName != null ? itemName : String.valueOf(itemId), String.valueOf(itemId), !inStock);
+            }
+        }
         MessageProtocol.StockStatusBroadcastMessage msg = new MessageProtocol.StockStatusBroadcastMessage(itemId, inStock, itemName);
         String json = MessageProtocol.toJson(msg);
         for (ClientSession session : activeSessions.values()) {

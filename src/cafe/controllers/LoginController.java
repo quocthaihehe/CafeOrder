@@ -49,7 +49,7 @@ public class LoginController {
                 socketService.resetKickedState();
                 socketService.warmupConnectAsync();
                 view.setServerStatus(true, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
-                view.getBtnRetryConnection().setText("↻ Thử lại");
+                view.setRetryButtonText("Thử lại");
                 view.getBtnRetryConnection().setDisable(false);
             });
         });
@@ -58,14 +58,14 @@ public class LoginController {
             Platform.runLater(() -> {
                 view.showError("Yêu cầu cấp lại phiên bị từ chối: " + (rejMsg != null && rejMsg.reason != null ? rejMsg.reason : "Không được cấp phép"));
                 view.setServerStatus(false, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
-                view.getBtnRetryConnection().setText("↻ Xin cấp lại");
+                view.setRetryButtonText("Xin cấp lại");
                 view.getBtnRetryConnection().setDisable(false);
             });
         });
 
         view.getBtnRetryConnection().setOnAction(e -> {
             if (socketService.isKickedByAdmin()) {
-                view.getBtnRetryConnection().setText("⏳ Đang gửi yêu cầu...");
+                view.setRetryButtonText("Đang gửi...");
                 view.getBtnRetryConnection().setDisable(true);
                 new Thread(() -> {
                     boolean sent = socketService.sendReconnectRequest(
@@ -78,11 +78,11 @@ public class LoginController {
                         if (sent) {
                             view.showInfo("Đã gửi yêu cầu cấp lại phiên! Đang chờ Quản trị viên phê duyệt...");
                             view.setServerStatus(false, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
-                            view.getBtnRetryConnection().setText("Đang chờ duyệt...");
+                            view.setRetryButtonText("Chờ duyệt...");
                         } else {
                             view.showError("Không thể kết nối máy chủ để gửi yêu cầu! Vui lòng thử lại sau.");
                             view.getBtnRetryConnection().setDisable(false);
-                            view.getBtnRetryConnection().setText("↻ Thử lại");
+                            view.setRetryButtonText("Thử lại");
                         }
                     });
                 }, "Reconnect-Request-Thread").start();
@@ -99,8 +99,132 @@ public class LoginController {
             }, "Retry-Connect-Thread").start();
         });
 
+        view.getBtnConfigServer().setOnAction(e -> showServerConfigModal());
+
         view.setServerStatus(socketService.isConnected(), cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
         startServerPoll();
+    }
+
+    private void showServerConfigModal() {
+        Stage modal = new Stage();
+        if (stage != null) modal.initOwner(stage);
+        modal.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        modal.initStyle(javafx.stage.StageStyle.TRANSPARENT);
+        modal.setTitle("Cấu Hình Kết Nối Máy Chủ (Server IP & Port)");
+
+        javafx.scene.layout.VBox card = new javafx.scene.layout.VBox(14);
+        card.setPrefWidth(460);
+        card.setPadding(new javafx.geometry.Insets(22));
+        card.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 16px; -fx-border-color: #DFD7CA; -fx-border-radius: 16px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 24, 0.15, 0, 8);");
+
+        javafx.scene.layout.HBox headerRow = new javafx.scene.layout.HBox(10);
+        headerRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        javafx.scene.Node netIcon = cafe.utils.IconHelper.getIcon("admin", "ha-tang-mang.png", cafe.utils.SvgIcons.SETTINGS, "", 22, javafx.scene.paint.Color.web("#112823"));
+        javafx.scene.layout.VBox titleCol = new javafx.scene.layout.VBox(2);
+        javafx.scene.control.Label lblTitle = new javafx.scene.control.Label("Cấu Hình Kết Nối Máy Chủ (TCP Socket)");
+        lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 18px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+        javafx.scene.control.Label lblSub = new javafx.scene.control.Label("Hỗ trợ kết nối trên cùng 1 máy (127.0.0.1) hoặc qua mạng LAN 2 máy");
+        lblSub.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #6F695F;");
+        titleCol.getChildren().addAll(lblTitle, lblSub);
+        headerRow.getChildren().addAll(netIcon, titleCol);
+
+        javafx.scene.control.Label lblHostPrompt = new javafx.scene.control.Label("Địa chỉ IP Máy chủ (Server Host):");
+        lblHostPrompt.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #112823;");
+
+        javafx.scene.control.TextField txtHost = new javafx.scene.control.TextField(cafe.utils.NetworkConfig.getServerHost());
+        txtHost.setPromptText("VD: 127.0.0.1 hoặc 192.168.1.15");
+        txtHost.setStyle("-fx-background-color: #FAF8F5; -fx-border-color: #DFD8CE; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 9 12 9 12; -fx-font-size: 13.5px; -fx-font-weight: 700; -fx-text-fill: #112823;");
+
+        javafx.scene.layout.HBox quickHosts = new javafx.scene.layout.HBox(8);
+        quickHosts.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        javafx.scene.control.Button btnLocalhost = new javafx.scene.control.Button("Đặt về Localhost 127.0.0.1");
+        btnLocalhost.setStyle("-fx-background-color: #F4EFE6; -fx-text-fill: #112823; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-padding: 4 10 4 10; -fx-cursor: hand;");
+        btnLocalhost.setOnAction(ev -> txtHost.setText("127.0.0.1"));
+
+        String localLan = cafe.utils.NetworkConfig.getLocalLanIp();
+        javafx.scene.control.Button btnLanHost = new javafx.scene.control.Button("IP LAN máy này (" + localLan + ")");
+        btnLanHost.setStyle("-fx-background-color: #ECFDF5; -fx-text-fill: #065F46; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-padding: 4 10 4 10; -fx-cursor: hand;");
+        btnLanHost.setOnAction(ev -> txtHost.setText(localLan));
+        quickHosts.getChildren().addAll(btnLocalhost, btnLanHost);
+
+        javafx.scene.control.Label lblPortPrompt = new javafx.scene.control.Label("Cổng kết nối TCP (Server Port, mặc định 8888):");
+        lblPortPrompt.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #112823;");
+
+        javafx.scene.control.TextField txtPort = new javafx.scene.control.TextField(String.valueOf(cafe.utils.NetworkConfig.getServerPort()));
+        txtPort.setPromptText("VD: 8888");
+        txtPort.setStyle("-fx-background-color: #FAF8F5; -fx-border-color: #DFD8CE; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 9 12 9 12; -fx-font-size: 13.5px; -fx-font-weight: 700; -fx-text-fill: #112823;");
+
+        javafx.scene.control.Label lblStatusHint = new javafx.scene.control.Label("Xem địa chỉ IP LAN và Port đang hiển thị trên thanh Header của màn hình ServerMain (Quầy Pha Chế KDS).");
+        lblStatusHint.setWrapText(true);
+        lblStatusHint.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #57534E; -fx-background-color: #FAF8F5; -fx-padding: 8 10 8 10; -fx-background-radius: 8px;");
+
+        javafx.scene.layout.HBox actions = new javafx.scene.layout.HBox(10);
+        actions.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+
+        javafx.scene.control.Button btnCancel = new javafx.scene.control.Button("Đóng");
+        btnCancel.setStyle("-fx-background-color: #F4EFE6; -fx-text-fill: #4A453E; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 8 16 8 16; -fx-cursor: hand;");
+        btnCancel.setOnAction(ev -> modal.close());
+
+        javafx.scene.control.Button btnSaveConnect = new javafx.scene.control.Button("Lưu & Kết nối ngay");
+        btnSaveConnect.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12.5px; -fx-font-weight: 800; -fx-background-radius: 8px; -fx-padding: 8 18 8 18; -fx-cursor: hand;");
+        btnSaveConnect.setOnAction(ev -> {
+            String host = txtHost.getText() != null ? txtHost.getText().trim() : "";
+            if (host.isEmpty()) host = "127.0.0.1";
+            int port;
+            try {
+                port = Integer.parseInt(txtPort.getText().trim());
+                if (!cafe.utils.NetworkConfig.isValidPort(port)) {
+                    lblStatusHint.setText("Cổng mạng phải nằm trong dải 1024 - 65535!");
+                    lblStatusHint.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #B91C1C; -fx-background-color: #FEE2E2; -fx-padding: 8 10 8 10; -fx-background-radius: 8px;");
+                    return;
+                }
+            } catch (NumberFormatException ex) {
+                lblStatusHint.setText("Cổng TCP phải là một số nguyên hợp lệ!");
+                lblStatusHint.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #B91C1C; -fx-background-color: #FEE2E2; -fx-padding: 8 10 8 10; -fx-background-radius: 8px;");
+                return;
+            }
+
+            final String targetHost = host;
+            final int targetPort = port;
+            cafe.utils.NetworkConfig.saveConfig(targetHost, targetPort);
+            btnSaveConnect.setDisable(true);
+            btnSaveConnect.setText("Đang kết nối...");
+
+            new Thread(() -> {
+                socketService.disconnect();
+                socketService.resetKickedState();
+                long t0 = System.currentTimeMillis();
+                boolean ok = socketService.tryConnectToServer();
+                long rtt = Math.max(1, System.currentTimeMillis() - t0);
+                Platform.runLater(() -> {
+                    btnSaveConnect.setDisable(false);
+                    btnSaveConnect.setText("Lưu & Kết nối ngay");
+                    view.setServerStatus(ok, targetHost, targetPort, ok ? rtt : -1);
+                    if (ok) {
+                        view.clearError();
+                        view.showInfo("Đã kết nối thành công tới Máy chủ " + targetHost + ":" + targetPort + " (RTT: " + rtt + "ms)");
+                        modal.close();
+                    } else {
+                        lblStatusHint.setText("Đã lưu cấu hình (" + targetHost + ":" + targetPort + "), nhưng chưa kết nối được Server. Hãy kiểm tra ServerMain đã mở đúng cổng này chưa.");
+                        lblStatusHint.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #B91C1C; -fx-background-color: #FEE2E2; -fx-padding: 8 10 8 10; -fx-background-radius: 8px;");
+                    }
+                });
+            }, "Config-Reconnect-Thread").start();
+        });
+
+        actions.getChildren().addAll(btnCancel, btnSaveConnect);
+        card.getChildren().addAll(headerRow, lblHostPrompt, txtHost, quickHosts, lblPortPrompt, txtPort, lblStatusHint, actions);
+
+        cafe.utils.WindowChromeHelper.makeDraggable(modal, card);
+        javafx.scene.layout.StackPane wrap = new javafx.scene.layout.StackPane(card);
+        wrap.setPadding(new javafx.geometry.Insets(16));
+        wrap.setStyle("-fx-background-color: transparent;");
+        Scene scene = new Scene(wrap);
+        scene.setFill(javafx.scene.paint.Color.TRANSPARENT);
+        cafe.utils.WindowChromeHelper.applyTheme(scene);
+        modal.setScene(scene);
+        modal.show();
+        cafe.utils.AnimationHelper.playDialogEntrance(card);
     }
 
     private void startServerPoll() {
@@ -138,7 +262,7 @@ public class LoginController {
             boolean ok = socketService.tryConnectToServer();
             if (!ok) {
                 view.setServerStatus(false, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
-                view.showError("⚠️ Chưa kết nối Máy chủ trung tâm (Port " + cafe.utils.NetworkConfig.getServerPort() + ")!\nVui lòng khởi động ServerMain trước rồi bấm [Thử lại].");
+                view.showError("Chưa kết nối Máy chủ trung tâm (Port " + cafe.utils.NetworkConfig.getServerPort() + ")!\nVui lòng khởi động ServerMain trước rồi bấm [Thử lại].");
                 return;
             }
             view.setServerStatus(true, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
@@ -155,7 +279,7 @@ public class LoginController {
         StaffModel staffLookup = DatabaseManager.findStaffByUsername(account);
         if (staffLookup != null) {
             if (!"ACTIVE".equalsIgnoreCase(staffLookup.getStatus())) {
-                view.showError("🔒 Tài khoản '" + staffLookup.getUsername() + "' (" + staffLookup.getFullName() + ") hiện đang bị KHÓA bởi Quản trị viên!\nVui lòng liên hệ Quản lý để mở khóa.");
+                view.showError("Tài khoản '" + staffLookup.getUsername() + "' (" + staffLookup.getFullName() + ") hiện đang bị KHÓA bởi Quản trị viên!\nVui lòng liên hệ Quản lý để mở khóa.");
                 return;
             }
         }
@@ -359,7 +483,7 @@ public class LoginController {
                 socketService.disconnect();
                 socketService.warmupConnectAsync();
                 returnToLoginView();
-                view.showError("🔒 " + reason);
+                view.showError(reason);
             });
         });
 

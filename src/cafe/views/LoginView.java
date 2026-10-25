@@ -1,7 +1,10 @@
 package cafe.views;
 
 import cafe.utils.AnimationHelper;
+import cafe.utils.IconHelper;
 import cafe.utils.SvgIcons;
+import javafx.scene.Node;
+import javafx.scene.shape.Circle;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -39,15 +42,17 @@ public class LoginView extends HBox {
     private final Button btnLogin = new Button("Đăng nhập");
     private final Label lblError = new Label();
 
-    private final Button btnCustomer = new Button("🍹  Khách (Bàn 05)");
+    private final Button btnCustomer = new Button("Kiosk Khách");
     private final Button btnStaff = new Button("Nhân viên");
     private final Button btnManager = new Button("Quản lý");
 
     // Server status badge
     private final HBox serverStatusBadge = new HBox(6);
-    private final Label lblServerDot = new Label("●");
+    private final Circle serverDot = new Circle(4.5, Color.web("#D97706"));
     private final Label lblServerStatusText = new Label("Máy chủ: Đang kết nối...");
-    private final Button btnRetryConnection = new Button("↻ Thử lại");
+    private final Label lblRetryText = new Label("Thử lại");
+    private final Button btnRetryConnection = new Button();
+    private final Button btnConfigServer = new Button();
 
     private boolean isPasswordVisible = false;
 
@@ -171,20 +176,42 @@ public class LoginView extends HBox {
         lblDesc.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 13.5px; -fx-text-fill: #78716C;");
         titleBox.getChildren().addAll(lblWelcome, lblDesc);
 
-        // Server Status Badge (Kiểm soát trạng thái kết nối máy chủ KDS / Port 5000)
+        // Server Status Badge (Kiểm soát trạng thái kết nối máy chủ KDS & Cấu hình IP/Port)
         serverStatusBadge.setAlignment(Pos.CENTER_LEFT);
-        serverStatusBadge.setPadding(new Insets(5, 10, 5, 10));
-        serverStatusBadge.setStyle("-fx-background-color: #FEF3C7; -fx-border-color: #FDE68A; -fx-border-radius: 6px; -fx-background-radius: 6px;");
-        lblServerDot.setStyle("-fx-text-fill: #D97706; -fx-font-size: 11px;");
+        serverStatusBadge.setPadding(new Insets(6, 10, 6, 10));
+        serverStatusBadge.setStyle("-fx-background-color: #FEF3C7; -fx-border-color: #FDE68A; -fx-border-radius: 8px; -fx-background-radius: 8px;");
         lblServerStatusText.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #92400E;");
-        btnRetryConnection.setStyle("-fx-background-color: #FFFFFF; -fx-text-fill: #112823; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 700; -fx-border-color: #DED7CD; -fx-border-radius: 4px; -fx-background-radius: 4px; -fx-padding: 2 8 2 8; -fx-cursor: hand;");
+
+        // Nút Thử lại kết nối dùng icon lam-moi.png
+        HBox retryContent = new HBox(4);
+        retryContent.setAlignment(Pos.CENTER);
+        Node retryIcon = IconHelper.getIcon("staff", "lam-moi.png", SvgIcons.SETTINGS, "", 12, Color.web("#112823"));
+        lblRetryText.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #112823;");
+        lblRetryText.setMinWidth(Region.USE_PREF_SIZE);
+        retryContent.getChildren().addAll(retryIcon, lblRetryText);
+        btnRetryConnection.setGraphic(retryContent);
+        btnRetryConnection.setMinWidth(Region.USE_PREF_SIZE);
+        btnRetryConnection.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #DED7CD; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-padding: 3 8 3 8; -fx-cursor: hand;");
         AnimationHelper.applyButtonPress(btnRetryConnection);
         btnRetryConnection.setVisible(false);
         btnRetryConnection.setManaged(false);
 
+        // Nút Cấu hình IP / Port dùng icon ha-tang-mang.png
+        HBox cfgContent = new HBox(4);
+        cfgContent.setAlignment(Pos.CENTER);
+        Node cfgIcon = IconHelper.getIcon("admin", "ha-tang-mang.png", SvgIcons.SETTINGS, "", 13, Color.web("#112823"));
+        Label lblCfgText = new Label("Cấu hình");
+        lblCfgText.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #112823;");
+        lblCfgText.setMinWidth(Region.USE_PREF_SIZE);
+        cfgContent.getChildren().addAll(cfgIcon, lblCfgText);
+        btnConfigServer.setGraphic(cfgContent);
+        btnConfigServer.setMinWidth(Region.USE_PREF_SIZE);
+        btnConfigServer.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #DED7CD; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-padding: 3 9 3 9; -fx-cursor: hand;");
+        AnimationHelper.applyButtonPress(btnConfigServer);
+
         Region statusSpacer = new Region();
         HBox.setHgrow(statusSpacer, Priority.ALWAYS);
-        serverStatusBadge.getChildren().addAll(lblServerDot, lblServerStatusText, statusSpacer, btnRetryConnection);
+        serverStatusBadge.getChildren().addAll(serverDot, lblServerStatusText, statusSpacer, btnRetryConnection, btnConfigServer);
 
         // 1. Ô Tài khoản
         VBox accountGroup = new VBox(6);
@@ -463,24 +490,32 @@ public class LoginView extends HBox {
 
     public void setServerStatus(boolean connected, String host, int port, long rttMs) {
         if (connected) {
-            lblServerDot.setStyle("-fx-text-fill: #15803D; -fx-font-size: 11px;");
+            serverDot.setFill(Color.web("#16A34A"));
             String rttStr = (rttMs >= 0) ? " • RTT: " + rttMs + "ms" : "";
             lblServerStatusText.setText("Máy chủ: Sẵn sàng (" + host + ":" + port + rttStr + ")");
             lblServerStatusText.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #15803D;");
             btnRetryConnection.setVisible(false);
             btnRetryConnection.setManaged(false);
-            serverStatusBadge.setStyle("-fx-background-color: #DCFCE7; -fx-border-color: #BBF7D0; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-padding: 5 10 5 10;");
+            serverStatusBadge.setStyle("-fx-background-color: #DCFCE7; -fx-border-color: #BBF7D0; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 6 10 6 10;");
         } else {
-            lblServerDot.setStyle("-fx-text-fill: #DC2626; -fx-font-size: 11px;");
+            serverDot.setFill(Color.web("#DC2626"));
             lblServerStatusText.setText("Máy chủ: Chưa kết nối (" + host + ":" + port + ")");
             lblServerStatusText.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #DC2626;");
             btnRetryConnection.setVisible(true);
             btnRetryConnection.setManaged(true);
-            serverStatusBadge.setStyle("-fx-background-color: #FEE2E2; -fx-border-color: #FECACA; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-padding: 5 10 5 10;");
+            serverStatusBadge.setStyle("-fx-background-color: #FEE2E2; -fx-border-color: #FECACA; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 6 10 6 10;");
         }
+    }
+
+    public void setRetryButtonText(String text) {
+        lblRetryText.setText(text);
     }
 
     public Button getBtnRetryConnection() {
         return btnRetryConnection;
+    }
+
+    public Button getBtnConfigServer() {
+        return btnConfigServer;
     }
 }

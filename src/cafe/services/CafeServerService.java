@@ -162,11 +162,14 @@ public class CafeServerService {
             new cafe.models.OrderItem("Cà phê Sữa Đá", 2, "Size L", 39000)
         );
 
-        // Đặt trước mặc định cho Bàn 05 & Bàn 10
-        tableStatuses.put(5, "RESERVED");
-        tableReservations.put(5, new ReservationInfo(5, "Nguyễn Hoàng Nam", "0908.345.678", "19:30", 2, "Ngồi gần cửa sổ"));
-        tableStatuses.put(10, "RESERVED");
-        tableReservations.put(10, new ReservationInfo(10, "Lê Bảo Ngọc", "0912.888.999", "20:00", 6, "Sinh nhật gia đình"));
+        // Đặt trước mặc định cho Bàn 05 & Bàn 10 (Tự động tính trạng thái theo khung giờ khoá bàn 60 phút)
+        ReservationInfo res5 = new ReservationInfo(5, "Nguyễn Hoàng Nam", "0908.345.678", "19:30", 2, "Ngồi gần cửa sổ");
+        tableReservations.put(5, res5);
+        tableStatuses.put(5, isReservationLockActive(res5) ? "RESERVED" : "EMPTY");
+
+        ReservationInfo res10 = new ReservationInfo(10, "Lê Bảo Ngọc", "0912.888.999", "20:00", 6, "Sinh nhật gia đình");
+        tableReservations.put(10, res10);
+        tableStatuses.put(10, isReservationLockActive(res10) ? "RESERVED" : "EMPTY");
     }
 
     private void addSeedOrder(int orderId, int table, String type, String status, double discount, String voucher, String note, long ts, cafe.models.OrderItem... items) {
@@ -936,10 +939,13 @@ public class CafeServerService {
             tableStatuses.put(table, norm);
         }
         if (table > 0) {
-            if (reservation != null && "RESERVED".equalsIgnoreCase(status)) {
+            if (reservation != null) {
                 tableReservations.put(table, reservation);
             } else if ("EMPTY".equalsIgnoreCase(status) || "OCCUPIED".equalsIgnoreCase(status) || "SERVING".equalsIgnoreCase(status) || "CLEANING".equalsIgnoreCase(status)) {
-                tableReservations.remove(table);
+                ReservationInfo existingRes = tableReservations.get(table);
+                if (existingRes == null || isReservationLockActive(existingRes)) {
+                    tableReservations.remove(table);
+                }
             }
         }
         if (tableOrders != null) {
@@ -1070,7 +1076,10 @@ public class CafeServerService {
         if (tableNumber > 0 && status != null) {
             tableStatuses.put(tableNumber, status.toUpperCase());
             if ("EMPTY".equalsIgnoreCase(status) || "OCCUPIED".equalsIgnoreCase(status) || "SERVING".equalsIgnoreCase(status)) {
-                tableReservations.remove(tableNumber);
+                ReservationInfo existingRes = tableReservations.get(tableNumber);
+                if (existingRes != null && isReservationLockActive(existingRes) && "EMPTY".equalsIgnoreCase(status)) {
+                    tableReservations.remove(tableNumber);
+                }
             }
         }
         java.util.List<Order> tOrders = getOrdersForTable(tableNumber);
@@ -1105,8 +1114,45 @@ public class CafeServerService {
         log("Broadcast Stock Status (86-ing): itemId=" + itemId + ", inStock=" + inStock + ", name=" + itemName);
     }
 
+    public static boolean isReservationLockActive(ReservationInfo res) {
+        if (res == null || res.reservationTime == null || res.reservationTime.trim().isEmpty()) {
+            return false;
+        }
+        try {
+            String raw = res.reservationTime.trim();
+            String[] parts = raw.split("[:hH]");
+            int h = Integer.parseInt(parts[0].trim());
+            int m = parts.length > 1 ? Integer.parseInt(parts[1].replaceAll("[^0-9]", "").trim()) : 0;
+            java.time.LocalTime targetTime = java.time.LocalTime.of(h, m);
+            java.time.LocalTime now = java.time.LocalTime.now();
+            long minutesUntil = java.time.Duration.between(now, targetTime).toMinutes();
+            // Chỉ khoá bàn sang RESERVED khi cách giờ hẹn từ 60 phút trở xuống (hoặc trễ tối đa 30 phút)
+            return minutesUntil >= -30 && minutesUntil <= 60;
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    public boolean isReservationWithinLockWindow(int tableNumber) {
+        ReservationInfo res = tableReservations.get(tableNumber);
+        return isReservationLockActive(res);
+    }
+
     public String getTableStatus(int tableNumber) {
-        return tableStatuses.getOrDefault(tableNumber, "EMPTY");
+        if (!getOrdersForTable(tableNumber).isEmpty()) {
+            return "OCCUPIED";
+        }
+        String rawStatus = tableStatuses.getOrDefault(tableNumber, "EMPTY");
+        if ("OCCUPIED".equalsIgnoreCase(rawStatus) || "SERVING".equalsIgnoreCase(rawStatus) || "CLEANING".equalsIgnoreCase(rawStatus)) {
+            return rawStatus;
+        }
+        if (tableReservations.containsKey(tableNumber)) {
+            return isReservationWithinLockWindow(tableNumber) ? "RESERVED" : "EMPTY";
+        }
+        if ("RESERVED".equalsIgnoreCase(rawStatus)) {
+            return "EMPTY";
+        }
+        return rawStatus;
     }
 
     public ReservationInfo getReservation(int tableNumber) {
@@ -1120,7 +1166,8 @@ public class CafeServerService {
     public void reserveTable(int tableNumber, String customerName, String phone, String time, int guests, String note, boolean fromRemote) {
         ReservationInfo info = new ReservationInfo(tableNumber, customerName, phone, time, guests, note);
         tableReservations.put(tableNumber, info);
-        broadcastTableStatus(tableNumber, "RESERVED", false);
+        String effectiveStatus = getTableStatus(tableNumber);
+        broadcastTableStatus(tableNumber, effectiveStatus, false);
         if (!isRunning && !fromRemote) {
             ClientSocketService clientSock = ClientSocketService.getActiveInstance();
             if (clientSock != null) {

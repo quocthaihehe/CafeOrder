@@ -51,7 +51,7 @@ public class FloorPlanView extends BorderPane {
 
     private final Label lblCurrentTableTitle = new Label("Bàn 05");
     private final Label lblCurrentTableStatus = new Label("● Đặt trước");
-    private final Button btnGoToMenu = new Button("+ Gọi món cho bàn này →");
+    private final Button btnGoToMenu = new Button("+ Gọi món");
 
     private Button navBtnFloor;
     private Button navBtnMenu;
@@ -234,10 +234,9 @@ public class FloorPlanView extends BorderPane {
             else cEmpty++;
         }
         updateFilterPillLabel(btnFilterAll, "Tất cả (" + allTables.length + ")");
-        updateFilterPillLabel(btnFilterEmpty, "Bàn trống (" + cEmpty + ")");
-        updateFilterPillLabel(btnFilterServing, "Đang phục vụ (" + cServing + ")");
-        updateFilterPillLabel(btnFilterReserved, "Đặt trước (" + cReserved + ")");
-        updateFilterPillLabel(btnFilterCleaning, "Chờ dọn (" + cCleaning + ")");
+        updateFilterPillLabel(btnFilterEmpty, "Trống (" + cEmpty + ")");
+        updateFilterPillLabel(btnFilterServing, "Có khách (" + cServing + ")");
+        updateFilterPillLabel(btnFilterReserved, "Đặt hẹn (" + cReserved + ")");
     }
 
     private void updateFilterPillLabel(Button btn, String newText) {
@@ -530,48 +529,49 @@ public class FloorPlanView extends BorderPane {
         center.setPadding(new Insets(16, 20, 16, 20));
         HBox.setHgrow(center, Priority.ALWAYS);
 
-        // 1. Top Bar: Table info, Status Badge, Quick Summary, CTA Button
-        HBox topBar = new HBox(12);
+        // 1. Top Bar (Dòng 1): Tiêu đề Bàn + Badge trạng thái (Trái) | Cụm công cụ thao tác bàn + [+ Gọi món] (Phải)
+        HBox topBar = new HBox(10);
         topBar.setAlignment(Pos.CENTER_LEFT);
 
         HBox titleRow = new HBox(10);
         titleRow.setAlignment(Pos.CENTER_LEFT);
         lblCurrentTableTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+        lblCurrentTableTitle.setMinWidth(Region.USE_PREF_SIZE);
         lblCurrentTableStatus.setStyle("-fx-background-color: #DCE8D9; -fx-text-fill: #597256; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 999px; -fx-padding: 4 12 4 12;");
+        lblCurrentTableStatus.setMinWidth(Region.USE_PREF_SIZE);
         titleRow.getChildren().addAll(lblCurrentTableTitle, lblCurrentTableStatus);
 
         Region sp1 = new Region();
         HBox.setHgrow(sp1, Priority.ALWAYS);
 
-        Button btnQuickReserve = new Button("📅 Đặt trước bàn");
-        btnQuickReserve.setStyle("-fx-background-color: #FFFBEB; -fx-text-fill: #92400E; -fx-border-color: #F59E0B; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-font-size: 12px; -fx-font-weight: 700; -fx-padding: 8 14 8 14; -fx-cursor: hand;");
-        btnQuickReserve.setOnAction(e -> showReservationModal(selectedTable));
+        // Cụm công cụ thao tác bàn đưa lên Top Bar để giải phóng không gian ngang cho Dòng 2
+        Button btnRefresh = createToolButton("Làm mới", "lam-moi.png");
+        btnRefresh.setTooltip(new javafx.scene.control.Tooltip("Làm mới sơ đồ bàn"));
+        btnRefresh.setMinWidth(Region.USE_PREF_SIZE);
+        btnRefresh.setOnAction(e -> {
+            syncStatusesFromServer();
+            renderFloorPlan();
+            updateTableTitleDisplay();
+            refreshInspectorDrawer();
+            showStaffToast("Đã đồng bộ trạng thái bàn mới nhất từ máy chủ.");
+        });
 
-        btnGoToMenu.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 8 18 8 18; -fx-cursor: hand;");
+        Button btnTransfer = createToolButton("Chuyển bàn", "chuyen-ban.png");
+        btnTransfer.setMinWidth(Region.USE_PREF_SIZE);
+        btnTransfer.setOnAction(e -> showTransferTableModal(selectedTable));
+
+        Button btnMerge = createToolButton("Gộp bàn", "tach-gop-ban.png");
+        btnMerge.setMinWidth(Region.USE_PREF_SIZE);
+        btnMerge.setOnAction(e -> showMergeTableModal(selectedTable));
+
+        btnGoToMenu.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 7 16 7 16; -fx-cursor: hand;");
+        btnGoToMenu.setMinWidth(Region.USE_PREF_SIZE);
         AnimationHelper.applyButtonPress(btnGoToMenu);
         btnGoToMenu.setOnAction(e -> switchStaffTab("MENU"));
 
-        // Nút Đăng xuất ca trực trên TopBar
-        Button btnTopLogout = new Button();
-        btnTopLogout.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-border-color: #FECACA; -fx-border-radius: 8px; -fx-border-width: 1px; -fx-padding: 8 14 8 14; -fx-cursor: hand;");
-        btnTopLogout.setOnMouseEntered(e -> btnTopLogout.setStyle("-fx-background-color: #FCA5A5; -fx-text-fill: #7F1D1D; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-border-color: #F87171; -fx-border-radius: 8px; -fx-border-width: 1px; -fx-padding: 8 14 8 14; -fx-cursor: hand;"));
-        btnTopLogout.setOnMouseExited(e -> btnTopLogout.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #B91C1C; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-border-color: #FECACA; -fx-border-radius: 8px; -fx-border-width: 1px; -fx-padding: 8 14 8 14; -fx-cursor: hand;"));
-        AnimationHelper.applyButtonPress(btnTopLogout);
+        topBar.getChildren().addAll(titleRow, sp1, btnRefresh, btnTransfer, btnMerge, btnGoToMenu);
 
-        HBox topLogoutContent = new HBox(6);
-        topLogoutContent.setAlignment(Pos.CENTER);
-        SVGPath topLogoutIcon = SvgIcons.createOutlineIcon(SvgIcons.LOG_OUT, 0.7, Color.web("#B91C1C"));
-        Label lblTopLogoutText = new Label("Đăng xuất");
-        lblTopLogoutText.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #B91C1C;");
-        topLogoutContent.getChildren().addAll(topLogoutIcon, lblTopLogoutText);
-        btnTopLogout.setGraphic(topLogoutContent);
-        btnTopLogout.setOnAction(e -> {
-            if (onLogout != null) onLogout.run();
-        });
-
-        topBar.getChildren().addAll(titleRow, sp1, btnQuickReserve, btnGoToMenu, btnTopLogout);
-
-        // 2. Floor & Table Status Toolbar
+        // 2. Floor & Table Status Toolbar (Dòng 2): Cụm 3 nút Tầng (Trái) + Cụm 4 Filter Pills chấm màu (Phải)
         HBox floorToolbar = new HBox(10);
         floorToolbar.setAlignment(Pos.CENTER_LEFT);
 
@@ -579,10 +579,13 @@ public class FloorPlanView extends BorderPane {
         floorTabs.setAlignment(Pos.CENTER_LEFT);
 
         tabF1 = new Button("Tầng 1");
+        tabF1.setMinWidth(Region.USE_PREF_SIZE);
         tabF1.setTooltip(new javafx.scene.control.Tooltip("Sảnh chính & Barista"));
         tabF2 = new Button("Tầng 2");
+        tabF2.setMinWidth(Region.USE_PREF_SIZE);
         tabF2.setTooltip(new javafx.scene.control.Tooltip("Ban công ngoài trời & Phòng đọc sách"));
         tabF3 = new Button("Tầng 3");
+        tabF3.setMinWidth(Region.USE_PREF_SIZE);
         tabF3.setTooltip(new javafx.scene.control.Tooltip("Sân thượng Rooftop Zen Garden"));
 
         tabF1.setOnAction(e -> selectFloor(1));
@@ -592,50 +595,26 @@ public class FloorPlanView extends BorderPane {
         updateFloorTabStyles();
         floorTabs.getChildren().addAll(tabF1, tabF2, tabF3);
 
-        // Table status filter pills (Đầy đủ 5 trạng thái có đếm số lượng trực tiếp)
-        HBox statusFilterTabs = new HBox(5);
-        statusFilterTabs.setAlignment(Pos.CENTER_LEFT);
+        Region tbSp = new Region();
+        HBox.setHgrow(tbSp, Priority.ALWAYS);
 
-        btnFilterAll = createFilterPill("Tất cả (26)", "tat-ca-ban.png", "ALL".equals(currentTableFilter));
-        btnFilterEmpty = createFilterPill("Bàn trống", "ban-trong.png", "EMPTY".equals(currentTableFilter));
-        btnFilterServing = createFilterPill("Đang phục vụ", "co-khach.png", "SERVING".equals(currentTableFilter));
-        btnFilterReserved = createFilterPill("Đặt trước", "tat-ca-ban.png", "RESERVED".equals(currentTableFilter));
-        btnFilterCleaning = createFilterPill("Chờ dọn", "ban-trong.png", "CLEANING".equals(currentTableFilter));
+        // 4 Filter Pills tối giản dùng chấm màu chuẩn thương hiệu (Không bị cắt chữ "...")
+        HBox statusFilterTabs = new HBox(6);
+        statusFilterTabs.setAlignment(Pos.CENTER_RIGHT);
+
+        btnFilterAll = createFilterPill("Tất cả (26)", null, "ALL".equals(currentTableFilter));
+        btnFilterEmpty = createFilterPill("Trống", "#16A34A", "EMPTY".equals(currentTableFilter));
+        btnFilterServing = createFilterPill("Có khách", "#E2943B", "SERVING".equals(currentTableFilter));
+        btnFilterReserved = createFilterPill("Đặt hẹn", "#F59E0B", "RESERVED".equals(currentTableFilter));
 
         btnFilterAll.setOnAction(e -> setTableFilter("ALL"));
         btnFilterEmpty.setOnAction(e -> setTableFilter("EMPTY"));
         btnFilterServing.setOnAction(e -> setTableFilter("SERVING"));
         btnFilterReserved.setOnAction(e -> setTableFilter("RESERVED"));
-        btnFilterCleaning.setOnAction(e -> setTableFilter("CLEANING"));
-        statusFilterTabs.getChildren().addAll(btnFilterAll, btnFilterEmpty, btnFilterServing, btnFilterReserved, btnFilterCleaning);
+        statusFilterTabs.getChildren().addAll(btnFilterAll, btnFilterEmpty, btnFilterServing, btnFilterReserved);
         updateFilterPillCounts();
 
-        Region tbSp = new Region();
-        HBox.setHgrow(tbSp, Priority.ALWAYS);
-
-        // Quick Table Action Tools - Nhãn ngắn gọn chống co vỡ chữ
-        HBox actionTools = new HBox(6);
-        actionTools.setAlignment(Pos.CENTER_RIGHT);
-
-        Button btnRefresh = createToolButton("", "lam-moi.png");
-        btnRefresh.setTooltip(new javafx.scene.control.Tooltip("Làm mới sơ đồ bàn"));
-        btnRefresh.setPrefWidth(38);
-        btnRefresh.setOnAction(e -> {
-            syncStatusesFromServer();
-            renderFloorPlan();
-            refreshInspectorDrawer();
-            showStaffToast("Đã đồng bộ trạng thái bàn mới nhất từ máy chủ.");
-        });
-
-        Button btnTransfer = createToolButton("Chuyển bàn", "chuyen-ban.png");
-        btnTransfer.setOnAction(e -> showTransferTableModal(selectedTable));
-
-        Button btnMerge = createToolButton("Gộp bàn", "tach-gop-ban.png");
-        btnMerge.setOnAction(e -> showMergeTableModal(selectedTable));
-
-        actionTools.getChildren().addAll(btnRefresh, btnTransfer, btnMerge);
-
-        floorToolbar.getChildren().addAll(floorTabs, statusFilterTabs, tbSp, actionTools);
+        floorToolbar.getChildren().addAll(floorTabs, tbSp, statusFilterTabs);
 
         // 3. Isometric 2.5D Floor Canvas
         floorCanvas.setPrefHeight(510);
@@ -929,32 +908,76 @@ public class FloorPlanView extends BorderPane {
 
             inspectorContentBox.getChildren().addAll(btnCheckIn, btnTransferRes, btnCancelRes);
         } else {
-            // EMPTY or CLEANING
+            // EMPTY or CLEANING (Bao gồm cả Bàn trống nhưng có lịch hẹn xa > 60 phút trong ngày)
             VBox emptyCard = new VBox(8);
-            emptyCard.setPadding(new Insets(16));
-            emptyCard.setAlignment(Pos.CENTER);
+            emptyCard.setPadding(new Insets(14));
+            emptyCard.setAlignment(Pos.CENTER_LEFT);
             emptyCard.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 10px; -fx-border-color: #E6E0D6; -fx-border-radius: 10px;");
 
-            Label lblIcon = new Label("CLEANING".equalsIgnoreCase(st) ? "🧹" : "✨");
-            lblIcon.setStyle("-fx-font-size: 26px;");
-            Label lblEmptyState = new Label("CLEANING".equalsIgnoreCase(st) ? "Bàn đang chờ nhân viên dọn dẹp" : "Bàn trống sạch sẽ • Sẵn sàng đón khách");
-            lblEmptyState.setStyle("-fx-font-size: 12.5px; -fx-font-weight: 700; -fx-text-fill: #112823;");
+            HBox statusHeaderRow = new HBox(8);
+            statusHeaderRow.setAlignment(Pos.CENTER_LEFT);
+            Circle stateDot = new Circle(5, Color.web("CLEANING".equalsIgnoreCase(st) ? "#EF4444" : "#16A34A"));
+            Label lblEmptyState = new Label("CLEANING".equalsIgnoreCase(st) ? "Bàn đang chờ nhân viên dọn dẹp" : "Bàn trống • Sẵn sàng đón khách");
+            lblEmptyState.setStyle("-fx-font-size: 12.5px; -fx-font-weight: 800; -fx-text-fill: #112823;");
             lblEmptyState.setWrapText(true);
-            Label lblHint = new Label("Nhấn đúp vào bàn hoặc bấm nút bên dưới để mở bàn và gọi món hộ khách.");
-            lblHint.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #78716C; -fx-text-alignment: center;");
+            statusHeaderRow.getChildren().addAll(stateDot, lblEmptyState);
+
+            Label lblHint = new Label(resInfo != null
+                ? "Bàn đang có lịch hẹn lúc " + resInfo.reservationTime + " (còn hơn 60 phút). Hiện tại vẫn có thể mở bàn đón khách vãng lai bình thường."
+                : "Nhấn đúp vào bàn hoặc bấm nút bên dưới để mở bàn và gọi món cho khách.");
+            lblHint.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #6F695F;");
             lblHint.setWrapText(true);
 
-            emptyCard.getChildren().addAll(lblIcon, lblEmptyState, lblHint);
+            emptyCard.getChildren().addAll(statusHeaderRow, lblHint);
             inspectorContentBox.getChildren().add(emptyCard);
 
             Button btnOpenOrder = createInspectorButton("+ Mở bàn & Đặt món ngay", "#112823", "#FFFFFF");
             btnOpenOrder.setOnAction(e -> switchStaffTab("MENU"));
+            inspectorContentBox.getChildren().add(btnOpenOrder);
 
-            Button btnReserve = createInspectorButton("📅 Đặt bàn trước (Reserve)", "#FFFBEB", "#92400E");
-            btnReserve.setStyle(btnReserve.getStyle() + "-fx-border-color: #F59E0B; -fx-border-radius: 8px;");
-            btnReserve.setOnAction(e -> showReservationModal(selectedTable));
+            // Nếu bàn có lịch hẹn sắp tới trong ngày (> 60 phút), hiển thị thẻ LỊCH HẸN SẮP TỚI TRONG NGÀY ngay bên dưới
+            if (resInfo != null) {
+                VBox upcomingResCard = new VBox(7);
+                upcomingResCard.setPadding(new Insets(12));
+                upcomingResCard.setStyle("-fx-background-color: #FFFBEB; -fx-background-radius: 10px; -fx-border-color: #F59E0B; -fx-border-radius: 10px;");
 
-            String cleanToggleText = "CLEANING".equalsIgnoreCase(st) ? "✓ Đã dọn xong (Chuyển về Bàn trống)" : "🧹 Đánh dấu Bàn chờ dọn";
+                Label lblResHeader = new Label("LỊCH HẸN SẮP TỚI TRONG NGÀY");
+                lblResHeader.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 800; -fx-text-fill: #B45309;");
+                Label lblGuest = new Label("Khách hàng: " + resInfo.customerName);
+                lblGuest.setStyle("-fx-font-size: 12.5px; -fx-font-weight: 800; -fx-text-fill: #78350F;");
+                Label lblPhone = new Label("Điện thoại: " + resInfo.phone);
+                lblPhone.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 600; -fx-text-fill: #92400E;");
+                Label lblTime = new Label("Giờ hẹn: " + resInfo.reservationTime + "  •  " + resInfo.guestCount + " khách");
+                lblTime.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #92400E;");
+                String noteText = (resInfo.note != null && !resInfo.note.isEmpty()) ? resInfo.note : "Giữ bàn đúng giờ hẹn";
+                Label lblNote = new Label("Ghi chú: " + noteText);
+                lblNote.setStyle("-fx-font-size: 11px; -fx-text-fill: #78350F;");
+                lblNote.setWrapText(true);
+
+                upcomingResCard.getChildren().addAll(lblResHeader, lblGuest, lblPhone, lblTime, lblNote);
+                inspectorContentBox.getChildren().add(upcomingResCard);
+
+                Button btnTransferRes = createInspectorButton("Chuyển lịch sang bàn khác", "#F4EFE6", "#112823");
+                btnTransferRes.setOnAction(e -> showTransferTableModal(selectedTable));
+
+                Button btnCancelRes = createInspectorButton("Hủy đặt trước", "#FEE2E2", "#B91C1C");
+                btnCancelRes.setOnAction(e -> {
+                    CafeServerService.getInstance().cancelReservation(selectedTable);
+                    tableStatusMap.put(selectedTable, "EMPTY");
+                    renderFloorPlan();
+                    updateTableTitleDisplay();
+                    refreshInspectorDrawer();
+                    showStaffToast("Đã hủy lịch đặt trước Bàn " + tableCode + ".");
+                });
+                inspectorContentBox.getChildren().addAll(btnTransferRes, btnCancelRes);
+            } else {
+                Button btnReserve = createInspectorButton("Đặt bàn trước (Reserve)", "#FFFBEB", "#92400E");
+                btnReserve.setStyle(btnReserve.getStyle() + "-fx-border-color: #F59E0B; -fx-border-radius: 8px;");
+                btnReserve.setOnAction(e -> showReservationModal(selectedTable));
+                inspectorContentBox.getChildren().add(btnReserve);
+            }
+
+            String cleanToggleText = "CLEANING".equalsIgnoreCase(st) ? "Đã dọn xong (Chuyển về Bàn trống)" : "Đánh dấu Bàn chờ dọn";
             Button btnCleanToggle = createInspectorButton(cleanToggleText, "#F4EFE6", "#3F3931");
             final String currentSt = st;
             btnCleanToggle.setOnAction(e -> {
@@ -966,7 +989,7 @@ public class FloorPlanView extends BorderPane {
                 refreshInspectorDrawer();
             });
 
-            inspectorContentBox.getChildren().addAll(btnOpenOrder, btnReserve, btnCleanToggle);
+            inspectorContentBox.getChildren().add(btnCleanToggle);
         }
     }
 
@@ -1442,7 +1465,7 @@ VBox summaryBox = new VBox(6);
             String note = txtNote.getText().trim();
 
             CafeServerService.getInstance().reserveTable(tableNum, name, phone, time, guests, note);
-            tableStatusMap.put(tableNum, "RESERVED");
+            syncStatusesFromServer();
             renderFloorPlan();
             updateTableTitleDisplay();
             refreshInspectorDrawer();
@@ -1523,30 +1546,37 @@ VBox summaryBox = new VBox(6);
         renderFloorPlan();
     }
 
-    private Button createFilterPill(String title, String iconFileName, boolean isActive) {
+    private Button createFilterPill(String title, String dotColorHex, boolean isActive) {
         Button btn = new Button();
-        btn.setPadding(new Insets(5, 12, 5, 12));
+        btn.setPadding(new Insets(5, 11, 5, 11));
+        btn.setMinWidth(Region.USE_PREF_SIZE);
         btn.setCursor(javafx.scene.Cursor.HAND);
         AnimationHelper.applyButtonPress(btn);
 
         HBox content = new HBox(6);
         content.setAlignment(Pos.CENTER);
-        Node icon = cafe.utils.IconHelper.getIcon("staff", iconFileName, null, "●", 15, isActive ? Color.WHITE : Color.web("#112823"));
+        if (dotColorHex != null && !dotColorHex.isEmpty()) {
+            Circle dot = new Circle(4.5, Color.web(dotColorHex));
+            content.getChildren().add(dot);
+        }
         Label lbl = new Label(title);
+        lbl.setMinWidth(Region.USE_PREF_SIZE);
         lbl.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: " + (isActive ? "#FFFFFF" : "#292722") + ";");
-        content.getChildren().addAll(icon, lbl);
+        content.getChildren().add(lbl);
         btn.setGraphic(content);
 
         applyFilterPillStyle(btn, isActive);
         return btn;
     }
 
-        private void applyFilterPillStyle(Button btn, boolean isActive) {
+    private void applyFilterPillStyle(Button btn, boolean isActive) {
         if (btn == null) return;
+        btn.setMinWidth(Region.USE_PREF_SIZE);
         if (isActive) {
             btn.setStyle(
                 "-fx-background-color: #112823; " +
                 "-fx-background-radius: 8px; " +
+                "-fx-padding: 5 11 5 11; " +
                 "-fx-cursor: hand;"
             );
         } else {
@@ -1556,6 +1586,7 @@ VBox summaryBox = new VBox(6);
                 "-fx-border-color: #DED7CD; " +
                 "-fx-border-radius: 8px; " +
                 "-fx-border-width: 1px; " +
+                "-fx-padding: 5 11 5 11; " +
                 "-fx-cursor: hand;"
             );
         }
@@ -1564,22 +1595,11 @@ VBox summaryBox = new VBox(6);
             HBox content = (HBox) btn.getGraphic();
             for (Node child : content.getChildren()) {
                 if (child instanceof Label) {
+                    ((Label) child).setMinWidth(Region.USE_PREF_SIZE);
                     ((Label) child).setStyle(
-                        "-fx-font-size: 12px; -fx-font-weight: 700; " +
+                        "-fx-font-size: 11.5px; -fx-font-weight: 700; " +
                         "-fx-text-fill: " + (isActive ? "#FFFFFF" : "#3F3931") + ";"
                     );
-                } else if (child instanceof SVGPath) {
-                    ((SVGPath) child).setFill(isActive ? Color.WHITE : Color.web("#112823"));
-                    ((SVGPath) child).setStroke(isActive ? Color.WHITE : Color.web("#112823"));
-                } else if (child instanceof javafx.scene.Parent) {
-                    for (Node inner : ((javafx.scene.Parent) child).getChildrenUnmodifiable()) {
-                        if (inner instanceof SVGPath) {
-                            ((SVGPath) inner).setFill(isActive ? Color.WHITE : Color.web("#112823"));
-                            ((SVGPath) inner).setStroke(isActive ? Color.WHITE : Color.web("#112823"));
-                        } else if (inner instanceof Label) {
-                            ((Label) inner).setStyle("-fx-text-fill: " + (isActive ? "#FFFFFF" : "#112823") + ";");
-                        }
-                    }
                 }
             }
         }
@@ -1587,26 +1607,26 @@ VBox summaryBox = new VBox(6);
 
     private Button createToolButton(String title, String iconFileName) {
         Button btn = new Button();
-        btn.setPadding(new Insets(5, 12, 5, 12));
-        btn.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 6px; -fx-border-color: #DED7CD; -fx-border-radius: 6px; -fx-border-width: 1px; -fx-cursor: hand;");
+        btn.setPadding(new Insets(6, 12, 6, 12));
+        btn.setMinWidth(Region.USE_PREF_SIZE);
+        btn.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 8px; -fx-border-color: #DED7CD; -fx-border-radius: 8px; -fx-border-width: 1px; -fx-cursor: hand;");
         AnimationHelper.applyButtonPress(btn);
 
         HBox content = new HBox(6);
         content.setAlignment(Pos.CENTER);
-        Node icon = cafe.utils.IconHelper.getIcon("staff", iconFileName, null, "⚙", 15, Color.web("#112823"));
+        Node icon = cafe.utils.IconHelper.getIcon("staff", iconFileName, null, "●", 14, Color.web("#112823"));
         content.getChildren().add(icon);
 
         if (title != null && !title.trim().isEmpty()) {
             Label lbl = new Label(title);
-            lbl.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 600; -fx-text-fill: #292722;");
+            lbl.setMinWidth(Region.USE_PREF_SIZE);
+            lbl.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #292722;");
             content.getChildren().add(lbl);
-        } else {
-            btn.setPadding(new Insets(5, 8, 5, 8));
         }
         btn.setGraphic(content);
 
-        btn.setOnMouseEntered(e -> btn.setStyle("-fx-background-color: #F8F4EE; -fx-background-radius: 6px; -fx-border-color: #112823; -fx-border-radius: 6px; -fx-border-width: 1px; -fx-cursor: hand;"));
-        btn.setOnMouseExited(e -> btn.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 6px; -fx-border-color: #DED7CD; -fx-border-radius: 6px; -fx-border-width: 1px; -fx-cursor: hand;"));
+        btn.setOnMouseEntered(e -> btn.setStyle("-fx-background-color: #F8F4EE; -fx-background-radius: 8px; -fx-border-color: #112823; -fx-border-radius: 8px; -fx-border-width: 1px; -fx-cursor: hand;"));
+        btn.setOnMouseExited(e -> btn.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 8px; -fx-border-color: #DED7CD; -fx-border-radius: 8px; -fx-border-width: 1px; -fx-cursor: hand;"));
 
         return btn;
     }
@@ -2096,15 +2116,15 @@ VBox summaryBox = new VBox(6);
         );
 
         // Gắn thông tin tiến độ pha chế & tóm tắt trực tiếp lên mặt bàn (Tổng tiền / Giờ đặt)
+        CafeServerService.ReservationInfo r = server.getReservation(num);
         if (activeOrd != null) {
             node.setOrderProgressStatus(activeOrd.getStatus());
             long kAmount = Math.round(activeOrd.getTotalAmount() / 1000.0);
             node.setLiveSummary(kAmount + "k • " + activeOrd.getTotalQuantity() + " món");
-        } else if ("RESERVED".equalsIgnoreCase(effectiveStatus)) {
-            CafeServerService.ReservationInfo r = server.getReservation(num);
-            if (r != null) {
-                node.setLiveSummary("Hẹn " + r.reservationTime + " • " + r.guestCount + " khách");
-            }
+        } else if (r != null) {
+            node.setLiveSummary("Hẹn " + r.reservationTime + " (" + r.guestCount + " khách)");
+        } else {
+            node.setLiveSummary("");
         }
 
         node.setLayoutX(x);
@@ -2134,6 +2154,7 @@ VBox summaryBox = new VBox(6);
         lblCurrentTableTitle.setText("Bàn " + (selectedTable < 10 ? "0" + selectedTable : selectedTable));
         CafeServerService server = CafeServerService.getInstance();
         Order activeOrd = server.getCombinedOrderForTable(selectedTable);
+        CafeServerService.ReservationInfo resInfo = server.getReservation(selectedTable);
         String st = tableStatusMap.getOrDefault(selectedTable, server.getTableStatus(selectedTable));
         if (activeOrd != null) {
             st = "SERVING";
@@ -2143,20 +2164,24 @@ VBox summaryBox = new VBox(6);
             String subKds = "";
             if (activeOrd != null && activeOrd.getStatus() != null) {
                 String k = activeOrd.getStatus().toUpperCase();
-                if ("QUEUED".equals(k) || "CREATED".equals(k)) subKds = " • ⏳ Chờ pha chế";
-                else if ("PREPARING".equals(k)) subKds = " • ☕ Đang pha chế";
-                else if ("DONE".equals(k) || "READY".equals(k)) subKds = " • ✓ Đã lên món";
+                if ("QUEUED".equals(k) || "CREATED".equals(k)) subKds = " • Chờ pha chế";
+                else if ("PREPARING".equals(k)) subKds = " • Đang pha chế";
+                else if ("DONE".equals(k) || "READY".equals(k)) subKds = " • Đã lên món";
             }
             lblCurrentTableStatus.setText("● Đang phục vụ" + subKds);
             lblCurrentTableStatus.setStyle("-fx-background-color: #172E27; -fx-text-fill: #E8C798; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 999px; -fx-padding: 4 12 4 12;");
         } else if ("RESERVED".equalsIgnoreCase(st)) {
-            lblCurrentTableStatus.setText("● Đặt trước");
+            String timeTxt = (resInfo != null && resInfo.reservationTime != null) ? " (" + resInfo.reservationTime + ")" : "";
+            lblCurrentTableStatus.setText("● Đặt hẹn sắp đến giờ" + timeTxt);
             lblCurrentTableStatus.setStyle("-fx-background-color: #FEF3C7; -fx-text-fill: #92400E; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 999px; -fx-padding: 4 12 4 12;");
         } else if ("CLEANING".equalsIgnoreCase(st)) {
             lblCurrentTableStatus.setText("● Chờ dọn bàn");
             lblCurrentTableStatus.setStyle("-fx-background-color: #FEE2E2; -fx-text-fill: #991B1B; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 999px; -fx-padding: 4 12 4 12;");
+        } else if (resInfo != null) {
+            lblCurrentTableStatus.setText("● Trống • Có hẹn " + resInfo.reservationTime);
+            lblCurrentTableStatus.setStyle("-fx-background-color: #DCFCE7; -fx-text-fill: #15803D; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 999px; -fx-padding: 4 12 4 12;");
         } else {
-            lblCurrentTableStatus.setText("● Bàn trống (Đang chọn)");
+            lblCurrentTableStatus.setText("● Bàn trống (Sẵn sàng)");
             lblCurrentTableStatus.setStyle("-fx-background-color: #DCFCE7; -fx-text-fill: #15803D; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 999px; -fx-padding: 4 12 4 12;");
         }
     }

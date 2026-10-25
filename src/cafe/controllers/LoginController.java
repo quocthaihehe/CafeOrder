@@ -164,9 +164,9 @@ public class LoginController {
 
         // =====================================================================
         // NHÁNH 1: KHÁCH HÀNG (CUSTOMER KIOSK TẠI BÀN)
-        // Điều kiện: Nhập số bàn và không trùng tài khoản nhân sự
+        // Điều kiện: Nhập số bàn (VD: "5", "Bàn 5", "1") và mật khẩu để trống hoặc trùng tên -> Vào thẳng Kiosk
         // =====================================================================
-        if (potentialTable > 0 && staffLookup == null && (password.isEmpty() || password.equalsIgnoreCase(account))) {
+        if (potentialTable > 0 && (password.isEmpty() || password.equalsIgnoreCase(account))) {
             boolean connected = socketService.connect(potentialTable);
             if (connected) {
                 stopServerPoll();

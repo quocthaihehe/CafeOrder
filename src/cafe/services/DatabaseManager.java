@@ -325,8 +325,8 @@ public class DatabaseManager {
         String userLower = userTrim.toLowerCase();
 
         // 1. Đối chiếu alias thông dụng
-        if (userLower.equals("1") || userLower.equals("quanly")) userLower = "admin";
-        else if (userLower.equals("5") || userLower.equals("nhanvien") || userLower.equals("staff")) userLower = "cashier1";
+        if (userLower.equals("quanly")) userLower = "admin";
+        else if (userLower.equals("nhanvien") || userLower.equals("staff")) userLower = "cashier1";
         else if (userLower.equals("phucvu")) userLower = "waiter";
         else if (userLower.equals("phache")) userLower = "barista1";
 
@@ -463,8 +463,8 @@ public class DatabaseManager {
         String userLower = userTrim.toLowerCase();
 
         // 1. Đối chiếu trực tiếp với danh sách Nhân sự RBAC trong bộ nhớ (0ms)
-        if (userLower.equals("1") || userLower.equals("quanly")) userLower = "admin";
-        else if (userLower.equals("5") || userLower.equals("nhanvien") || userLower.equals("staff")) userLower = "cashier1";
+        if (userLower.equals("quanly")) userLower = "admin";
+        else if (userLower.equals("nhanvien") || userLower.equals("staff")) userLower = "cashier1";
         else if (userLower.equals("phucvu")) userLower = "waiter";
         else if (userLower.equals("phache")) userLower = "barista1";
 

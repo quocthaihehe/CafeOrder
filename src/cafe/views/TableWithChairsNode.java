@@ -197,19 +197,19 @@ public class TableWithChairsNode extends StackPane {
             String badgeColor;
             String dotHex;
             if ("QUEUED".equals(kdsSt) || "CREATED".equals(kdsSt) || "CONFIRMED".equals(kdsSt)) {
-                statusText = "⏳ Chờ pha chế";
+                statusText = "Chờ pha";
                 badgeColor = "#FCD34D";
                 dotHex = "#F59E0B";
             } else if ("PREPARING".equals(kdsSt)) {
-                statusText = "☕ Đang pha chế";
+                statusText = "Đang pha";
                 badgeColor = "#93C5FD";
                 dotHex = "#38BDF8";
             } else if ("DONE".equals(kdsSt) || "READY".equals(kdsSt) || "SERVED".equals(kdsSt)) {
-                statusText = "● Đang phục vụ";
+                statusText = "Đang dùng";
                 badgeColor = "#86EFAC";
                 dotHex = "#22C55E";
             } else {
-                statusText = "● Đang phục vụ";
+                statusText = "Đang dùng";
                 badgeColor = "#E8C798";
                 dotHex = "#E2943B";
             }
@@ -222,6 +222,8 @@ public class TableWithChairsNode extends StackPane {
             );
             String meta = (customMetaText != null && !customMetaText.isEmpty()) ? customMetaText : "Có khách";
             lblMeta.setText(meta);
+            lblMeta.setVisible(true);
+            lblMeta.setManaged(true);
             lblMeta.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
                 "-fx-font-size: 10px; " +
@@ -239,7 +241,7 @@ public class TableWithChairsNode extends StackPane {
                 tableSurface.setEffect(new DropShadow(BlurType.GAUSSIAN, Color.rgb(23, 46, 39, 0.30), 14, 0.16, 0, 5));
             }
         } else if (isReserved) {
-            // TRẠNG THÁI 4: ĐẶT TRƯỚC (RESERVED) - Nền kem hổ phách #FFFBEB
+            // TRẠNG THÁI 4: ĐẶT TRƯỚC SẮP ĐẾN GIỜ (RESERVED <= 60 PHÚT) - Nền kem hổ phách #FFFBEB
             String borderColor = currentSelected ? "#B45309" : "#F59E0B";
             String borderWidth = currentSelected ? "2.5px" : "1.5px";
             tableSurface.setStyle(
@@ -255,19 +257,21 @@ public class TableWithChairsNode extends StackPane {
                 "-fx-font-weight: 800; " +
                 "-fx-text-fill: #92400E;"
             );
-            lblStatusBadge.setText("📅 Đặt trước");
+            lblStatusBadge.setText("Giữ bàn hẹn");
             lblStatusBadge.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
                 "-fx-font-size: 10.5px; " +
                 "-fx-font-weight: 800; " +
                 "-fx-text-fill: #B45309;"
             );
-            String meta = (customMetaText != null && !customMetaText.isEmpty()) ? customMetaText : "Giữ bàn";
+            String meta = (customMetaText != null && !customMetaText.isEmpty()) ? customMetaText : "Sắp đến giờ";
             lblMeta.setText(meta);
+            lblMeta.setVisible(true);
+            lblMeta.setManaged(true);
             lblMeta.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
                 "-fx-font-size: 10px; " +
-                "-fx-font-weight: 600; " +
+                "-fx-font-weight: 700; " +
                 "-fx-text-fill: #92400E;"
             );
             statusDot.setFill(Color.web("#F59E0B"));
@@ -290,20 +294,15 @@ public class TableWithChairsNode extends StackPane {
                 "-fx-font-weight: 800; " +
                 "-fx-text-fill: #991B1B;"
             );
-            lblStatusBadge.setText("🧹 Chờ dọn bàn");
+            lblStatusBadge.setText("Chờ dọn bàn");
             lblStatusBadge.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
                 "-fx-font-size: 10.5px; " +
                 "-fx-font-weight: 800; " +
                 "-fx-text-fill: #DC2626;"
             );
-            lblMeta.setText("Cần dọn dẹp");
-            lblMeta.setStyle(
-                "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: 10px; " +
-                "-fx-font-weight: 600; " +
-                "-fx-text-fill: #991B1B;"
-            );
+            lblMeta.setVisible(false);
+            lblMeta.setManaged(false);
             statusDot.setFill(Color.web("#EF4444"));
             statusDot.setVisible(true);
             tableSurface.setTranslateY(isHovered ? -2 : 0);
@@ -323,20 +322,27 @@ public class TableWithChairsNode extends StackPane {
                 "-fx-font-weight: 800; " +
                 "-fx-text-fill: #112823;"
             );
-            lblStatusBadge.setText("● Bàn trống");
+            lblStatusBadge.setText("● Sẵn sàng");
             lblStatusBadge.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
                 "-fx-font-size: 10.5px; " +
                 "-fx-font-weight: 800; " +
                 "-fx-text-fill: #16A34A;"
             );
-            lblMeta.setText("Đang chọn");
-            lblMeta.setStyle(
-                "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: 10px; " +
-                "-fx-font-weight: 700; " +
-                "-fx-text-fill: #112823;"
-            );
+            if (customMetaText != null && !customMetaText.isEmpty()) {
+                lblMeta.setText(customMetaText);
+                lblMeta.setVisible(true);
+                lblMeta.setManaged(true);
+                lblMeta.setStyle(
+                    "-fx-font-family: 'Inter', sans-serif; " +
+                    "-fx-font-size: 9.5px; " +
+                    "-fx-font-weight: 700; " +
+                    "-fx-text-fill: #B45309;"
+                );
+            } else {
+                lblMeta.setVisible(false);
+                lblMeta.setManaged(false);
+            }
             statusDot.setFill(Color.web("#16A34A"));
             statusDot.setVisible(true);
 
@@ -357,20 +363,27 @@ public class TableWithChairsNode extends StackPane {
                 "-fx-font-weight: 800; " +
                 "-fx-text-fill: #2C2623;"
             );
-            lblStatusBadge.setText("● Bàn trống");
+            lblStatusBadge.setText("● Sẵn sàng");
             lblStatusBadge.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
                 "-fx-font-size: 10.5px; " +
                 "-fx-font-weight: 700; " +
                 "-fx-text-fill: #16A34A;"
             );
-            lblMeta.setText("Sẵn sàng");
-            lblMeta.setStyle(
-                "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: 10px; " +
-                "-fx-font-weight: 600; " +
-                "-fx-text-fill: #8C8277;"
-            );
+            if (customMetaText != null && !customMetaText.isEmpty()) {
+                lblMeta.setText(customMetaText);
+                lblMeta.setVisible(true);
+                lblMeta.setManaged(true);
+                lblMeta.setStyle(
+                    "-fx-font-family: 'Inter', sans-serif; " +
+                    "-fx-font-size: 9.5px; " +
+                    "-fx-font-weight: 700; " +
+                    "-fx-text-fill: #B45309;"
+                );
+            } else {
+                lblMeta.setVisible(false);
+                lblMeta.setManaged(false);
+            }
             statusDot.setFill(Color.web("#16A34A"));
             statusDot.setVisible(true);
 

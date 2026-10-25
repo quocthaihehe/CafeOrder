@@ -92,15 +92,23 @@ public class MessageProtocol {
         public int orderId;
         public int table;
         public String status; // CREATED, QUEUED, CONFIRMED, PREPARING, READY, DONE, SERVED, WAITING_PAYMENT, PAID, COMPLETED, CANCELLED
+        public Order updatedOrder;
+
+        public OrderStatusUpdateMessage() {}
 
         public OrderStatusUpdateMessage(int orderId, String status) {
-            this(orderId, 0, status);
+            this(orderId, 0, status, null);
         }
 
         public OrderStatusUpdateMessage(int orderId, int table, String status) {
+            this(orderId, table, status, null);
+        }
+
+        public OrderStatusUpdateMessage(int orderId, int table, String status, Order updatedOrder) {
             this.orderId = orderId;
             this.table = table;
             this.status = status;
+            this.updatedOrder = updatedOrder;
         }
     }
 
@@ -118,11 +126,100 @@ public class MessageProtocol {
     public static class TableStatusBroadcastMessage {
         public String type = MessageType.TABLE_STATUS_BROADCAST.name();
         public int table;
-        public String status; // "AVAILABLE", "OCCUPIED", "RESERVED", "MAINTENANCE"
+        public String status; // "EMPTY", "AVAILABLE", "OCCUPIED", "SERVING", "RESERVED", "CLEANING"
+        public List<Order> tableOrders;
+        public cafe.services.CafeServerService.ReservationInfo reservation;
+
+        public TableStatusBroadcastMessage() {}
 
         public TableStatusBroadcastMessage(int table, String status) {
+            this(table, status, null, null);
+        }
+
+        public TableStatusBroadcastMessage(int table, String status, List<Order> tableOrders, cafe.services.CafeServerService.ReservationInfo reservation) {
             this.table = table;
             this.status = status;
+            this.tableOrders = tableOrders;
+            this.reservation = reservation;
+        }
+    }
+
+    public static class TableActionSyncMessage {
+        public String type = MessageType.TABLE_ACTION_SYNC.name();
+        public String action; // "TRANSFER", "MERGE", "RESERVE", "CANCEL_RESERVE", "SET_STATUS", "CHECKOUT", "CANCEL_ORDER", "RESET_SEED"
+        public int fromTable;
+        public int toTable;
+        public String status;
+        public int orderId;
+        public String customerName;
+        public String phone;
+        public String reservationTime;
+        public int guestCount;
+        public String note;
+
+        public TableActionSyncMessage() {}
+
+        public static TableActionSyncMessage forTransfer(int fromTable, int toTable) {
+            TableActionSyncMessage m = new TableActionSyncMessage();
+            m.action = "TRANSFER";
+            m.fromTable = fromTable;
+            m.toTable = toTable;
+            return m;
+        }
+
+        public static TableActionSyncMessage forMerge(int sourceTable, int targetTable) {
+            TableActionSyncMessage m = new TableActionSyncMessage();
+            m.action = "MERGE";
+            m.fromTable = sourceTable;
+            m.toTable = targetTable;
+            return m;
+        }
+
+        public static TableActionSyncMessage forReserve(int table, String customerName, String phone, String time, int guests, String note) {
+            TableActionSyncMessage m = new TableActionSyncMessage();
+            m.action = "RESERVE";
+            m.fromTable = table;
+            m.customerName = customerName;
+            m.phone = phone;
+            m.reservationTime = time;
+            m.guestCount = guests;
+            m.note = note;
+            return m;
+        }
+
+        public static TableActionSyncMessage forCancelReserve(int table) {
+            TableActionSyncMessage m = new TableActionSyncMessage();
+            m.action = "CANCEL_RESERVE";
+            m.fromTable = table;
+            return m;
+        }
+
+        public static TableActionSyncMessage forSetStatus(int table, String status) {
+            TableActionSyncMessage m = new TableActionSyncMessage();
+            m.action = "SET_STATUS";
+            m.fromTable = table;
+            m.status = status;
+            return m;
+        }
+
+        public static TableActionSyncMessage forCheckout(int table) {
+            TableActionSyncMessage m = new TableActionSyncMessage();
+            m.action = "CHECKOUT";
+            m.fromTable = table;
+            return m;
+        }
+
+        public static TableActionSyncMessage forCancelOrder(int orderId) {
+            TableActionSyncMessage m = new TableActionSyncMessage();
+            m.action = "CANCEL_ORDER";
+            m.orderId = orderId;
+            return m;
+        }
+
+        public static TableActionSyncMessage forResetSeed() {
+            TableActionSyncMessage m = new TableActionSyncMessage();
+            m.action = "RESET_SEED";
+            return m;
         }
     }
 

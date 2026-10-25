@@ -19,6 +19,15 @@ import java.util.function.Consumer;
 public class ClientSocketService {
     private static final String DEFAULT_HOST = cafe.utils.NetworkConfig.getServerHost();
     private static final int DEFAULT_PORT = cafe.utils.NetworkConfig.getServerPort();
+    private static volatile ClientSocketService activeInstance;
+
+    public ClientSocketService() {
+        activeInstance = this;
+    }
+
+    public static ClientSocketService getActiveInstance() {
+        return activeInstance;
+    }
 
     private Socket socket;
     private PrintWriter out;
@@ -37,6 +46,42 @@ public class ClientSocketService {
     private Consumer<MessageProtocol.OrderAckMessage> onOrderAckReceived;
     private Consumer<MessageProtocol.OrderStatusUpdateMessage> onStatusUpdateReceived;
     private BiConsumer<Integer, String> onTableStatusReceived;
+    private final java.util.List<BiConsumer<Integer, String>> tableStatusListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private final java.util.List<Consumer<MessageProtocol.OrderStatusUpdateMessage>> orderStatusListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private final java.util.List<Consumer<MessageProtocol.OrderAckMessage>> orderAckListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    public void addTableStatusListener(BiConsumer<Integer, String> listener) {
+        if (listener != null && !tableStatusListeners.contains(listener)) {
+            tableStatusListeners.add(listener);
+        }
+    }
+
+    public void addOrderStatusListener(Consumer<MessageProtocol.OrderStatusUpdateMessage> listener) {
+        if (listener != null && !orderStatusListeners.contains(listener)) {
+            orderStatusListeners.add(listener);
+        }
+    }
+
+    public void addOrderAckListener(Consumer<MessageProtocol.OrderAckMessage> listener) {
+        if (listener != null && !orderAckListeners.contains(listener)) {
+            orderAckListeners.add(listener);
+        }
+    }
+
+    public boolean sendTableActionSync(MessageProtocol.TableActionSyncMessage msg) {
+        if (msg == null) return false;
+        if (!isConnected()) {
+            openSocketInternal(cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
+        }
+        if (isConnected() && out != null) {
+            try {
+                out.print(MessageProtocol.toJson(msg));
+                out.flush();
+                return true;
+            } catch (Exception ignored) {}
+        }
+        return false;
+    }
     private Consumer<MessageProtocol.StockStatusBroadcastMessage> onStockStatusReceived;
     private Consumer<MessageProtocol.SessionKickedMessage> onSessionKickedReceived;
     private Consumer<String> onErrorOccurred;
@@ -263,20 +308,37 @@ public class ClientSocketService {
                             MessageProtocol.OrderAckMessage ack = MessageProtocol.fromJson(rawJson, MessageProtocol.OrderAckMessage.class);
                             dispatch(() -> {
                                 if (onOrderAckReceived != null) onOrderAckReceived.accept(ack);
+                                for (Consumer<MessageProtocol.OrderAckMessage> l : orderAckListeners) l.accept(ack);
                             });
                             break;
 
                         case ORDER_STATUS_UPDATE:
                             MessageProtocol.OrderStatusUpdateMessage update = MessageProtocol.fromJson(rawJson, MessageProtocol.OrderStatusUpdateMessage.class);
+                            if (update != null) {
+                                CafeServerService.getInstance().applyRemoteOrderStatusSync(
+                                    update.orderId, update.table, update.status, update.updatedOrder
+                                );
+                            }
                             dispatch(() -> {
-                                if (onStatusUpdateReceived != null) onStatusUpdateReceived.accept(update);
+                                if (onStatusUpdateReceived != null && update != null) onStatusUpdateReceived.accept(update);
+                                if (update != null) {
+                                    for (Consumer<MessageProtocol.OrderStatusUpdateMessage> l : orderStatusListeners) l.accept(update);
+                                }
                             });
                             break;
 
                         case TABLE_STATUS_BROADCAST:
                             MessageProtocol.TableStatusBroadcastMessage tBroadcast = MessageProtocol.fromJson(rawJson, MessageProtocol.TableStatusBroadcastMessage.class);
+                            if (tBroadcast != null) {
+                                CafeServerService.getInstance().applyRemoteTableSync(
+                                    tBroadcast.table, tBroadcast.status, tBroadcast.tableOrders, tBroadcast.reservation
+                                );
+                            }
                             dispatch(() -> {
-                                if (onTableStatusReceived != null) onTableStatusReceived.accept(tBroadcast.table, tBroadcast.status);
+                                if (onTableStatusReceived != null && tBroadcast != null) onTableStatusReceived.accept(tBroadcast.table, tBroadcast.status);
+                                if (tBroadcast != null) {
+                                    for (BiConsumer<Integer, String> l : tableStatusListeners) l.accept(tBroadcast.table, tBroadcast.status);
+                                }
                             });
                             break;
 

@@ -97,8 +97,13 @@ public class AdminShellView extends BorderPane {
             posEmbeddedMenuView = new ClientView();
             posEmbeddedMenuView.configureForEmbeddedShell(true);
             ClientSocketService sock = clientSocketService != null ? clientSocketService : new ClientSocketService();
+            if (!sock.isConnected()) {
+                sock.connectStaff(selectedPosTable, "admin");
+            }
             Stage st = parentStage != null ? parentStage : new Stage();
             posEmbeddedMenuController = new ClientController(st, posEmbeddedMenuView, sock, selectedPosTable, () -> switchTab(1));
+        } else if (clientSocketService != null && !clientSocketService.isConnected()) {
+            clientSocketService.connectStaff(selectedPosTable, "admin");
         }
     }
 
@@ -1119,6 +1124,15 @@ public class AdminShellView extends BorderPane {
     // =========================================================================
     private void registerLiveListeners() {
         serverService.setOnOrderStatusChanged((orderId, status) -> {
+            Platform.runLater(() -> {
+                if (currentTab == 1) {
+                    populateRecentOrders();
+                } else if (currentTab == 3) {
+                    renderOrderHistoryTab();
+                }
+            });
+        });
+        serverService.setOnTableStatusBroadcasted((tableNum, status) -> {
             Platform.runLater(() -> {
                 if (currentTab == 1) {
                     populateRecentOrders();

@@ -19,6 +19,8 @@ public class OrderItem {
     private List<ToppingItem> toppings = new ArrayList<>();
     private String note;
 
+    public OrderItem() {}
+
     public OrderItem(String name, int qty, String note) {
         this(0, name, qty, 0.0, "M", 0.0, 100, 100, "COLD", new ArrayList<>(), note, "CONFIRMED");
         parseLegacyCustomizationsFromNote();

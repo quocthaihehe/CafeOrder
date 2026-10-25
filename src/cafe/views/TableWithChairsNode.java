@@ -28,12 +28,14 @@ public class TableWithChairsNode extends StackPane {
     private final String labelText;
     private final StackPane tableSurface = new StackPane();
     private final Label lblNumber = new Label();
+    private final Label lblStatusBadge = new Label();
     private final Label lblMeta = new Label();
     private final Circle statusDot = new Circle(3.5);
 
     private boolean currentSelected = false;
     private String currentStatus = "EMPTY";
     private String customMetaText = "";
+    private String orderProgressStatus = "";
 
     public TableWithChairsNode(int tableNumber, String labelText, boolean isSelected, String status, boolean isLarge, Runnable onSelect, Runnable onDoubleClick) {
         this.tableNumber = tableNumber;
@@ -125,9 +127,10 @@ public class TableWithChairsNode extends StackPane {
         lblNumber.setText(labelText);
         lblNumber.setAlignment(Pos.CENTER);
 
+        lblStatusBadge.setAlignment(Pos.CENTER);
         lblMeta.setAlignment(Pos.CENTER);
 
-        VBox centerLabels = new VBox(1, lblNumber, lblMeta);
+        VBox centerLabels = new VBox(1, lblNumber, lblStatusBadge, lblMeta);
         centerLabels.setAlignment(Pos.CENTER);
         centerLabels.setMouseTransparent(true);
 
@@ -185,19 +188,47 @@ public class TableWithChairsNode extends StackPane {
             );
             lblNumber.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: " + (isLarge ? "15px" : "16px") + "; " +
+                "-fx-font-size: " + (isLarge ? "14.5px" : "15px") + "; " +
                 "-fx-font-weight: 800; " +
                 "-fx-text-fill: #FFFFFF;"
+            );
+            String kdsSt = orderProgressStatus != null ? orderProgressStatus.toUpperCase() : "";
+            String statusText;
+            String badgeColor;
+            String dotHex;
+            if ("QUEUED".equals(kdsSt) || "CREATED".equals(kdsSt) || "CONFIRMED".equals(kdsSt)) {
+                statusText = "⏳ Chờ pha chế";
+                badgeColor = "#FCD34D";
+                dotHex = "#F59E0B";
+            } else if ("PREPARING".equals(kdsSt)) {
+                statusText = "☕ Đang pha chế";
+                badgeColor = "#93C5FD";
+                dotHex = "#38BDF8";
+            } else if ("DONE".equals(kdsSt) || "READY".equals(kdsSt) || "SERVED".equals(kdsSt)) {
+                statusText = "● Đang phục vụ";
+                badgeColor = "#86EFAC";
+                dotHex = "#22C55E";
+            } else {
+                statusText = "● Đang phục vụ";
+                badgeColor = "#E8C798";
+                dotHex = "#E2943B";
+            }
+            lblStatusBadge.setText(statusText);
+            lblStatusBadge.setStyle(
+                "-fx-font-family: 'Inter', sans-serif; " +
+                "-fx-font-size: 10.5px; " +
+                "-fx-font-weight: 800; " +
+                "-fx-text-fill: " + badgeColor + ";"
             );
             String meta = (customMetaText != null && !customMetaText.isEmpty()) ? customMetaText : "Có khách";
             lblMeta.setText(meta);
             lblMeta.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: 11px; " +
-                "-fx-font-weight: 700; " +
-                "-fx-text-fill: #E8C798;"
+                "-fx-font-size: 10px; " +
+                "-fx-font-weight: 600; " +
+                "-fx-text-fill: #E2D9CC;"
             );
-            statusDot.setFill(Color.web("#E2943B"));
+            statusDot.setFill(Color.web(dotHex));
             statusDot.setVisible(true);
 
             if (isHovered || currentSelected) {
@@ -220,17 +251,24 @@ public class TableWithChairsNode extends StackPane {
             );
             lblNumber.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: " + (isLarge ? "15px" : "16px") + "; " +
+                "-fx-font-size: " + (isLarge ? "14.5px" : "15px") + "; " +
                 "-fx-font-weight: 800; " +
                 "-fx-text-fill: #92400E;"
             );
-            String meta = (customMetaText != null && !customMetaText.isEmpty()) ? customMetaText : "Đặt trước";
+            lblStatusBadge.setText("📅 Đặt trước");
+            lblStatusBadge.setStyle(
+                "-fx-font-family: 'Inter', sans-serif; " +
+                "-fx-font-size: 10.5px; " +
+                "-fx-font-weight: 800; " +
+                "-fx-text-fill: #B45309;"
+            );
+            String meta = (customMetaText != null && !customMetaText.isEmpty()) ? customMetaText : "Giữ bàn";
             lblMeta.setText(meta);
             lblMeta.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: 11px; " +
-                "-fx-font-weight: 700; " +
-                "-fx-text-fill: #B45309;"
+                "-fx-font-size: 10px; " +
+                "-fx-font-weight: 600; " +
+                "-fx-text-fill: #92400E;"
             );
             statusDot.setFill(Color.web("#F59E0B"));
             statusDot.setVisible(true);
@@ -248,16 +286,23 @@ public class TableWithChairsNode extends StackPane {
             );
             lblNumber.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: " + (isLarge ? "15px" : "16px") + "; " +
+                "-fx-font-size: " + (isLarge ? "14.5px" : "15px") + "; " +
                 "-fx-font-weight: 800; " +
                 "-fx-text-fill: #991B1B;"
             );
-            lblMeta.setText("Chờ dọn");
+            lblStatusBadge.setText("🧹 Chờ dọn bàn");
+            lblStatusBadge.setStyle(
+                "-fx-font-family: 'Inter', sans-serif; " +
+                "-fx-font-size: 10.5px; " +
+                "-fx-font-weight: 800; " +
+                "-fx-text-fill: #DC2626;"
+            );
+            lblMeta.setText("Cần dọn dẹp");
             lblMeta.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: 11px; " +
-                "-fx-font-weight: 700; " +
-                "-fx-text-fill: #DC2626;"
+                "-fx-font-size: 10px; " +
+                "-fx-font-weight: 600; " +
+                "-fx-text-fill: #991B1B;"
             );
             statusDot.setFill(Color.web("#EF4444"));
             statusDot.setVisible(true);
@@ -265,7 +310,6 @@ public class TableWithChairsNode extends StackPane {
             tableSurface.setEffect(new DropShadow(BlurType.GAUSSIAN, Color.rgb(220, 38, 38, 0.14), 12, 0.12, 0, 4));
         } else if (currentSelected) {
             // TRẠNG THÁI 2: ĐANG CHỌN BÀN TRỐNG (SELECTED + EMPTY)
-            // Giữ nền sáng #FCFBF8, viền xanh đậm #112823 (2.5px), tuyệt đối KHÔNG biến thành màu đen của bàn có khách!
             tableSurface.setStyle(
                 "-fx-background-color: #FCFBF8; " +
                 "-fx-background-radius: 16px; " +
@@ -275,16 +319,23 @@ public class TableWithChairsNode extends StackPane {
             );
             lblNumber.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: " + (isLarge ? "15px" : "16px") + "; " +
+                "-fx-font-size: " + (isLarge ? "14.5px" : "15px") + "; " +
                 "-fx-font-weight: 800; " +
                 "-fx-text-fill: #112823;"
+            );
+            lblStatusBadge.setText("● Bàn trống");
+            lblStatusBadge.setStyle(
+                "-fx-font-family: 'Inter', sans-serif; " +
+                "-fx-font-size: 10.5px; " +
+                "-fx-font-weight: 800; " +
+                "-fx-text-fill: #16A34A;"
             );
             lblMeta.setText("Đang chọn");
             lblMeta.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: 11px; " +
+                "-fx-font-size: 10px; " +
                 "-fx-font-weight: 700; " +
-                "-fx-text-fill: #16A34A;"
+                "-fx-text-fill: #112823;"
             );
             statusDot.setFill(Color.web("#16A34A"));
             statusDot.setVisible(true);
@@ -302,14 +353,21 @@ public class TableWithChairsNode extends StackPane {
             );
             lblNumber.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: " + (isLarge ? "15px" : "16px") + "; " +
+                "-fx-font-size: " + (isLarge ? "14.5px" : "15px") + "; " +
                 "-fx-font-weight: 800; " +
                 "-fx-text-fill: #2C2623;"
             );
-            lblMeta.setText("Trống");
+            lblStatusBadge.setText("● Bàn trống");
+            lblStatusBadge.setStyle(
+                "-fx-font-family: 'Inter', sans-serif; " +
+                "-fx-font-size: 10.5px; " +
+                "-fx-font-weight: 700; " +
+                "-fx-text-fill: #16A34A;"
+            );
+            lblMeta.setText("Sẵn sàng");
             lblMeta.setStyle(
                 "-fx-font-family: 'Inter', sans-serif; " +
-                "-fx-font-size: 11px; " +
+                "-fx-font-size: 10px; " +
                 "-fx-font-weight: 600; " +
                 "-fx-text-fill: #8C8277;"
             );
@@ -334,6 +392,11 @@ public class TableWithChairsNode extends StackPane {
 
     public void setLiveSummary(String summaryText) {
         this.customMetaText = summaryText != null ? summaryText : "";
+        applySurfaceStyle(false);
+    }
+
+    public void setOrderProgressStatus(String orderProgressStatus) {
+        this.orderProgressStatus = orderProgressStatus != null ? orderProgressStatus : "";
         applySurfaceStyle(false);
     }
 

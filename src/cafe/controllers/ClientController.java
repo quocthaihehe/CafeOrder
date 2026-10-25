@@ -151,6 +151,10 @@ public class ClientController {
         });
 
         socketService.setOnStatusUpdateReceived(update -> {
+            if (update == null) return;
+            if (update.table > 0 && this.tableNumber > 0 && update.table != this.tableNumber) {
+                return;
+            }
             String translated = MessageProtocol.translateStatus(update.status);
             view.updateActiveOrderStatus(update.orderId, translated);
             view.showToast("Đơn #" + update.orderId + " đã cập nhật: " + translated + "!");
@@ -354,6 +358,9 @@ public class ClientController {
             }
         }
 
+        if (!socketService.isConnected()) {
+            socketService.connect(tableNumber);
+        }
         if (!socketService.isConnected()) {
             view.showToast("Chưa kết nối được với quầy pha chế!");
             return;

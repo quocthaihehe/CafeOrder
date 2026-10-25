@@ -8,6 +8,8 @@ public class ToppingItem {
     private String name;
     private double price;
 
+    public ToppingItem() {}
+
     public ToppingItem(int toppingId, String name, double price) {
         this.toppingId = toppingId;
         this.name = name;

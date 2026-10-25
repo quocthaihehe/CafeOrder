@@ -63,6 +63,12 @@ public class FloorPlanView extends BorderPane {
     private Button tabF2;
     private Button tabF3;
 
+    private Button btnFilterAll;
+    private Button btnFilterEmpty;
+    private Button btnFilterServing;
+    private Button btnFilterReserved;
+    private Button btnFilterCleaning;
+
     private final StackPane mainContentHolder = new StackPane();
     private HBox floorWorkspaceBox;
     private ClientView embeddedClientView;
@@ -108,6 +114,44 @@ public class FloorPlanView extends BorderPane {
 
         syncStatusesFromServer();
         initUI();
+        registerLiveServerListeners();
+    }
+
+    private void registerLiveServerListeners() {
+        CafeServerService server = CafeServerService.getInstance();
+        server.setOnTableStatusBroadcasted((tbl, st) -> {
+            javafx.application.Platform.runLater(() -> {
+                if (tbl != null && tbl > 0 && st != null) {
+                    String mapped = st;
+                    if ("OCCUPIED".equalsIgnoreCase(st)) mapped = "SERVING";
+                    else if ("AVAILABLE".equalsIgnoreCase(st)) mapped = "EMPTY";
+                    tableStatusMap.put(tbl, mapped);
+                }
+                syncStatusesFromServer();
+                renderFloorPlan();
+                updateTableTitleDisplay();
+                refreshInspectorDrawer();
+            });
+        });
+        server.setOnOrderStatusChanged((orderId, st) -> {
+            javafx.application.Platform.runLater(() -> {
+                syncStatusesFromServer();
+                renderFloorPlan();
+                updateTableTitleDisplay();
+                refreshInspectorDrawer();
+            });
+        });
+        server.setOnOrderReceived(newOrder -> {
+            javafx.application.Platform.runLater(() -> {
+                if (newOrder != null && newOrder.getTable() > 0) {
+                    tableStatusMap.put(newOrder.getTable(), "SERVING");
+                }
+                syncStatusesFromServer();
+                renderFloorPlan();
+                updateTableTitleDisplay();
+                refreshInspectorDrawer();
+            });
+        });
     }
 
     /**
@@ -118,6 +162,31 @@ public class FloorPlanView extends BorderPane {
         this.parentStage = stage;
         this.socketService = socketService;
         this.onOpenAdminDashboard = onOpenAdminDashboard;
+
+        if (this.socketService != null) {
+            this.socketService.addTableStatusListener((tableNum, status) -> {
+                setTableStatus(tableNum, status);
+            });
+            this.socketService.addOrderStatusListener(update -> {
+                javafx.application.Platform.runLater(() -> {
+                    syncStatusesFromServer();
+                    renderFloorPlan();
+                    updateTableTitleDisplay();
+                    refreshInspectorDrawer();
+                });
+            });
+            this.socketService.addOrderAckListener(ack -> {
+                javafx.application.Platform.runLater(() -> {
+                    if (selectedTable > 0) {
+                        tableStatusMap.put(selectedTable, "SERVING");
+                    }
+                    syncStatusesFromServer();
+                    renderFloorPlan();
+                    updateTableTitleDisplay();
+                    refreshInspectorDrawer();
+                });
+            });
+        }
     }
 
     public void setOnOpenOrders(Runnable onOpenOrders) {
@@ -132,9 +201,55 @@ public class FloorPlanView extends BorderPane {
             301, 302, 303, 304, 305, 306
         };
         for (int t : allTables) {
+            Order activeOrd = server.getCombinedOrderForTable(t);
             String st = server.getTableStatus(t);
-            if ("OCCUPIED".equalsIgnoreCase(st)) st = "SERVING";
+            if (activeOrd != null) {
+                st = "SERVING";
+            } else if ("OCCUPIED".equalsIgnoreCase(st)) {
+                st = "SERVING";
+            } else if ("AVAILABLE".equalsIgnoreCase(st)) {
+                st = "EMPTY";
+            }
             tableStatusMap.put(t, st);
+        }
+        updateFilterPillCounts();
+    }
+
+    private void updateFilterPillCounts() {
+        int[] allTables = {
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+            201, 202, 203, 204, 205, 206, 207, 208,
+            301, 302, 303, 304, 305, 306
+        };
+        int cEmpty = 0, cServing = 0, cReserved = 0, cCleaning = 0;
+        CafeServerService server = CafeServerService.getInstance();
+        for (int t : allTables) {
+            String st = tableStatusMap.getOrDefault(t, server.getTableStatus(t));
+            if (server.getCombinedOrderForTable(t) != null) {
+                st = "SERVING";
+            }
+            if ("SERVING".equalsIgnoreCase(st) || "OCCUPIED".equalsIgnoreCase(st)) cServing++;
+            else if ("RESERVED".equalsIgnoreCase(st)) cReserved++;
+            else if ("CLEANING".equalsIgnoreCase(st)) cCleaning++;
+            else cEmpty++;
+        }
+        updateFilterPillLabel(btnFilterAll, "Tất cả (" + allTables.length + ")");
+        updateFilterPillLabel(btnFilterEmpty, "Bàn trống (" + cEmpty + ")");
+        updateFilterPillLabel(btnFilterServing, "Đang phục vụ (" + cServing + ")");
+        updateFilterPillLabel(btnFilterReserved, "Đặt trước (" + cReserved + ")");
+        updateFilterPillLabel(btnFilterCleaning, "Chờ dọn (" + cCleaning + ")");
+    }
+
+    private void updateFilterPillLabel(Button btn, String newText) {
+        if (btn == null || btn.getGraphic() == null) return;
+        if (btn.getGraphic() instanceof HBox) {
+            HBox box = (HBox) btn.getGraphic();
+            for (Node n : box.getChildren()) {
+                if (n instanceof Label) {
+                    ((Label) n).setText(newText);
+                    break;
+                }
+            }
         }
     }
 
@@ -477,18 +592,23 @@ public class FloorPlanView extends BorderPane {
         updateFloorTabStyles();
         floorTabs.getChildren().addAll(tabF1, tabF2, tabF3);
 
-        // Table status filter pills
-        HBox statusFilterTabs = new HBox(6);
+        // Table status filter pills (Đầy đủ 5 trạng thái có đếm số lượng trực tiếp)
+        HBox statusFilterTabs = new HBox(5);
         statusFilterTabs.setAlignment(Pos.CENTER_LEFT);
 
-        Button btnAllTables = createFilterPill("Tất cả", "tat-ca-ban.png", "ALL".equals(currentTableFilter));
-        Button btnEmptyTables = createFilterPill("Bàn trống", "ban-trong.png", "EMPTY".equals(currentTableFilter));
-        Button btnServingTables = createFilterPill("Có khách", "co-khach.png", "SERVING".equals(currentTableFilter));
+        btnFilterAll = createFilterPill("Tất cả (26)", "tat-ca-ban.png", "ALL".equals(currentTableFilter));
+        btnFilterEmpty = createFilterPill("Bàn trống", "ban-trong.png", "EMPTY".equals(currentTableFilter));
+        btnFilterServing = createFilterPill("Đang phục vụ", "co-khach.png", "SERVING".equals(currentTableFilter));
+        btnFilterReserved = createFilterPill("Đặt trước", "tat-ca-ban.png", "RESERVED".equals(currentTableFilter));
+        btnFilterCleaning = createFilterPill("Chờ dọn", "ban-trong.png", "CLEANING".equals(currentTableFilter));
 
-        btnAllTables.setOnAction(e -> setTableFilter("ALL", btnAllTables, btnEmptyTables, btnServingTables));
-        btnEmptyTables.setOnAction(e -> setTableFilter("EMPTY", btnAllTables, btnEmptyTables, btnServingTables));
-        btnServingTables.setOnAction(e -> setTableFilter("SERVING", btnAllTables, btnEmptyTables, btnServingTables));
-        statusFilterTabs.getChildren().addAll(btnAllTables, btnEmptyTables, btnServingTables);
+        btnFilterAll.setOnAction(e -> setTableFilter("ALL"));
+        btnFilterEmpty.setOnAction(e -> setTableFilter("EMPTY"));
+        btnFilterServing.setOnAction(e -> setTableFilter("SERVING"));
+        btnFilterReserved.setOnAction(e -> setTableFilter("RESERVED"));
+        btnFilterCleaning.setOnAction(e -> setTableFilter("CLEANING"));
+        statusFilterTabs.getChildren().addAll(btnFilterAll, btnFilterEmpty, btnFilterServing, btnFilterReserved, btnFilterCleaning);
+        updateFilterPillCounts();
 
         Region tbSp = new Region();
         HBox.setHgrow(tbSp, Priority.ALWAYS);
@@ -624,20 +744,63 @@ public class FloorPlanView extends BorderPane {
         inspectorContentBox.getChildren().add(headerCard);
 
         // Content by Table State
-        if (combinedOrder != null && ("SERVING".equalsIgnoreCase(st) || "OCCUPIED".equalsIgnoreCase(st))) {
-            long elapsedMins = Math.max(1, (System.currentTimeMillis() - combinedOrder.getTimestamp()) / 60_000L);
-            String kdsStatus = combinedOrder.getStatus();
-            String kdsText = "DONE".equalsIgnoreCase(kdsStatus) ? "Đã lên đủ món" : ("PREPARING".equalsIgnoreCase(kdsStatus) ? "Barista đang pha" : "Đang chờ pha");
+        if ("SERVING".equalsIgnoreCase(st) || "OCCUPIED".equalsIgnoreCase(st)) {
+            if (combinedOrder == null) {
+                VBox servingNoOrderCard = new VBox(8);
+                servingNoOrderCard.setPadding(new Insets(14));
+                servingNoOrderCard.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 10px; -fx-border-color: #E6E0D6; -fx-border-radius: 10px;");
+                Label lblServingInfo = new Label("🍽 Bàn đang mở phục vụ khách");
+                lblServingInfo.setStyle("-fx-font-size: 13px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+                Label lblServingSub = new Label("Đơn hàng đang được đồng bộ hoặc khách đang xem thực đơn. Nhấn nút bên dưới để gọi thêm món hoặc giải phóng bàn.");
+                lblServingSub.setWrapText(true);
+                lblServingSub.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #6F695F;");
+                servingNoOrderCard.getChildren().addAll(lblServingInfo, lblServingSub);
+                inspectorContentBox.getChildren().add(servingNoOrderCard);
 
-            VBox metaCard = new VBox(6);
+                Button btnAddMore = createInspectorButton("+ Gọi món cho bàn này", "#112823", "#FFFFFF");
+                btnAddMore.setOnAction(e -> switchStaffTab("MENU"));
+                Button btnRelease = createInspectorButton("✓ Trả về Bàn trống", "#DCFCE7", "#15803D");
+                btnRelease.setOnAction(e -> {
+                    tableStatusMap.put(selectedTable, "EMPTY");
+                    CafeServerService.getInstance().broadcastTableStatus(selectedTable, "EMPTY");
+                    renderFloorPlan();
+                    updateTableTitleDisplay();
+                    refreshInspectorDrawer();
+                });
+                inspectorContentBox.getChildren().addAll(btnAddMore, btnRelease);
+                return;
+            }
+
+            long elapsedMins = Math.max(1, (System.currentTimeMillis() - combinedOrder.getTimestamp()) / 60_000L);
+            String kdsStatus = combinedOrder.getStatus() != null ? combinedOrder.getStatus().toUpperCase() : "QUEUED";
+            boolean isDone = "DONE".equals(kdsStatus) || "READY".equals(kdsStatus) || "SERVED".equals(kdsStatus);
+            boolean isPrep = "PREPARING".equals(kdsStatus);
+            String kdsText = isDone ? "✓ Đã lên đủ món (Đang phục vụ)" : (isPrep ? "☕ Barista đang pha chế" : "⏳ Đang chờ pha chế tại Bar");
+
+            VBox metaCard = new VBox(8);
             metaCard.setPadding(new Insets(12));
             metaCard.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 10px; -fx-border-color: #E6E0D6; -fx-border-radius: 10px;");
 
             Label lblOrderNo = new Label("Mã phiếu: #" + combinedOrder.getOrderId() + "  •  ⏱ " + elapsedMins + " phút");
             lblOrderNo.setStyle("-fx-font-size: 12.5px; -fx-font-weight: 800; -fx-text-fill: #112823;");
             Label lblKds = new Label("Tiến độ quầy Bar: " + kdsText);
-            lblKds.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 600; -fx-text-fill: #B45309;");
-            metaCard.getChildren().addAll(lblOrderNo, lblKds);
+            lblKds.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: " + (isDone ? "#15803D" : (isPrep ? "#0369A1" : "#B45309")) + ";");
+
+            // Thanh 3 bước tiến độ KDS trực tiếp
+            HBox stepBar = new HBox(4);
+            stepBar.setAlignment(Pos.CENTER_LEFT);
+            Label s1 = new Label("1. Chờ pha");
+            Label s2 = new Label("2. Đang pha");
+            Label s3 = new Label("3. Đã lên món");
+            String activeStepStyle = "-fx-background-color: #112823; -fx-text-fill: #FDE68A; -fx-font-size: 9.5px; -fx-font-weight: 800; -fx-padding: 3 7 3 7; -fx-background-radius: 5px;";
+            String doneStepStyle = "-fx-background-color: #DCFCE7; -fx-text-fill: #15803D; -fx-font-size: 9.5px; -fx-font-weight: 700; -fx-padding: 3 7 3 7; -fx-background-radius: 5px;";
+            String idleStepStyle = "-fx-background-color: #F4EFE6; -fx-text-fill: #8C8277; -fx-font-size: 9.5px; -fx-font-weight: 600; -fx-padding: 3 7 3 7; -fx-background-radius: 5px;";
+            s1.setStyle((!isPrep && !isDone) ? activeStepStyle : doneStepStyle);
+            s2.setStyle(isPrep ? activeStepStyle : (isDone ? doneStepStyle : idleStepStyle));
+            s3.setStyle(isDone ? activeStepStyle : idleStepStyle);
+            stepBar.getChildren().addAll(s1, s2, s3);
+
+            metaCard.getChildren().addAll(lblOrderNo, lblKds, stepBar);
             if (combinedOrder.getNote() != null && !combinedOrder.getNote().trim().isEmpty()) {
                 Label lblNote = new Label("Ghi chú: " + combinedOrder.getNote());
                 lblNote.setStyle("-fx-font-size: 11px; -fx-text-fill: #78716C; -fx-font-style: italic;");
@@ -1350,11 +1513,13 @@ VBox summaryBox = new VBox(6);
         if (tabF3 != null) tabF3.setStyle(currentFloor == 3 ? activeStyle : inactiveStyle);
     }
 
-    private void setTableFilter(String filter, Button bAll, Button bEmpty, Button bServing) {
+    private void setTableFilter(String filter) {
         this.currentTableFilter = filter;
-        applyFilterPillStyle(bAll, "ALL".equals(filter));
-        applyFilterPillStyle(bEmpty, "EMPTY".equals(filter));
-        applyFilterPillStyle(bServing, "SERVING".equals(filter));
+        applyFilterPillStyle(btnFilterAll, "ALL".equals(filter));
+        applyFilterPillStyle(btnFilterEmpty, "EMPTY".equals(filter));
+        applyFilterPillStyle(btnFilterServing, "SERVING".equals(filter));
+        applyFilterPillStyle(btnFilterReserved, "RESERVED".equals(filter));
+        applyFilterPillStyle(btnFilterCleaning, "CLEANING".equals(filter));
         renderFloorPlan();
     }
 
@@ -1930,14 +2095,15 @@ VBox summaryBox = new VBox(6);
             }
         );
 
-        // Gắn thông tin tóm tắt trực tiếp lên mặt bàn (Tổng tiền / Giờ đặt)
+        // Gắn thông tin tiến độ pha chế & tóm tắt trực tiếp lên mặt bàn (Tổng tiền / Giờ đặt)
         if (activeOrd != null) {
+            node.setOrderProgressStatus(activeOrd.getStatus());
             long kAmount = Math.round(activeOrd.getTotalAmount() / 1000.0);
             node.setLiveSummary(kAmount + "k • " + activeOrd.getTotalQuantity() + " món");
         } else if ("RESERVED".equalsIgnoreCase(effectiveStatus)) {
             CafeServerService.ReservationInfo r = server.getReservation(num);
             if (r != null) {
-                node.setLiveSummary("Đặt " + r.reservationTime);
+                node.setLiveSummary("Hẹn " + r.reservationTime + " • " + r.guestCount + " khách");
             }
         }
 
@@ -1948,6 +2114,10 @@ VBox summaryBox = new VBox(6);
             if ("EMPTY".equals(currentTableFilter) && !"EMPTY".equalsIgnoreCase(effectiveStatus)) {
                 node.setOpacity(0.22);
             } else if ("SERVING".equals(currentTableFilter) && !"SERVING".equalsIgnoreCase(effectiveStatus) && !"OCCUPIED".equalsIgnoreCase(effectiveStatus)) {
+                node.setOpacity(0.22);
+            } else if ("RESERVED".equals(currentTableFilter) && !"RESERVED".equalsIgnoreCase(effectiveStatus)) {
+                node.setOpacity(0.22);
+            } else if ("CLEANING".equals(currentTableFilter) && !"CLEANING".equalsIgnoreCase(effectiveStatus)) {
                 node.setOpacity(0.22);
             } else {
                 node.setOpacity(1.0);
@@ -1962,9 +2132,22 @@ VBox summaryBox = new VBox(6);
 
     private void updateTableTitleDisplay() {
         lblCurrentTableTitle.setText("Bàn " + (selectedTable < 10 ? "0" + selectedTable : selectedTable));
-        String st = tableStatusMap.getOrDefault(selectedTable, "EMPTY");
+        CafeServerService server = CafeServerService.getInstance();
+        Order activeOrd = server.getCombinedOrderForTable(selectedTable);
+        String st = tableStatusMap.getOrDefault(selectedTable, server.getTableStatus(selectedTable));
+        if (activeOrd != null) {
+            st = "SERVING";
+            tableStatusMap.put(selectedTable, "SERVING");
+        }
         if ("SERVING".equalsIgnoreCase(st) || "OCCUPIED".equalsIgnoreCase(st)) {
-            lblCurrentTableStatus.setText("● Đang phục vụ");
+            String subKds = "";
+            if (activeOrd != null && activeOrd.getStatus() != null) {
+                String k = activeOrd.getStatus().toUpperCase();
+                if ("QUEUED".equals(k) || "CREATED".equals(k)) subKds = " • ⏳ Chờ pha chế";
+                else if ("PREPARING".equals(k)) subKds = " • ☕ Đang pha chế";
+                else if ("DONE".equals(k) || "READY".equals(k)) subKds = " • ✓ Đã lên món";
+            }
+            lblCurrentTableStatus.setText("● Đang phục vụ" + subKds);
             lblCurrentTableStatus.setStyle("-fx-background-color: #172E27; -fx-text-fill: #E8C798; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 999px; -fx-padding: 4 12 4 12;");
         } else if ("RESERVED".equalsIgnoreCase(st)) {
             lblCurrentTableStatus.setText("● Đặt trước");
@@ -1985,6 +2168,7 @@ VBox summaryBox = new VBox(6);
         else if ("AVAILABLE".equalsIgnoreCase(status)) mapped = "EMPTY";
         tableStatusMap.put(tableNum, mapped);
         javafx.application.Platform.runLater(() -> {
+            syncStatusesFromServer();
             renderFloorPlan();
             updateTableTitleDisplay();
             refreshInspectorDrawer();

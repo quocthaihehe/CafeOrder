@@ -22,6 +22,8 @@ public class Order {
     private List<String> timeline = new ArrayList<>();
     private boolean stockDeducted = false;
 
+    public Order() {}
+
     public Order(int orderId, int table, List<OrderItem> items, String status, long timestamp) {
         this(orderId, table, "DINE_IN", items, status, 0.0, 0.0, null, null, timestamp, "Bàn " + (table < 10 ? "0" + table : table), UUID.randomUUID().toString());
     }

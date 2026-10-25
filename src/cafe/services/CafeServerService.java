@@ -30,12 +30,14 @@ public class CafeServerService {
     private static volatile CafeServerService activeInstance;
 
     public static class ReservationInfo {
-        public final int tableNumber;
-        public final String customerName;
-        public final String phone;
-        public final String reservationTime;
-        public final int guestCount;
-        public final String note;
+        public int tableNumber;
+        public String customerName;
+        public String phone;
+        public String reservationTime;
+        public int guestCount;
+        public String note;
+
+        public ReservationInfo() {}
 
         public ReservationInfo(int tableNumber, String customerName, String phone, String reservationTime, int guestCount, String note) {
             this.tableNumber = tableNumber;
@@ -654,6 +656,7 @@ public class CafeServerService {
         ) {
             session = new ClientSession(sessionId, socket, writer, -1, "KIOSK");
             activeSessions.put(sessionId, session);
+            sendFullFloorStateToSession(session);
 
             String line;
             while ((line = in.readLine()) != null) {
@@ -716,11 +719,48 @@ public class CafeServerService {
                         // Đăng ký bảng định tuyến bàn
                         bindTableSubscriber(registeredTable, sessionId);
 
+                        // Đồng bộ tức thì toàn bộ trạng thái bàn & đơn hàng đang hoạt động cho Client vừa kết nối
+                        sendFullFloorStateToSession(session);
+
                         log("Thiết bị [" + session.deviceType + " #" + sessionId + "] gắn với Bàn " + registeredTable + " đã kết nối.");
                         final int tConnect = registeredTable;
                         dispatch(() -> {
                             for (BiConsumer<Integer, Boolean> l : tableConnectionListeners) l.accept(tConnect, true);
                         });
+                        break;
+
+                    case TABLE_ACTION_SYNC:
+                        MessageProtocol.TableActionSyncMessage actionMsg = MessageProtocol.fromJson(line, MessageProtocol.TableActionSyncMessage.class);
+                        if (actionMsg != null && actionMsg.action != null) {
+                            switch (actionMsg.action.toUpperCase()) {
+                                case "TRANSFER":
+                                    transferTable(actionMsg.fromTable, actionMsg.toTable, true);
+                                    break;
+                                case "MERGE":
+                                    mergeTables(actionMsg.fromTable, actionMsg.toTable, true);
+                                    break;
+                                case "RESERVE":
+                                    reserveTable(actionMsg.fromTable, actionMsg.customerName, actionMsg.phone, actionMsg.reservationTime, actionMsg.guestCount, actionMsg.note, true);
+                                    break;
+                                case "CANCEL_RESERVE":
+                                    cancelReservation(actionMsg.fromTable, true);
+                                    break;
+                                case "SET_STATUS":
+                                    broadcastTableStatus(actionMsg.fromTable, actionMsg.status, false);
+                                    break;
+                                case "CHECKOUT":
+                                    checkoutTable(actionMsg.fromTable, true);
+                                    break;
+                                case "CANCEL_ORDER":
+                                    cancelOrder(actionMsg.orderId, true);
+                                    break;
+                                case "RESET_SEED":
+                                    resetToSeedState(true);
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
                         break;
 
                     case TABLE_FOCUS_CHANGE:
@@ -865,23 +905,132 @@ public class CafeServerService {
         }
     }
 
+    public void sendFullFloorStateToSession(ClientSession session) {
+        if (session == null) return;
+        int[] allTables = {
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+            201, 202, 203, 204, 205, 206, 207, 208,
+            301, 302, 303, 304, 305, 306
+        };
+        for (int t : allTables) {
+            String st = getTableStatus(t);
+            java.util.List<Order> tOrders = getOrdersForTable(t);
+            if (t > 0 && !tOrders.isEmpty() && !"OCCUPIED".equalsIgnoreCase(st) && !"SERVING".equalsIgnoreCase(st)) {
+                st = "OCCUPIED";
+                tableStatuses.put(t, "OCCUPIED");
+            }
+            ReservationInfo res = getReservation(t);
+            MessageProtocol.TableStatusBroadcastMessage msg = new MessageProtocol.TableStatusBroadcastMessage(
+                t, st, tOrders, res
+            );
+            session.send(MessageProtocol.toJson(msg));
+        }
+    }
+
+    public synchronized void applyRemoteTableSync(int table, String status, java.util.List<Order> tableOrders, ReservationInfo reservation) {
+        if (isRunning) {
+            return; // ServerMain giữ trạng thái gốc
+        }
+        if (table > 0 && status != null) {
+            String norm = "AVAILABLE".equalsIgnoreCase(status) ? "EMPTY" : status.toUpperCase();
+            tableStatuses.put(table, norm);
+        }
+        if (table > 0) {
+            if (reservation != null && "RESERVED".equalsIgnoreCase(status)) {
+                tableReservations.put(table, reservation);
+            } else if ("EMPTY".equalsIgnoreCase(status) || "OCCUPIED".equalsIgnoreCase(status) || "SERVING".equalsIgnoreCase(status) || "CLEANING".equalsIgnoreCase(status)) {
+                tableReservations.remove(table);
+            }
+        }
+        if (tableOrders != null) {
+            // Xóa các đơn cũ đang active của bàn này để nạp danh sách đơn chuẩn từ Server
+            java.util.List<Integer> toRemove = new java.util.ArrayList<>();
+            for (Order existing : activeOrders.values()) {
+                if (existing.getTable() == table) {
+                    String st = existing.getStatus() != null ? existing.getStatus().toUpperCase() : "QUEUED";
+                    if (!"PAID".equals(st) && !"CANCELLED".equals(st)) {
+                        toRemove.add(existing.getOrderId());
+                    }
+                }
+            }
+            for (Integer id : toRemove) {
+                activeOrders.remove(id);
+            }
+            for (Order ord : tableOrders) {
+                if (ord != null) {
+                    activeOrders.put(ord.getOrderId(), ord);
+                }
+            }
+            if (table > 0 && !tableOrders.isEmpty()) {
+                tableStatuses.put(table, "OCCUPIED");
+            }
+        }
+        final String finalSt = status != null ? status : getTableStatus(table);
+        dispatch(() -> {
+            for (BiConsumer<Integer, String> l : tableStatusBroadcastListeners) l.accept(table, finalSt);
+        });
+    }
+
+    public synchronized void applyRemoteOrderStatusSync(int orderId, int table, String status, Order updatedOrder) {
+        if (isRunning) {
+            return;
+        }
+        if (updatedOrder != null) {
+            activeOrders.put(updatedOrder.getOrderId(), updatedOrder);
+            if (updatedOrder.getTable() > 0) {
+                if ("PAID".equalsIgnoreCase(status) || "CANCELLED".equalsIgnoreCase(status)) {
+                    if (getOrdersForTable(updatedOrder.getTable()).isEmpty()) {
+                        tableStatuses.put(updatedOrder.getTable(), "EMPTY");
+                    }
+                } else {
+                    tableStatuses.put(updatedOrder.getTable(), "OCCUPIED");
+                }
+            }
+        } else {
+            Order existing = activeOrders.get(orderId);
+            if (existing != null) {
+                existing.setStatus(status);
+                if (existing.getTable() > 0 && ("PAID".equalsIgnoreCase(status) || "CANCELLED".equalsIgnoreCase(status))) {
+                    if (getOrdersForTable(existing.getTable()).isEmpty()) {
+                        tableStatuses.put(existing.getTable(), "EMPTY");
+                    }
+                }
+            }
+        }
+        dispatch(() -> {
+            for (BiConsumer<Integer, String> l : orderStatusChangedListeners) l.accept(orderId, status);
+            if (table > 0) {
+                for (BiConsumer<Integer, String> l : tableStatusBroadcastListeners) l.accept(table, getTableStatus(table));
+            }
+        });
+    }
+
     public boolean updateOrderStatus(int orderId, String newStatus) {
         Order order = activeOrders.get(orderId);
         if (order != null) {
             order.setStatus(newStatus);
             log("Cập nhật Đơn #" + orderId + " (Bàn " + order.getTable() + ") -> " + MessageProtocol.translateStatus(newStatus));
 
-            // Bắn tín hiệu về tất cả Client đang theo dõi bàn đó
-            MessageProtocol.OrderStatusUpdateMessage updateMsg = new MessageProtocol.OrderStatusUpdateMessage(orderId, order.getTable(), newStatus);
+            // Bắn tín hiệu cập nhật trạng thái đơn + dữ liệu đơn về tất cả các máy trạm (Kiosk + Staff FloorPlan)
+            MessageProtocol.OrderStatusUpdateMessage updateMsg = new MessageProtocol.OrderStatusUpdateMessage(orderId, order.getTable(), newStatus, order);
             String updateJson = MessageProtocol.toJson(updateMsg);
 
-            Set<String> subscribers = tableSubscribers.get(order.getTable());
-            if (subscribers != null && !subscribers.isEmpty()) {
-                for (String sid : subscribers) {
-                    ClientSession s = activeSessions.get(sid);
-                    if (s != null) s.send(updateJson);
+            for (ClientSession s : activeSessions.values()) {
+                if (s != null) s.send(updateJson);
+            }
+            log("Đã đồng bộ trạng thái Đơn #" + orderId + " (" + newStatus + ") tới toàn bộ thiết bị.");
+
+            // Đồng bộ luôn trạng thái bàn kèm danh sách đơn của bàn đó
+            if (order.getTable() > 0) {
+                if ("PAID".equalsIgnoreCase(newStatus) || "CANCELLED".equalsIgnoreCase(newStatus)) {
+                    if (getOrdersForTable(order.getTable()).isEmpty()) {
+                        broadcastTableStatus(order.getTable(), "EMPTY", false);
+                    } else {
+                        broadcastTableStatus(order.getTable(), "OCCUPIED", false);
+                    }
+                } else {
+                    broadcastTableStatus(order.getTable(), "OCCUPIED", false);
                 }
-                log("Đã thông báo trạng thái mới về Bàn " + order.getTable());
             }
 
             // Kích hoạt callback UI
@@ -890,13 +1039,13 @@ public class CafeServerService {
             });
 
             // Nếu Barista bấm Hoàn tất (DONE) -> Tự động kích hoạt trừ tồn kho nguyên vật liệu (BOM)
-            if ("DONE".equalsIgnoreCase(newStatus)) {
+            if ("DONE".equalsIgnoreCase(newStatus) || "READY".equalsIgnoreCase(newStatus)) {
                 synchronized (order) {
                     if (!order.isStockDeducted()) {
                         order.setStockDeducted(true);
                         dbExecutor.submit(() -> {
                             try {
-                                DatabaseManager.updateOrderStatusInDb(orderId, "DONE");
+                                DatabaseManager.updateOrderStatusInDb(orderId, newStatus);
                                 DatabaseManager.deductStockForOrder(order);
                             } catch (Exception ex) {
                                 System.err.println("[SERVER] Lỗi trừ kho định lượng: " + ex.getMessage());
@@ -914,21 +1063,37 @@ public class CafeServerService {
     }
 
     public void broadcastTableStatus(int tableNumber, String status) {
+        broadcastTableStatus(tableNumber, status, true);
+    }
+
+    public void broadcastTableStatus(int tableNumber, String status, boolean syncToRemoteIfClient) {
         if (tableNumber > 0 && status != null) {
             tableStatuses.put(tableNumber, status.toUpperCase());
             if ("EMPTY".equalsIgnoreCase(status) || "OCCUPIED".equalsIgnoreCase(status) || "SERVING".equalsIgnoreCase(status)) {
                 tableReservations.remove(tableNumber);
             }
         }
-        MessageProtocol.TableStatusBroadcastMessage msg = new MessageProtocol.TableStatusBroadcastMessage(tableNumber, status);
+        java.util.List<Order> tOrders = getOrdersForTable(tableNumber);
+        ReservationInfo res = getReservation(tableNumber);
+        MessageProtocol.TableStatusBroadcastMessage msg = new MessageProtocol.TableStatusBroadcastMessage(
+            tableNumber, status, tOrders, res
+        );
         String json = MessageProtocol.toJson(msg);
         for (ClientSession session : activeSessions.values()) {
             session.send(json);
         }
+        if (!isRunning && syncToRemoteIfClient) {
+            ClientSocketService clientSock = ClientSocketService.getActiveInstance();
+            if (clientSock != null) {
+                clientSock.sendTableActionSync(MessageProtocol.TableActionSyncMessage.forSetStatus(tableNumber, status));
+            }
+        }
         dispatch(() -> {
             for (BiConsumer<Integer, String> l : tableStatusBroadcastListeners) l.accept(tableNumber, status);
         });
-        dbExecutor.submit(() -> DatabaseManager.updateTableStatusInDb(tableNumber, status));
+        if (isRunning) {
+            dbExecutor.submit(() -> DatabaseManager.updateTableStatusInDb(tableNumber, status));
+        }
     }
 
     public void broadcastStockStatus(int itemId, boolean inStock, String itemName) {
@@ -949,15 +1114,35 @@ public class CafeServerService {
     }
 
     public void reserveTable(int tableNumber, String customerName, String phone, String time, int guests, String note) {
+        reserveTable(tableNumber, customerName, phone, time, guests, note, false);
+    }
+
+    public void reserveTable(int tableNumber, String customerName, String phone, String time, int guests, String note, boolean fromRemote) {
         ReservationInfo info = new ReservationInfo(tableNumber, customerName, phone, time, guests, note);
         tableReservations.put(tableNumber, info);
-        broadcastTableStatus(tableNumber, "RESERVED");
+        broadcastTableStatus(tableNumber, "RESERVED", false);
+        if (!isRunning && !fromRemote) {
+            ClientSocketService clientSock = ClientSocketService.getActiveInstance();
+            if (clientSock != null) {
+                clientSock.sendTableActionSync(MessageProtocol.TableActionSyncMessage.forReserve(tableNumber, customerName, phone, time, guests, note));
+            }
+        }
         log("Đã đặt trước Bàn " + tableNumber + " cho khách " + customerName + " (" + time + ").");
     }
 
     public void cancelReservation(int tableNumber) {
+        cancelReservation(tableNumber, false);
+    }
+
+    public void cancelReservation(int tableNumber, boolean fromRemote) {
         tableReservations.remove(tableNumber);
-        broadcastTableStatus(tableNumber, "EMPTY");
+        broadcastTableStatus(tableNumber, "EMPTY", false);
+        if (!isRunning && !fromRemote) {
+            ClientSocketService clientSock = ClientSocketService.getActiveInstance();
+            if (clientSock != null) {
+                clientSock.sendTableActionSync(MessageProtocol.TableActionSyncMessage.forCancelReserve(tableNumber));
+            }
+        }
         log("Đã hủy đặt trước Bàn " + tableNumber + " -> Trống.");
     }
 
@@ -1019,32 +1204,53 @@ public class CafeServerService {
     }
 
     public synchronized boolean transferTable(int fromTable, int toTable) {
+        return transferTable(fromTable, toTable, false);
+    }
+
+    public synchronized boolean transferTable(int fromTable, int toTable, boolean fromRemote) {
         if (fromTable <= 0 || toTable <= 0 || fromTable == toTable) return false;
         java.util.List<Order> fromOrders = getOrdersForTable(fromTable);
         for (Order o : fromOrders) {
             o.setTable(toTable);
         }
+        if (!isRunning && !fromRemote) {
+            ClientSocketService clientSock = ClientSocketService.getActiveInstance();
+            if (clientSock != null) {
+                clientSock.sendTableActionSync(MessageProtocol.TableActionSyncMessage.forTransfer(fromTable, toTable));
+            }
+        }
         ReservationInfo res = tableReservations.remove(fromTable);
         if (res != null && fromOrders.isEmpty()) {
             tableReservations.put(toTable, new ReservationInfo(toTable, res.customerName, res.phone, res.reservationTime, res.guestCount, res.note));
-            broadcastTableStatus(fromTable, "EMPTY");
-            broadcastTableStatus(toTable, "RESERVED");
+            broadcastTableStatus(fromTable, "EMPTY", false);
+            broadcastTableStatus(toTable, "RESERVED", false);
             log("Đã chuyển lịch đặt bàn từ Bàn " + fromTable + " sang Bàn " + toTable + ".");
             return true;
         }
-        broadcastTableStatus(fromTable, "EMPTY");
-        broadcastTableStatus(toTable, "OCCUPIED");
+        broadcastTableStatus(fromTable, "EMPTY", false);
+        broadcastTableStatus(toTable, "OCCUPIED", false);
         log("Đã chuyển toàn bộ đơn từ Bàn " + fromTable + " sang Bàn " + toTable + ".");
         return true;
     }
 
     public synchronized boolean mergeTables(int sourceTable, int targetTable) {
+        return mergeTables(sourceTable, targetTable, false);
+    }
+
+    public synchronized boolean mergeTables(int sourceTable, int targetTable, boolean fromRemote) {
         if (sourceTable <= 0 || targetTable <= 0 || sourceTable == targetTable) return false;
         java.util.List<Order> sourceOrders = getOrdersForTable(sourceTable);
         java.util.List<Order> targetOrders = getOrdersForTable(targetTable);
 
+        if (!isRunning && !fromRemote) {
+            ClientSocketService clientSock = ClientSocketService.getActiveInstance();
+            if (clientSock != null) {
+                clientSock.sendTableActionSync(MessageProtocol.TableActionSyncMessage.forMerge(sourceTable, targetTable));
+            }
+        }
+
         if (sourceOrders.isEmpty()) {
-            broadcastTableStatus(sourceTable, "EMPTY");
+            broadcastTableStatus(sourceTable, "EMPTY", false);
             return false;
         }
 
@@ -1070,13 +1276,17 @@ public class CafeServerService {
             }
         }
 
-        broadcastTableStatus(sourceTable, "EMPTY");
-        broadcastTableStatus(targetTable, "OCCUPIED");
+        broadcastTableStatus(sourceTable, "EMPTY", false);
+        broadcastTableStatus(targetTable, "OCCUPIED", false);
         log("Đã gộp hóa đơn Bàn " + sourceTable + " vào Bàn " + targetTable + ".");
         return true;
     }
 
     public synchronized boolean checkoutTable(int tableNumber) {
+        return checkoutTable(tableNumber, false);
+    }
+
+    public synchronized boolean checkoutTable(int tableNumber, boolean fromRemote) {
         java.util.List<Order> orders = getOrdersForTable(tableNumber);
         for (Order o : orders) {
             o.setStatus("PAID");
@@ -1084,20 +1294,32 @@ public class CafeServerService {
             dispatch(() -> {
                 for (BiConsumer<Integer, String> l : orderStatusChangedListeners) l.accept(oid, "PAID");
             });
-            dbExecutor.submit(() -> {
-                try {
-                    DatabaseManager.updateOrderStatusInDb(oid, "PAID");
-                    DatabaseManager.deductStockForOrder(o);
-                } catch (Exception ignored) {}
-            });
+            if (isRunning) {
+                dbExecutor.submit(() -> {
+                    try {
+                        DatabaseManager.updateOrderStatusInDb(oid, "PAID");
+                        DatabaseManager.deductStockForOrder(o);
+                    } catch (Exception ignored) {}
+                });
+            }
         }
         tableReservations.remove(tableNumber);
-        broadcastTableStatus(tableNumber, "EMPTY");
+        broadcastTableStatus(tableNumber, "EMPTY", false);
+        if (!isRunning && !fromRemote) {
+            ClientSocketService clientSock = ClientSocketService.getActiveInstance();
+            if (clientSock != null) {
+                clientSock.sendTableActionSync(MessageProtocol.TableActionSyncMessage.forCheckout(tableNumber));
+            }
+        }
         log("Đã thanh toán & giải phóng Bàn " + tableNumber + " -> Trống.");
         return true;
     }
 
     public synchronized boolean cancelOrder(int orderId) {
+        return cancelOrder(orderId, false);
+    }
+
+    public synchronized boolean cancelOrder(int orderId, boolean fromRemote) {
         Order o = activeOrders.get(orderId);
         if (o == null) return false;
         o.setStatus("CANCELLED");
@@ -1105,22 +1327,47 @@ public class CafeServerService {
         dispatch(() -> {
             for (BiConsumer<Integer, String> l : orderStatusChangedListeners) l.accept(orderId, "CANCELLED");
         });
-        dbExecutor.submit(() -> DatabaseManager.updateOrderStatusInDb(orderId, "CANCELLED"));
+        if (isRunning) {
+            dbExecutor.submit(() -> DatabaseManager.updateOrderStatusInDb(orderId, "CANCELLED"));
+        }
         if (tbl > 0 && getOrdersForTable(tbl).isEmpty()) {
-            broadcastTableStatus(tbl, "EMPTY");
+            broadcastTableStatus(tbl, "EMPTY", false);
+        } else if (tbl > 0) {
+            broadcastTableStatus(tbl, "OCCUPIED", false);
+        }
+        if (!isRunning && !fromRemote) {
+            ClientSocketService clientSock = ClientSocketService.getActiveInstance();
+            if (clientSock != null) {
+                clientSock.sendTableActionSync(MessageProtocol.TableActionSyncMessage.forCancelOrder(orderId));
+            }
         }
         log("Đã hủy Đơn #" + orderId + (tbl > 0 ? " (Bàn " + tbl + ")" : "") + ".");
         return true;
     }
 
     public synchronized void resetToSeedState() {
+        resetToSeedState(false);
+    }
+
+    public synchronized void resetToSeedState(boolean fromRemote) {
         activeOrders.clear();
         tableStatuses.clear();
         tableReservations.clear();
         orderIdCounter.set(1020);
         seedInitialActiveOrders();
-        for (Map.Entry<Integer, String> entry : tableStatuses.entrySet()) {
-            broadcastTableStatus(entry.getKey(), entry.getValue());
+        int[] allTables = {
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+            201, 202, 203, 204, 205, 206, 207, 208,
+            301, 302, 303, 304, 305, 306
+        };
+        for (int t : allTables) {
+            broadcastTableStatus(t, getTableStatus(t), false);
+        }
+        if (!isRunning && !fromRemote) {
+            ClientSocketService clientSock = ClientSocketService.getActiveInstance();
+            if (clientSock != null) {
+                clientSock.sendTableActionSync(MessageProtocol.TableActionSyncMessage.forResetSeed());
+            }
         }
         log("Đã khôi phục dữ liệu mẫu (Seed Data) toàn hệ thống.");
     }

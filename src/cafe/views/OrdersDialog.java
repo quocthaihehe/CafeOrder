@@ -177,6 +177,12 @@ public class OrdersDialog extends Stage {
 
         root.getChildren().addAll(headerRow, tabsRow, scroll);
         renderOrders();
+
+        CafeServerService srv = CafeServerService.getInstance();
+        srv.setOnOrderReceived(o -> javafx.application.Platform.runLater(this::renderOrders));
+        srv.setOnOrderStatusChanged((id, st) -> javafx.application.Platform.runLater(this::renderOrders));
+        srv.setOnTableStatusBroadcasted((tbl, st) -> javafx.application.Platform.runLater(this::renderOrders));
+
         return root;
     }
 

@@ -180,7 +180,7 @@ public class ClientView extends BorderPane {
         iconWrapper.setMinSize(26, 26);
         iconWrapper.setMaxSize(26, 26);
         iconWrapper.setAlignment(Pos.CENTER);
-        Node tableIcon = getIconNode("so-do-ban.png", SvgIcons.TABLE, "🪑", false);
+        Node tableIcon = cafe.utils.IconHelper.getIcon("client", "so-do-ban.png", SvgIcons.TABLE, "", 20, Color.web("#3F3931"));
         iconWrapper.getChildren().add(tableIcon);
 
         Label lblFloorPlan = new Label("Sơ đồ bàn");

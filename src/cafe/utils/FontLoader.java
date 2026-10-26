@@ -17,16 +17,6 @@ public class FontLoader {
         initialized = true;
 
         String[] fontPaths = {
-            "/fonts/PlayfairDisplay-Bold.ttf",
-            "/fonts/PlayfairDisplay-Regular.ttf",
-            "/fonts/Inter-Regular.ttf",
-            "/fonts/Inter-Medium.ttf",
-            "/fonts/Inter-SemiBold.ttf",
-            "/main/resources/fonts/PlayfairDisplay-Bold.ttf",
-            "/main/resources/fonts/PlayfairDisplay-Regular.ttf",
-            "/main/resources/fonts/Inter-Regular.ttf",
-            "/main/resources/fonts/Inter-Medium.ttf",
-            "/main/resources/fonts/Inter-SemiBold.ttf",
             "/cafe/resources/fonts/PlayfairDisplay-Bold.ttf",
             "/cafe/resources/fonts/PlayfairDisplay-Regular.ttf",
             "/cafe/resources/fonts/Inter-Regular.ttf",

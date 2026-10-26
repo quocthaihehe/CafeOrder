@@ -146,8 +146,8 @@ public class WindowChromeHelper {
         if (scene == null) return;
 
         String[] stylesheets = {
-            "/styles/theme.css",
-            "/main/resources/styles/theme.css",
+            
+            
             "/cafe/resources/css/theme.css",
             "/cafe/resources/css/cafe-theme.css",
             "/cafe/views/client.css"

@@ -1,8 +1,8 @@
 @echo off
 chcp 65001 > nul
 echo ===================================================================
-echo   BREW & BEAN CAFE - THIẾT BỊ ĐẦU CUỐI SẢNH (CLIENTMAIN)
-echo   Chức năng: Kiosk Gọi Món Tại Bàn (Khách) / iPad Phục Vụ (Nhân Viên)
+echo   BREW ^& BEAN CAFE - UNG DUNG TRAM (CLIENTMAIN - 3 ROLE)
+echo   Chuc nang: Kiosk Khach Hang / iPad Nhan Vien / Quan Tri Admin
 echo ===================================================================
 java "-Dfile.encoding=UTF-8" -XX:-PrintWarnings -cp "build/classes;lib/*" cafe.ClientMain
 pause

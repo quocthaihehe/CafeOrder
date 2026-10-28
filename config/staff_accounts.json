@@ -33,8 +33,8 @@
     "status": "ACTIVE",
     "password": "123456",
     "ordersServed": 0,
-    "customerRatingSum": 38.0,
-    "customerRatingCount": 10,
+    "customerRatingSum": 58.0,
+    "customerRatingCount": 14,
     "managerRating": 5.0,
     "managerNote": ""
   },
@@ -46,8 +46,8 @@
     "status": "ACTIVE",
     "password": "123456",
     "ordersServed": 0,
-    "customerRatingSum": 3.0,
-    "customerRatingCount": 3,
+    "customerRatingSum": 23.0,
+    "customerRatingCount": 7,
     "managerRating": 5.0,
     "managerNote": ""
   },
@@ -59,8 +59,8 @@
     "status": "ACTIVE",
     "password": "123456",
     "ordersServed": 0,
-    "customerRatingSum": 3.0,
-    "customerRatingCount": 3,
+    "customerRatingSum": 23.0,
+    "customerRatingCount": 7,
     "managerRating": 5.0,
     "managerNote": ""
   },
@@ -72,8 +72,8 @@
     "status": "ACTIVE",
     "password": "123456",
     "ordersServed": 0,
-    "customerRatingSum": 3.0,
-    "customerRatingCount": 3,
+    "customerRatingSum": 23.0,
+    "customerRatingCount": 7,
     "managerRating": 5.0,
     "managerNote": ""
   }

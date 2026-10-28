@@ -1912,6 +1912,9 @@ public class AdminSubViews {
 
         final boolean[] isMeasuringPing = new boolean[]{false};
         final java.util.Map<String, Label> sessionRttLabels = new java.util.concurrent.ConcurrentHashMap<>();
+        final java.util.Map<String, cafe.models.MessageProtocol.SessionSnapshotDto> prevSessionsMap = new java.util.HashMap<>();
+        final java.util.Map<String, Long> disconnectedUntilMap = new java.util.HashMap<>();
+        final java.util.Map<String, cafe.models.MessageProtocol.SessionSnapshotDto> disconnectedDtosMap = new java.util.HashMap<>();
 
         renderRows[0] = () -> {
             // Lấy dữ liệu từ Server trực tiếp hoặc từ Snapshot Socket gửi về
@@ -1928,6 +1931,35 @@ public class AdminSubViews {
                     if (remoteSnap.sessions != null) sessionDtos.addAll(remoteSnap.sessions);
                     if (remoteSnap.pendingRequests != null) reqDtos.addAll(remoteSnap.pendingRequests);
                 }
+            }
+
+            // Quản lý các phiên vừa ngắt kết nối trong 5 giây (Section 3.5)
+            long now = System.currentTimeMillis();
+            java.util.Set<String> currentIds = new java.util.HashSet<>();
+            for (cafe.models.MessageProtocol.SessionSnapshotDto s : sessionDtos) {
+                currentIds.add(s.sessionId);
+                disconnectedUntilMap.remove(s.sessionId);
+                disconnectedDtosMap.remove(s.sessionId);
+            }
+            for (java.util.Map.Entry<String, cafe.models.MessageProtocol.SessionSnapshotDto> entry : prevSessionsMap.entrySet()) {
+                if (!currentIds.contains(entry.getKey()) && !disconnectedUntilMap.containsKey(entry.getKey())) {
+                    disconnectedUntilMap.put(entry.getKey(), now + 5000L);
+                    disconnectedDtosMap.put(entry.getKey(), entry.getValue());
+                }
+            }
+            disconnectedUntilMap.entrySet().removeIf(e -> e.getValue() <= now);
+            disconnectedDtosMap.keySet().removeIf(id -> !disconnectedUntilMap.containsKey(id));
+
+            prevSessionsMap.clear();
+            for (cafe.models.MessageProtocol.SessionSnapshotDto s : sessionDtos) {
+                prevSessionsMap.put(s.sessionId, s);
+            }
+
+            if (!disconnectedUntilMap.isEmpty()) {
+                new Thread(() -> {
+                    try { Thread.sleep(5100); } catch (InterruptedException ignored) {}
+                    Platform.runLater(renderRows[0]::run);
+                }).start();
             }
 
             // Render Pending Reconnect Requests
@@ -2013,12 +2045,18 @@ public class AdminSubViews {
             rowsContainer.getChildren().clear();
 
             lblKpiPortVal.setText(String.valueOf(server.getActiveServerPort()));
-            lblKpiSessionsVal.setText(sessionDtos.size() + " phiên");
+            long onlineCount = sessionDtos.stream().filter(s -> !"STALE".equalsIgnoreCase(s.linkState)).count();
+            long staleCount = sessionDtos.size() - onlineCount;
+            if (staleCount > 0) {
+                lblKpiSessionsVal.setText(onlineCount + " phiên (" + staleCount + " mất tín hiệu)");
+            } else {
+                lblKpiSessionsVal.setText(onlineCount + " phiên");
+            }
             lblKpiRttVal.setText(server.getAverageRttMs() + " ms");
             double kb = (server.getTotalBytesReceived() + server.getTotalBytesSent()) / 1024.0;
             lblKpiTrafficVal.setText(String.format("%.1f KB", kb));
 
-            if (sessionDtos.isEmpty()) {
+            if (sessionDtos.isEmpty() && disconnectedDtosMap.isEmpty()) {
                 VBox emptyBox = new VBox(10);
                 emptyBox.setAlignment(Pos.CENTER);
                 emptyBox.setPadding(new Insets(36, 12, 36, 12));
@@ -2036,10 +2074,15 @@ public class AdminSubViews {
             }
 
             for (cafe.models.MessageProtocol.SessionSnapshotDto s : sessionDtos) {
+                boolean isStale = "STALE".equalsIgnoreCase(s.linkState);
                 HBox row = new HBox(8);
                 row.setAlignment(Pos.CENTER_LEFT);
                 row.setPadding(new Insets(8, 12, 8, 12));
-                row.setStyle("-fx-background-color: #FAF8F5; -fx-background-radius: 6px; -fx-border-color: #EFE9DF; -fx-border-radius: 6px; -fx-border-width: 1px;");
+                if (isStale) {
+                    row.setStyle("-fx-background-color: #FFFDF5; -fx-background-radius: 6px; -fx-border-color: #FDE68A; -fx-border-radius: 6px; -fx-border-width: 1px;");
+                } else {
+                    row.setStyle("-fx-background-color: #FAF8F5; -fx-background-radius: 6px; -fx-border-color: #EFE9DF; -fx-border-radius: 6px; -fx-border-width: 1px;");
+                }
 
                 Label rId = new Label("#" + s.sessionId);
                 rId.setPrefWidth(90);
@@ -2058,14 +2101,23 @@ public class AdminSubViews {
                 rIp.setPrefWidth(160);
                 rIp.setStyle("-fx-font-family: monospace; -fx-font-size: 11.5px; -fx-text-fill: #374151;");
 
-                long rtt = s.rttLatencyMs;
-                Label rRtt = new Label(rtt + " ms");
+                Label rRtt = new Label();
                 rRtt.setPrefWidth(110);
-                String rttColor = rtt <= 20 ? "#047857" : (rtt <= 80 ? "#D97706" : "#DC2626");
-                Circle rttDot = new Circle(4, Color.web(rttColor));
-                rRtt.setGraphic(rttDot);
-                rRtt.setGraphicTextGap(5);
-                rRtt.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: " + rttColor + ";");
+                if (isStale) {
+                    Circle rttDot = new Circle(4, Color.web("#D97706"));
+                    rRtt.setGraphic(rttDot);
+                    rRtt.setGraphicTextGap(5);
+                    rRtt.setText("--");
+                    rRtt.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #D97706;");
+                } else {
+                    long rtt = s.rttLatencyMs;
+                    String rttColor = rtt <= 20 ? "#047857" : (rtt <= 80 ? "#D97706" : "#DC2626");
+                    Circle rttDot = new Circle(4, Color.web(rttColor));
+                    rRtt.setGraphic(rttDot);
+                    rRtt.setGraphicTextGap(5);
+                    rRtt.setText(rtt + " ms");
+                    rRtt.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: " + rttColor + ";");
+                }
                 sessionRttLabels.put(s.sessionId, rRtt);
 
                 Label rPkts = new Label(s.packetsReceived + " / " + s.packetsSent);
@@ -2081,13 +2133,20 @@ public class AdminSubViews {
                 Label rStatus = new Label();
                 rStatus.setPrefWidth(130);
                 if (s.isThrottled) {
-                    Circle stDot = new Circle(4, Color.web("#DC2626"));
+                    Circle stDot = new Circle(4.5, Color.web("#DC2626"));
                     rStatus.setGraphic(stDot);
                     rStatus.setGraphicTextGap(5);
                     rStatus.setText("Throttled (" + s.throttledCount + ")");
                     rStatus.setStyle("-fx-font-size: 11px; -fx-font-weight: 800; -fx-text-fill: #DC2626; -fx-background-color: #FEE2E2; -fx-background-radius: 4px; -fx-padding: 2 6;");
+                } else if (isStale) {
+                    Circle stDot = new Circle(4.5, Color.web("#D97706"));
+                    rStatus.setGraphic(stDot);
+                    rStatus.setGraphicTextGap(5);
+                    String staleLabel = s.silentSeconds > 0 ? "Mất tín hiệu (" + s.silentSeconds + "s)" : "Mất tín hiệu";
+                    rStatus.setText(staleLabel);
+                    rStatus.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #92400E; -fx-background-color: #FFFBEB; -fx-background-radius: 4px; -fx-padding: 2 6;");
                 } else {
-                    Circle stDot = new Circle(4, Color.web("#047857"));
+                    Circle stDot = new Circle(4.5, Color.web("#16A34A"));
                     rStatus.setGraphic(stDot);
                     rStatus.setGraphicTextGap(5);
                     rStatus.setText("Đang kết nối");
@@ -2146,6 +2205,77 @@ public class AdminSubViews {
                     }
                     if (toastCallback != null) toastCallback.accept("Đã ngắt kết nối phiên #" + s.sessionId);
                 });
+
+                actionsBox.getChildren().addAll(btnPingSingle, btnKick);
+                row.getChildren().addAll(rId, rTable, rDevice, rIp, rRtt, rPkts, rBytes, rStatus, rSp, actionsBox);
+                rowsContainer.getChildren().add(row);
+            }
+
+            // Hiển thị các phiên vừa ngắt kết nối trong 5 giây (Section 3.5)
+            for (cafe.models.MessageProtocol.SessionSnapshotDto s : disconnectedDtosMap.values()) {
+                HBox row = new HBox(8);
+                row.setAlignment(Pos.CENTER_LEFT);
+                row.setPadding(new Insets(8, 12, 8, 12));
+                row.setStyle("-fx-background-color: #F9FAFB; -fx-background-radius: 6px; -fx-border-color: #E5E7EB; -fx-border-radius: 6px; -fx-border-width: 1px; -fx-opacity: 0.75;");
+
+                Label rId = new Label("#" + s.sessionId);
+                rId.setPrefWidth(90);
+                rId.setStyle("-fx-font-family: monospace; -fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #6B7280;");
+
+                String tblText = s.currentTable > 0 ? "Bàn " + String.format("%02d", s.currentTable) : "Chưa gán";
+                Label rTable = new Label(tblText);
+                rTable.setPrefWidth(80);
+                rTable.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #9CA3AF;");
+
+                Label rDevice = new Label(s.deviceType != null ? s.deviceType : "KIOSK");
+                rDevice.setPrefWidth(110);
+                rDevice.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 600; -fx-text-fill: #9CA3AF;");
+
+                Label rIp = new Label(s.remoteAddress != null ? s.remoteAddress : "127.0.0.1");
+                rIp.setPrefWidth(160);
+                rIp.setStyle("-fx-font-family: monospace; -fx-font-size: 11.5px; -fx-text-fill: #9CA3AF;");
+
+                Label rRtt = new Label("--");
+                rRtt.setPrefWidth(110);
+                Circle rttDot = new Circle(4, Color.web("#9CA3AF"));
+                rRtt.setGraphic(rttDot);
+                rRtt.setGraphicTextGap(5);
+                rRtt.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #9CA3AF;");
+
+                Label rPkts = new Label(s.packetsReceived + " / " + s.packetsSent);
+                rPkts.setPrefWidth(120);
+                rPkts.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #9CA3AF;");
+
+                double inKb = s.bytesReceived / 1024.0;
+                double outKb = s.bytesSent / 1024.0;
+                Label rBytes = new Label(String.format("%.1f / %.1f KB", inKb, outKb));
+                rBytes.setPrefWidth(130);
+                rBytes.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #9CA3AF;");
+
+                Label rStatus = new Label();
+                rStatus.setPrefWidth(130);
+                Circle stDot = new Circle(4.5, Color.web("#9CA3AF"));
+                rStatus.setGraphic(stDot);
+                rStatus.setGraphicTextGap(5);
+                rStatus.setText("Đã ngắt");
+                rStatus.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #4B5563; -fx-background-color: #F3F4F6; -fx-background-radius: 4px; -fx-padding: 2 6;");
+
+                Region rSp = new Region();
+                HBox.setHgrow(rSp, Priority.ALWAYS);
+
+                HBox actionsBox = new HBox(6);
+                actionsBox.setAlignment(Pos.CENTER_RIGHT);
+                actionsBox.setPrefWidth(140);
+
+                Button btnPingSingle = new Button("Ping");
+                btnPingSingle.setMinWidth(Region.USE_PREF_SIZE);
+                btnPingSingle.setDisable(true);
+                btnPingSingle.setStyle("-fx-background-color: #F3F4F6; -fx-text-fill: #9CA3AF; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 4px; -fx-padding: 3 9;");
+
+                Button btnKick = new Button("Kick");
+                btnKick.setMinWidth(Region.USE_PREF_SIZE);
+                btnKick.setDisable(true);
+                btnKick.setStyle("-fx-background-color: #F3F4F6; -fx-text-fill: #9CA3AF; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 4px; -fx-padding: 3 9;");
 
                 actionsBox.getChildren().addAll(btnPingSingle, btnKick);
                 row.getChildren().addAll(rId, rTable, rDevice, rIp, rRtt, rPkts, rBytes, rStatus, rSp, actionsBox);

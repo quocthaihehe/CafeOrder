@@ -198,6 +198,8 @@ public class CafeServerService {
         return t;
     });
 
+    private java.util.concurrent.ScheduledExecutorService reaperScheduler;
+
     // Multicast Event Listeners
     private final java.util.List<Consumer<Order>> orderReceivedListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
     private final java.util.List<BiConsumer<Integer, String>> orderStatusChangedListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
@@ -225,6 +227,7 @@ public class CafeServerService {
         private final java.util.Queue<Long> recentRequestTimes = new java.util.concurrent.ConcurrentLinkedQueue<>();
         public volatile boolean isThrottled = false;
         public final AtomicInteger throttledCount = new AtomicInteger(0);
+        public volatile String linkState = "ONLINE"; // "ONLINE", "STALE"
 
         public ClientSession(String sessionId, Socket socket, PrintWriter writer, int currentTable, String deviceType) {
             this.sessionId = sessionId;
@@ -336,6 +339,40 @@ public class CafeServerService {
     public void pingAllSessions() {
         for (ClientSession session : activeSessions.values()) {
             session.sendPingProbe();
+        }
+    }
+
+    private void scanAndReapSilentSessions() {
+        if (!isRunning || activeSessions.isEmpty()) return;
+        long now = System.currentTimeMillis();
+        boolean stateChanged = false;
+
+        for (ClientSession session : activeSessions.values()) {
+            long silentMs = now - session.lastHeartbeat;
+            if (silentMs > 60_000L) {
+                log("[REAPER] Thiết bị #" + session.sessionId + " (Bàn " + session.currentTable + ") im lặng " + (silentMs / 1000) + "s (>60s). Tự động ngắt kết nối!");
+                try {
+                    if (session.socket != null && !session.socket.isClosed()) {
+                        session.socket.close();
+                    }
+                } catch (Exception ignored) {}
+            } else if (silentMs >= 20_000L) {
+                if (!"STALE".equalsIgnoreCase(session.linkState)) {
+                    session.linkState = "STALE";
+                    stateChanged = true;
+                    log("[REAPER] Thiết bị #" + session.sessionId + " (Bàn " + session.currentTable + ") mất tín hiệu " + (silentMs / 1000) + "s -> STALE");
+                }
+            } else {
+                if ("STALE".equalsIgnoreCase(session.linkState)) {
+                    session.linkState = "ONLINE";
+                    stateChanged = true;
+                    log("[REAPER] Thiết bị #" + session.sessionId + " (Bàn " + session.currentTable + ") có tín hiệu trở lại -> ONLINE");
+                }
+            }
+        }
+
+        if (stateChanged) {
+            dispatch(this::broadcastTelemetryToAllSessions);
         }
     }
 
@@ -525,7 +562,9 @@ public class CafeServerService {
 
     public MessageProtocol.AdminTelemetrySnapshotMessage buildTelemetrySnapshotMessage() {
         java.util.List<MessageProtocol.SessionSnapshotDto> sList = new java.util.ArrayList<>();
+        long now = System.currentTimeMillis();
         for (ClientSession s : activeSessions.values()) {
+            long silentSec = Math.max(0, (now - s.lastHeartbeat) / 1000L);
             sList.add(new MessageProtocol.SessionSnapshotDto(
                 s.sessionId,
                 s.currentTable,
@@ -538,7 +577,9 @@ public class CafeServerService {
                 s.bytesSent.get(),
                 s.isThrottled,
                 s.throttledCount.get(),
-                s.authenticatedUsername
+                s.authenticatedUsername,
+                s.linkState != null ? s.linkState : "ONLINE",
+                silentSec
             ));
         }
         java.util.List<MessageProtocol.ReconnectRequestDto> rList = new java.util.ArrayList<>();
@@ -564,6 +605,7 @@ public class CafeServerService {
         for (ClientSession s : activeSessions.values()) {
             s.send(json);
         }
+        notifyReconnectRequestsChanged();
     }
 
     public void broadcastOrdersSnapshotToAllSessions() {
@@ -664,6 +706,16 @@ public class CafeServerService {
                 pingMonitorThread.setName("Network-PingMonitor");
                 pingMonitorThread.setDaemon(true);
                 pingMonitorThread.start();
+
+                // Bộ quét dọn phiên im lặng (Reaper) chu kỳ 10 giây
+                if (reaperScheduler == null || reaperScheduler.isShutdown()) {
+                    reaperScheduler = java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
+                        Thread t = new Thread(r, "Network-SessionReaper");
+                        t.setDaemon(true);
+                        return t;
+                    });
+                    reaperScheduler.scheduleWithFixedDelay(this::scanAndReapSilentSessions, 10, 10, java.util.concurrent.TimeUnit.SECONDS);
+                }
 
                 while (isRunning && serverSocket == thisSocket && !thisSocket.isClosed()) {
                     Socket clientSocket = thisSocket.accept();
@@ -785,6 +837,11 @@ public class CafeServerService {
                 if (type == null) continue;
 
                 session.lastHeartbeat = System.currentTimeMillis();
+                if ("STALE".equalsIgnoreCase(session.linkState)) {
+                    session.linkState = "ONLINE";
+                    log("Thiết bị #" + session.sessionId + " (Bàn " + session.currentTable + ") có tín hiệu trở lại -> ONLINE");
+                    dispatch(this::broadcastTelemetryToAllSessions);
+                }
 
                 switch (type) {
                     case PONG:
@@ -1009,6 +1066,7 @@ public class CafeServerService {
                         for (BiConsumer<Integer, Boolean> l : tableConnectionListeners) l.accept(disconnectedTable, false);
                     });
                 }
+                dispatch(this::broadcastTelemetryToAllSessions);
             }
             try {
                 if (socket != null && !socket.isClosed()) socket.close();
@@ -1828,6 +1886,12 @@ public class CafeServerService {
 
     public void stop() {
         isRunning = false;
+        if (reaperScheduler != null) {
+            try {
+                reaperScheduler.shutdownNow();
+            } catch (Exception ignored) {}
+            reaperScheduler = null;
+        }
         try {
             if (serverSocket != null && !serverSocket.isClosed()) {
                 serverSocket.close();

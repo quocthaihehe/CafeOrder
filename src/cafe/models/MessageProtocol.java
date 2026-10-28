@@ -343,6 +343,8 @@ public class MessageProtocol {
         public boolean isThrottled;
         public long throttledCount;
         public String authenticatedUsername;
+        public String linkState = "ONLINE"; // "ONLINE", "STALE"
+        public long silentSeconds = 0;
 
         public SessionSnapshotDto() {}
 
@@ -350,6 +352,15 @@ public class MessageProtocol {
                                   long rttLatencyMs, long packetsReceived, long packetsSent,
                                   long bytesReceived, long bytesSent, boolean isThrottled,
                                   long throttledCount, String authenticatedUsername) {
+            this(sessionId, currentTable, deviceType, remoteAddress, rttLatencyMs, packetsReceived, packetsSent,
+                 bytesReceived, bytesSent, isThrottled, throttledCount, authenticatedUsername, "ONLINE", 0);
+        }
+
+        public SessionSnapshotDto(String sessionId, int currentTable, String deviceType, String remoteAddress,
+                                  long rttLatencyMs, long packetsReceived, long packetsSent,
+                                  long bytesReceived, long bytesSent, boolean isThrottled,
+                                  long throttledCount, String authenticatedUsername,
+                                  String linkState, long silentSeconds) {
             this.sessionId = sessionId;
             this.currentTable = currentTable;
             this.deviceType = deviceType;
@@ -362,6 +373,8 @@ public class MessageProtocol {
             this.isThrottled = isThrottled;
             this.throttledCount = throttledCount;
             this.authenticatedUsername = authenticatedUsername;
+            this.linkState = (linkState != null && !linkState.trim().isEmpty()) ? linkState : "ONLINE";
+            this.silentSeconds = Math.max(0, silentSeconds);
         }
     }
 

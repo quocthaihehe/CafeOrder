@@ -1013,9 +1013,10 @@ public class CafeServerService {
                         );
                         newOrder.setPaymentMode(orderMsg.paymentMode != null ? orderMsg.paymentMode : "PREPAID");
                         newOrder.setPaymentMethod(orderMsg.paymentMethod != null ? orderMsg.paymentMethod : "TIỀN MẶT");
-                        if (newOrder.isPostpaid()) {
-                            newOrder.setStatus("WAITING_PAYMENT");
-                        }
+                        // Chuẩn hóa logic nghiệp vụ F&B: Đơn trả sau (Postpaid) vẫn có tiến độ pha chế ban đầu là QUEUED (Đang chờ)
+                        // để quầy Barista KDS hiển thị thẻ đơn kèm nút "▶ Bắt đầu pha chế" và theo dõi tiến độ bình thường.
+                        // Trạng thái tài chính được định danh qua paymentMode = "POSTPAID" để thu tiền khi khách về/trả bàn.
+                        newOrder.setStatus("QUEUED");
                         activeOrders.put(newOrderId, newOrder);
                         log("Nhận Đơn hàng #" + newOrderId + " (" + newOrder.getOrderTypeLabel() + ") - Bàn " + orderMsg.table + " [" + newOrder.getPaymentMode() + " • " + newOrder.getPaymentMethod() + "].");
 
@@ -1468,7 +1469,7 @@ public class CafeServerService {
         Order activeOrd = getCombinedOrderForTable(tableNumber);
         if (activeOrd != null) {
             String kdsSt = activeOrd.getStatus() != null ? activeOrd.getStatus().toUpperCase() : "QUEUED";
-            if ("QUEUED".equals(kdsSt) || "CREATED".equals(kdsSt) || "CONFIRMED".equals(kdsSt)) {
+            if ("QUEUED".equals(kdsSt) || "CREATED".equals(kdsSt) || "CONFIRMED".equals(kdsSt) || "WAITING_PAYMENT".equals(kdsSt)) {
                 return "Chờ pha";
             } else if ("PREPARING".equals(kdsSt)) {
                 return "Đang pha";

@@ -306,19 +306,19 @@ public class OrdersDialog extends Stage {
         String badgeLabel;
         String badgeBg;
         String badgeFg;
-        if ("QUEUED".equals(st)) {
-            badgeLabel = "Chờ pha chế";
+        if ("QUEUED".equals(st) || "WAITING_PAYMENT".equals(st) || "CREATED".equals(st) || "CONFIRMED".equals(st)) {
+            badgeLabel = order.isPostpaid() ? "Chờ pha chế (Trả sau)" : "Chờ pha chế";
             badgeBg = "#FEF3C7";
             badgeFg = "#B45309";
         } else if ("PREPARING".equals(st)) {
             badgeLabel = "Đang pha chế";
             badgeBg = "#DBEAFE";
             badgeFg = "#1D4ED8";
-        } else if ("DONE".equals(st)) {
+        } else if ("DONE".equals(st) || "READY".equals(st) || "SERVED".equals(st)) {
             badgeLabel = "Đã lên món";
             badgeBg = "#DCFCE7";
             badgeFg = "#15803D";
-        } else if ("PAID".equals(st)) {
+        } else if ("PAID".equals(st) || "COMPLETED".equals(st)) {
             badgeLabel = "Đã thanh toán";
             badgeBg = "#EAE6DE";
             badgeFg = "#44403C";

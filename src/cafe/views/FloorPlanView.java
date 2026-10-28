@@ -2177,7 +2177,7 @@ VBox summaryBox = new VBox(6);
             String subKds = "";
             if (activeOrd != null && activeOrd.getStatus() != null) {
                 String k = activeOrd.getStatus().toUpperCase();
-                if ("QUEUED".equals(k) || "CREATED".equals(k)) subKds = " • Chờ pha chế";
+                if ("QUEUED".equals(k) || "CREATED".equals(k) || "WAITING_PAYMENT".equals(k) || "CONFIRMED".equals(k)) subKds = " • Chờ pha chế";
                 else if ("PREPARING".equals(k)) subKds = " • Đang pha chế";
                 else if ("DONE".equals(k) || "READY".equals(k)) subKds = " • Đã lên món";
             }

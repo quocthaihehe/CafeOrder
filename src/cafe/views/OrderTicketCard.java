@@ -123,12 +123,22 @@ public class OrderTicketCard extends VBox {
         updateElapsedTime();
         row1.getChildren().addAll(leftRow1, spacer, lblSlaTime);
 
-        // TẦNG 2: ● ĐANG PHA CHẾ (Thanh trạng thái riêng biệt, không bị co cụm)
+        // TẦNG 2: ● TIẾN ĐỘ PHA CHẾ + HUY HIỆU THANH TOÁN (TRẢ SAU VS ĐÃ THANH TOÁN)
         HBox row2 = new HBox(6);
         row2.setAlignment(Pos.CENTER_LEFT);
         Label lblStatus = new Label();
         applyStatusBadgeStyle(lblStatus, order.getStatus());
-        row2.getChildren().add(lblStatus);
+
+        // Huy hiệu phân định rõ phương thức thanh toán
+        Label lblPayBadge = new Label();
+        if (order.isPostpaid()) {
+            lblPayBadge.setText("🧾 TRẢ SAU TẠI BÀN");
+            lblPayBadge.setStyle("-fx-background-color: #FEF3C7; -fx-text-fill: #B45309; -fx-border-color: #FDE68A; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-padding: 3 8 3 8; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800;");
+        } else {
+            lblPayBadge.setText("✔ ĐÃ THANH TOÁN");
+            lblPayBadge.setStyle("-fx-background-color: #DCFCE7; -fx-text-fill: #15803D; -fx-border-color: #BBF7D0; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-padding: 3 8 3 8; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11px; -fx-font-weight: 800;");
+        }
+        row2.getChildren().addAll(lblStatus, lblPayBadge);
 
         header.getChildren().addAll(row1, row2);
         return header;
@@ -374,7 +384,7 @@ public class OrderTicketCard extends VBox {
 
         String st = order.getStatus() != null ? order.getStatus().toUpperCase() : "QUEUED";
 
-        if ("QUEUED".equals(st)) {
+        if ("QUEUED".equals(st) || "WAITING_PAYMENT".equals(st) || "CREATED".equals(st) || "CONFIRMED".equals(st)) {
             Button btnStart = new Button("▶ Bắt đầu pha chế");
             btnStart.setMaxWidth(Double.MAX_VALUE);
             btnStart.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 38px; -fx-cursor: hand;");
@@ -426,6 +436,9 @@ public class OrderTicketCard extends VBox {
         String st = status != null ? status.toUpperCase() : "QUEUED";
         switch (st) {
             case "QUEUED":
+            case "WAITING_PAYMENT":
+            case "CREATED":
+            case "CONFIRMED":
                 lbl.setText("● ĐANG CHỜ");
                 lbl.setStyle("-fx-background-color: #FEF3C7; -fx-text-fill: #B45309; -fx-border-color: #FDE68A; -fx-border-radius: 6px; -fx-background-radius: 6px; -fx-padding: 3 10 3 10; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 11.5px; -fx-font-weight: 800;");
                 break;

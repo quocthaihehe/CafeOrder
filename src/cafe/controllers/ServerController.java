@@ -149,18 +149,18 @@ public class ServerController {
         for (Order o : orderList) {
             String st = o.getStatus() != null ? o.getStatus().toUpperCase() : "QUEUED";
             if (!orderMatchesStation(o)) continue;
-            if ("QUEUED".equals(st)) countQueued++;
+            if ("QUEUED".equals(st) || "WAITING_PAYMENT".equals(st) || "CREATED".equals(st) || "CONFIRMED".equals(st)) countQueued++;
             else if ("PREPARING".equals(st)) countPreparing++;
-            else if ("DONE".equals(st)) countDone++;
+            else if ("DONE".equals(st) || "READY".equals(st) || "SERVED".equals(st)) countDone++;
 
             // Check filter
             boolean matchFilter = true;
             if ("Đang chờ".equalsIgnoreCase(currentFilter)) {
-                matchFilter = "QUEUED".equalsIgnoreCase(st);
+                matchFilter = "QUEUED".equalsIgnoreCase(st) || "WAITING_PAYMENT".equalsIgnoreCase(st) || "CREATED".equalsIgnoreCase(st) || "CONFIRMED".equalsIgnoreCase(st);
             } else if ("Đang pha chế".equalsIgnoreCase(currentFilter)) {
                 matchFilter = "PREPARING".equalsIgnoreCase(st);
             } else if ("Đã xong".equalsIgnoreCase(currentFilter)) {
-                matchFilter = "DONE".equalsIgnoreCase(st);
+                matchFilter = "DONE".equalsIgnoreCase(st) || "READY".equalsIgnoreCase(st) || "SERVED".equalsIgnoreCase(st);
             }
 
             // Check search

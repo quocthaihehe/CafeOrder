@@ -1100,44 +1100,65 @@ public class AdminSubViews {
     }
 
     // =========================================================================
-    // TAB 8: NHÂN SỰ & QUẢN TRỊ KPI 2 CHIỀU (KHÁCH HÀNG & QUẢN LÝ)
+    // TAB 8: NHÂN SỰ & TRUNG TÂM ĐÁNH GIÁ KHÁCH HÀNG (REVIEWS & KPI)
     // =========================================================================
     public static VBox buildStaffRbacView(Stage parentStage, Consumer<String> toastCallback) {
         VBox root = new VBox(14);
         VBox.setVgrow(root, Priority.ALWAYS);
 
+        // Header chính
         HBox header = new HBox(12);
         header.setAlignment(Pos.CENTER_LEFT);
         VBox titleCol = new VBox(2);
-        Label lblTitle = new Label("Quản Lý Nhân Sự, Phân Quyền (RBAC) & Đánh Giá KPI 2 Chiều");
+        Label lblTitle = new Label("Quản Lý Nhân Sự, Phân Quyền (RBAC) & Trung Tâm Đánh Giá Khách Hàng");
         lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 21px; -fx-font-weight: 800; -fx-text-fill: #112823;");
-        Label lblSub = new Label("Đánh giá toàn diện hiệu suất qua 2 kênh: Điểm bình chọn trực tiếp từ Khách hàng (CSAT) và Điểm đánh giá nghiệp vụ từ Quản lý");
+        Label lblSub = new Label("Theo dõi hiệu suất nhân viên ca trực kết hợp hệ thống đánh giá trải nghiệm thực tế từ khách hàng (CSAT Reviews)");
         lblSub.setStyle("-fx-font-size: 12px; -fx-text-fill: #78716C;");
         titleCol.getChildren().addAll(lblTitle, lblSub);
 
-        Region sp = new Region();
-        HBox.setHgrow(sp, Priority.ALWAYS);
-
-        VBox rowsBox = new VBox(8);
-        final Runnable[] renderStaff = new Runnable[1];
+        Region spHeader = new Region();
+        HBox.setHgrow(spHeader, Priority.ALWAYS);
 
         Button btnAddStaff = new Button("+ Thêm nhân viên mới");
         btnAddStaff.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-pref-height: 36px; -fx-padding: 7 16 7 16; -fx-cursor: hand;");
-        btnAddStaff.setOnAction(e -> showAddStaffModal(parentStage, () -> {
-            renderStaff[0].run();
-            if (toastCallback != null) toastCallback.accept("Đã tạo tài khoản nhân viên mới thành công!");
-        }));
 
-        header.getChildren().addAll(titleCol, sp, btnAddStaff);
+        header.getChildren().addAll(titleCol, spHeader, btnAddStaff);
 
-        // --- 4 THẺ TỔNG QUAN KPI (SCORECARDS) ---
+        // --- SUB-TAB SEGMENTED CONTROLLER (Chuyển đổi 2 phân hệ chuyên biệt) ---
+        HBox tabSwitcher = new HBox(6);
+        tabSwitcher.setAlignment(Pos.CENTER_LEFT);
+        tabSwitcher.setPadding(new Insets(4));
+        tabSwitcher.setStyle("-fx-background-color: #EFEAE2; -fx-background-radius: 10px;");
+
+        Button tabBtnStaff = new Button("👥 1. Hồ Sơ & Chấm Điểm KPI Nhân Sự");
+        Button tabBtnReviews = new Button("⭐ 2. Trung Tâm Đánh Giá Khách Hàng (CSAT Reviews)");
+
+        String tabActiveStyle = "-fx-background-color: #FFFFFF; -fx-text-fill: #112823; -fx-font-size: 12.5px; -fx-font-weight: 800; -fx-background-radius: 8px; -fx-padding: 7 16; -fx-cursor: hand; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 4, 0, 0, 1);";
+        String tabInactiveStyle = "-fx-background-color: transparent; -fx-text-fill: #6B7280; -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 7 16; -fx-cursor: hand;";
+
+        tabBtnStaff.setStyle(tabActiveStyle);
+        tabBtnReviews.setStyle(tabInactiveStyle);
+
+        tabSwitcher.getChildren().addAll(tabBtnStaff, tabBtnReviews);
+
+        // Stack/Container chứa 2 phân hệ
+        StackPane subTabContentPane = new StackPane();
+        VBox.setVgrow(subTabContentPane, Priority.ALWAYS);
+
+        // =====================================================================
+        // SUB-VIEW 1: HỒ SƠ & CHẤM ĐIỂM KPI NHÂN SỰ
+        // =====================================================================
+        VBox staffSubView = new VBox(12);
+        VBox.setVgrow(staffSubView, Priority.ALWAYS);
+
+        // 4 Scorecard KPI
         HBox kpiScorecards = new HBox(12);
         kpiScorecards.setAlignment(Pos.CENTER_LEFT);
 
         Label lblKpiTotalStaff = new Label("6");
         Label lblKpiCustomerCsat = new Label("4.8 ★");
         Label lblKpiManagerRating = new Label("4.8 ★");
-        Label lblKpiTotalReviews = new Label("4");
+        Label lblKpiTotalReviews = new Label("0");
 
         kpiScorecards.getChildren().addAll(
             createStaffKpiCard("TỔNG NHÂN SỰ", lblKpiTotalStaff, "Nhân sự hoạt động trong ca", "#112823"),
@@ -1146,11 +1167,11 @@ public class AdminSubViews {
             createStaffKpiCard("PHẢN HỒI TỪ KHÁCH", lblKpiTotalReviews, "Lượt đánh giá & góp ý dịch vụ", "#2563EB")
         );
 
-        // BẢNG DANH SÁCH NHÂN VIÊN & KPI
-        VBox card = new VBox(10);
-        VBox.setVgrow(card, Priority.ALWAYS);
-        card.setPadding(new Insets(16));
-        card.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 12px; -fx-border-color: #E6E0D6; -fx-border-radius: 12px;");
+        // Bảng danh sách nhân viên
+        VBox staffTableCard = new VBox(10);
+        VBox.setVgrow(staffTableCard, Priority.ALWAYS);
+        staffTableCard.setPadding(new Insets(16));
+        staffTableCard.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 12px; -fx-border-color: #E6E0D6; -fx-border-radius: 12px;");
 
         HBox tableHeader = new HBox(8);
         tableHeader.setPadding(new Insets(8, 12, 8, 12));
@@ -1170,60 +1191,339 @@ public class AdminSubViews {
             createColHeader("THAO TÁC", 185)
         );
 
-        ScrollPane scroll = new ScrollPane(rowsBox);
-        scroll.setFitToWidth(true);
-        scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
-        VBox.setVgrow(scroll, Priority.ALWAYS);
-        card.getChildren().addAll(tableHeader, scroll);
+        VBox staffRowsBox = new VBox(8);
+        ScrollPane staffScroll = new ScrollPane(staffRowsBox);
+        staffScroll.setFitToWidth(true);
+        staffScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        VBox.setVgrow(staffScroll, Priority.ALWAYS);
+        staffTableCard.getChildren().addAll(tableHeader, staffScroll);
 
-        // KHUNG HIỂN THỊ PHẢN HỒI TỪ KHÁCH HÀNG
-        VBox feedbackCard = new VBox(10);
-        feedbackCard.setPadding(new Insets(14));
-        feedbackCard.setStyle("-fx-background-color: #FAF8F5; -fx-background-radius: 12px; -fx-border-color: #EAE3D6; -fx-border-radius: 12px;");
+        staffSubView.getChildren().addAll(kpiScorecards, staffTableCard);
 
-        HBox fbHeader = new HBox(8);
-        fbHeader.setAlignment(Pos.CENTER_LEFT);
-        Label lblFbTitle = new Label("💬 Ý Kiến Đánh Giá & Góp Ý Trực Tiếp Từ Khách Hàng (Mới Nhất)");
-        lblFbTitle.setStyle("-fx-font-size: 13.5px; -fx-font-weight: 800; -fx-text-fill: #112823;");
-        Region spFb = new Region();
-        HBox.setHgrow(spFb, Priority.ALWAYS);
-        Button btnReloadFb = new Button("🔄 Cập nhật");
-        btnReloadFb.setStyle("-fx-background-color: #EFE9DF; -fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #563521; -fx-background-radius: 6px; -fx-cursor: hand; -fx-padding: 3 9;");
-        btnReloadFb.setOnAction(e -> renderStaff[0].run());
-        fbHeader.getChildren().addAll(lblFbTitle, spFb, btnReloadFb);
+        // =====================================================================
+        // SUB-VIEW 2: TRUNG TÂM ĐÁNH GIÁ KHÁCH HÀNG (REVIEWS CENTER)
+        // =====================================================================
+        VBox reviewsSubView = new VBox(12);
+        VBox.setVgrow(reviewsSubView, Priority.ALWAYS);
 
-        FlowPane feedbacksFlow = new FlowPane(10, 10);
-        feedbackCard.getChildren().addAll(fbHeader, feedbacksFlow);
+        // Layout Master-Detail 2 cột cân đối 100%
+        HBox reviewsLayout = new HBox(16);
+        VBox.setVgrow(reviewsLayout, Priority.ALWAYS);
 
-        renderStaff[0] = () -> {
-            rowsBox.getChildren().clear();
-            feedbacksFlow.getChildren().clear();
+        // --- CỘT TRÁI (340px): TỔNG QUAN ĐIỂM SỐ & THANH TIẾN ĐỘ PHÂN BỐ SAO ---
+        VBox leftSummaryCard = new VBox(14);
+        leftSummaryCard.setPrefWidth(340);
+        leftSummaryCard.setMinWidth(320);
+        leftSummaryCard.setMaxWidth(360);
+        leftSummaryCard.setPadding(new Insets(20));
+        leftSummaryCard.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 12px; -fx-border-color: #E6E0D6; -fx-border-radius: 12px;");
+
+        Label lblSummaryHeader = new Label("TỔNG QUAN HÀI LÒNG KHÁCH HÀNG");
+        lblSummaryHeader.setStyle("-fx-font-size: 11px; -fx-font-weight: 800; -fx-text-fill: #78716C; -fx-letter-spacing: 0.5px;");
+
+        // Điểm to và sao
+        HBox bigScoreRow = new HBox(12);
+        bigScoreRow.setAlignment(Pos.CENTER_LEFT);
+        Label lblBigAvg = new Label("4.7");
+        lblBigAvg.setStyle("-fx-font-size: 42px; -fx-font-weight: 900; -fx-text-fill: #D97706;");
+
+        VBox starsAndCountCol = new VBox(2);
+        starsAndCountCol.setAlignment(Pos.CENTER_LEFT);
+        Label lblBigStars = new Label("★★★★★");
+        lblBigStars.setStyle("-fx-font-size: 18px; -fx-text-fill: #F59E0B;");
+        Label lblTotalReviewsCount = new Label("10 đánh giá từ khách");
+        lblTotalReviewsCount.setStyle("-fx-font-size: 12px; -fx-text-fill: #6B7280; -fx-font-weight: 600;");
+        starsAndCountCol.getChildren().addAll(lblBigStars, lblTotalReviewsCount);
+        bigScoreRow.getChildren().addAll(lblBigAvg, starsAndCountCol);
+
+        // 5 Thanh tiến độ phân bố sao (5★ -> 1★)
+        VBox breakdownBox = new VBox(8);
+        breakdownBox.setPadding(new Insets(6, 0, 6, 0));
+
+        final Integer[] filterStarHolder = new Integer[]{0}; // 0 = Tất cả, 1..5 = Lọc sao
+        final String[] filterStaffHolder = new String[]{"TẤT CẢ"};
+        final String[] searchKeywordHolder = new String[]{""};
+        final Runnable[] renderReviewsList = new Runnable[1];
+
+        leftSummaryCard.getChildren().addAll(lblSummaryHeader, bigScoreRow, new Separator(), breakdownBox);
+
+        // Khung các tiêu chí khen nhiều nhất
+        VBox topTagsBox = new VBox(6);
+        topTagsBox.setPadding(new Insets(10, 12, 10, 12));
+        topTagsBox.setStyle("-fx-background-color: #FAF8F5; -fx-background-radius: 8px; -fx-border-color: #EFEAE2; -fx-border-radius: 8px;");
+        Label lblTopTagsTitle = new Label("ĐIỂM ĐƯỢC KHÁCH KHEN NHIỀU NHẤT");
+        lblTopTagsTitle.setStyle("-fx-font-size: 10px; -fx-font-weight: 800; -fx-text-fill: #047857; -fx-letter-spacing: 0.5px;");
+        VBox topTagsList = new VBox(4);
+        topTagsBox.getChildren().addAll(lblTopTagsTitle, topTagsList);
+        leftSummaryCard.getChildren().add(topTagsBox);
+
+        // --- CỘT PHẢI: BỘ LỌC SAO & DANH SÁCH REVIEW THỰC TẾ ---
+        VBox rightReviewsCard = new VBox(12);
+        HBox.setHgrow(rightReviewsCard, Priority.ALWAYS);
+        rightReviewsCard.setPadding(new Insets(16));
+        rightReviewsCard.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 12px; -fx-border-color: #E6E0D6; -fx-border-radius: 12px;");
+
+        // 1. Dãy nút Pill lọc theo từng loại sao (1 sao, 2 sao... 5 sao)
+        HBox starPillsRow = new HBox(8);
+        starPillsRow.setAlignment(Pos.CENTER_LEFT);
+
+        // 2. Dòng lọc thứ hai: Dropdown lọc theo nhân viên & Ô tìm kiếm
+        HBox filterToolbar2 = new HBox(10);
+        filterToolbar2.setAlignment(Pos.CENTER_LEFT);
+
+        ComboBox<String> cboFilterStaff = new ComboBox<>();
+        cboFilterStaff.setPrefHeight(34);
+        cboFilterStaff.setStyle(COMBO_STYLE);
+
+        TextField txtSearchComment = new TextField();
+        txtSearchComment.setPromptText("🔍 Tìm theo số bàn, tên khách, nội dung nhận xét...");
+        txtSearchComment.setPrefHeight(34);
+        HBox.setHgrow(txtSearchComment, Priority.ALWAYS);
+        txtSearchComment.setStyle("-fx-background-color: #FAF8F5; -fx-border-color: #DFD8CE; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 0 12; -fx-font-size: 12px;");
+
+        Button btnResetFilter = new Button("Xóa bộ lọc");
+        btnResetFilter.setStyle("-fx-background-color: #F3F4F6; -fx-text-fill: #4B5563; -fx-font-size: 11.5px; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 7 12; -fx-cursor: hand;");
+
+        filterToolbar2.getChildren().addAll(cboFilterStaff, txtSearchComment, btnResetFilter);
+
+        // Danh sách thẻ review (Scrollable Container)
+        VBox reviewsCardsContainer = new VBox(10);
+        reviewsCardsContainer.setPadding(new Insets(4, 4, 4, 4));
+
+        ScrollPane reviewsScroll = new ScrollPane(reviewsCardsContainer);
+        reviewsScroll.setFitToWidth(true);
+        reviewsScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent; -fx-border-color: transparent;");
+        VBox.setVgrow(reviewsScroll, Priority.ALWAYS);
+
+        rightReviewsCard.getChildren().addAll(starPillsRow, filterToolbar2, reviewsScroll);
+        reviewsLayout.getChildren().addAll(leftSummaryCard, rightReviewsCard);
+        reviewsSubView.getChildren().add(reviewsLayout);
+
+        // Mặc định hiển thị Sub-View 1
+        subTabContentPane.getChildren().addAll(staffSubView, reviewsSubView);
+        reviewsSubView.setVisible(false);
+        reviewsSubView.setManaged(false);
+
+        // Xử lý chuyển tab
+        tabBtnStaff.setOnAction(e -> {
+            tabBtnStaff.setStyle(tabActiveStyle);
+            tabBtnReviews.setStyle(tabInactiveStyle);
+            staffSubView.setVisible(true);
+            staffSubView.setManaged(true);
+            reviewsSubView.setVisible(false);
+            reviewsSubView.setManaged(false);
+        });
+
+        tabBtnReviews.setOnAction(e -> {
+            tabBtnReviews.setStyle(tabActiveStyle);
+            tabBtnStaff.setStyle(tabInactiveStyle);
+            reviewsSubView.setVisible(true);
+            reviewsSubView.setManaged(true);
+            staffSubView.setVisible(false);
+            staffSubView.setManaged(false);
+            if (renderReviewsList[0] != null) renderReviewsList[0].run();
+        });
+
+        btnAddStaff.setOnAction(e -> showAddStaffModal(parentStage, () -> {
+            renderReviewsList[0].run();
+            if (toastCallback != null) toastCallback.accept("Đã tạo tài khoản nhân viên mới thành công!");
+        }));
+
+        // =====================================================================
+        // LOGIC RENDER & BỘ LỌC CHUYÊN SÂU
+        // =====================================================================
+        renderReviewsList[0] = () -> {
+            staffRowsBox.getChildren().clear();
+            reviewsCardsContainer.getChildren().clear();
+            breakdownBox.getChildren().clear();
+            topTagsList.getChildren().clear();
+            starPillsRow.getChildren().clear();
 
             List<StaffModel> allStaff = DatabaseManager.getAllStaff();
             List<CustomerFeedback> allFeedbacks = DatabaseManager.getAllCustomerFeedbacks();
 
-            // Cập nhật Scorecards
+            // 1. Thống kê điểm số tổng
             lblKpiTotalStaff.setText(allStaff.size() + " nhân sự");
             lblKpiTotalReviews.setText(allFeedbacks.size() + " phản hồi");
+            lblTotalReviewsCount.setText(allFeedbacks.size() + " đánh giá từ khách");
+            tabBtnReviews.setText("⭐ 2. Trung Tâm Đánh Giá Khách Hàng (" + allFeedbacks.size() + " Reviews)");
 
-            double totalCustStars = 0;
-            int totalCustCount = 0;
-            double totalMgrRating = 0;
-
-            for (StaffModel s : allStaff) {
-                if (s.getCustomerRatingCount() > 0) {
-                    totalCustStars += s.getCustomerRatingSum();
-                    totalCustCount += s.getCustomerRatingCount();
-                }
-                totalMgrRating += s.getManagerRating();
+            int[] starCounts = new int[6]; // index 1..5
+            for (CustomerFeedback fb : allFeedbacks) {
+                int r = Math.max(1, Math.min(5, fb.getRating()));
+                starCounts[r]++;
             }
 
-            double avgCust = totalCustCount > 0 ? (totalCustStars / totalCustCount) : 4.8;
-            double avgMgr = allStaff.size() > 0 ? (totalMgrRating / allStaff.size()) : 4.8;
-            lblKpiCustomerCsat.setText(String.format("%.1f ★", avgCust));
+            double totalRatingSum = 0;
+            for (CustomerFeedback fb : allFeedbacks) {
+                totalRatingSum += fb.getRating();
+            }
+            double overallAvg = allFeedbacks.isEmpty() ? 5.0 : Math.round((totalRatingSum / allFeedbacks.size()) * 10.0) / 10.0;
+            lblBigAvg.setText(String.format("%.1f", overallAvg));
+            lblKpiCustomerCsat.setText(String.format("%.1f ★", overallAvg));
+
+            double totalMgrRating = 0;
+            for (StaffModel s : allStaff) totalMgrRating += s.getManagerRating();
+            double avgMgr = allStaff.isEmpty() ? 5.0 : Math.round((totalMgrRating / allStaff.size()) * 10.0) / 10.0;
             lblKpiManagerRating.setText(String.format("%.1f ★", avgMgr));
 
-            // Render Danh sách nhân sự
+            // 2. Render 5 Thanh tiến độ phân bố sao (5★ -> 1★)
+            for (int star = 5; star >= 1; star--) {
+                final int starVal = star;
+                int count = starCounts[star];
+                double pct = allFeedbacks.isEmpty() ? 0.0 : ((double) count / allFeedbacks.size());
+
+                HBox rowBar = new HBox(8);
+                rowBar.setAlignment(Pos.CENTER_LEFT);
+                rowBar.setPadding(new Insets(3, 6, 3, 6));
+                rowBar.setCursor(javafx.scene.Cursor.HAND);
+                rowBar.setStyle(filterStarHolder[0] == starVal ? "-fx-background-color: #FEF3C7; -fx-background-radius: 6px;" : "-fx-background-color: transparent; -fx-background-radius: 6px;");
+
+                Label lblStarText = new Label(star + " ★");
+                lblStarText.setPrefWidth(28);
+                lblStarText.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 700; -fx-text-fill: #374151;");
+
+                StackPane barContainer = new StackPane();
+                barContainer.setPrefHeight(8);
+                barContainer.setMinHeight(8);
+                barContainer.setMaxHeight(8);
+                HBox.setHgrow(barContainer, Priority.ALWAYS);
+                barContainer.setStyle("-fx-background-color: #F3F4F6; -fx-background-radius: 4px;");
+
+                Region barFill = new Region();
+                barFill.setPrefHeight(8);
+                barFill.setMinHeight(8);
+                barFill.setMaxHeight(8);
+                double fillWidth = Math.max(4, pct * 180.0);
+                barFill.setPrefWidth(fillWidth);
+                barFill.setMaxWidth(fillWidth);
+                String barColor = starVal >= 4 ? "#F59E0B" : (starVal == 3 ? "#D97706" : "#EF4444");
+                barFill.setStyle("-fx-background-color: " + barColor + "; -fx-background-radius: 4px;");
+                StackPane.setAlignment(barFill, Pos.CENTER_LEFT);
+                barContainer.getChildren().add(barFill);
+
+                Label lblCountText = new Label(String.valueOf(count));
+                lblCountText.setPrefWidth(24);
+                lblCountText.setAlignment(Pos.CENTER_RIGHT);
+                lblCountText.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #6B7280;");
+
+                rowBar.getChildren().addAll(lblStarText, barContainer, lblCountText);
+
+                rowBar.setOnMouseClicked(ev -> {
+                    if (filterStarHolder[0] == starVal) {
+                        filterStarHolder[0] = 0; // Bỏ lọc nếu click lại
+                    } else {
+                        filterStarHolder[0] = starVal;
+                    }
+                    renderReviewsList[0].run();
+                });
+
+                breakdownBox.getChildren().add(rowBar);
+            }
+
+            // Top tags khen ngợi
+            topTagsList.getChildren().addAll(
+                createTopTagRow("🍹 Pha chế ngon chuẩn vị", 6, allFeedbacks.size()),
+                createTopTagRow("⚡ Phục vụ nhanh nhẹn", 4, allFeedbacks.size()),
+                createTopTagRow("😊 Thái độ thân thiện", 4, allFeedbacks.size()),
+                createTopTagRow("✨ Quán sạch đẹp", 3, allFeedbacks.size())
+            );
+
+            // 3. Render Dãy nút Pill lọc theo sao: [Tất cả] [5 sao] [4 sao] [3 sao] [2 sao] [1 sao]
+            starPillsRow.getChildren().add(createStarFilterPill("Tất cả (" + allFeedbacks.size() + ")", 0, filterStarHolder[0] == 0, () -> {
+                filterStarHolder[0] = 0;
+                renderReviewsList[0].run();
+            }));
+
+            for (int s = 5; s >= 1; s--) {
+                final int starVal = s;
+                boolean active = (filterStarHolder[0] == starVal);
+                String labelText = "⭐ " + s + " sao (" + starCounts[s] + ")";
+                starPillsRow.getChildren().add(createStarFilterPill(labelText, starVal, active, () -> {
+                    filterStarHolder[0] = active ? 0 : starVal;
+                    renderReviewsList[0].run();
+                }));
+            }
+
+            // Cập nhật ComboBox lọc theo nhân viên
+            cboFilterStaff.setOnAction(null);
+            String currentSelectedStaff = cboFilterStaff.getValue();
+            cboFilterStaff.getItems().clear();
+            cboFilterStaff.getItems().add("TẤT CẢ NHÂN SỰ");
+            for (StaffModel s : allStaff) {
+                cboFilterStaff.getItems().add(s.getFullName() + " (@" + s.getUsername() + ")");
+            }
+            if (currentSelectedStaff != null && cboFilterStaff.getItems().contains(currentSelectedStaff)) {
+                cboFilterStaff.setValue(currentSelectedStaff);
+            } else {
+                cboFilterStaff.getSelectionModel().selectFirst();
+            }
+            cboFilterStaff.setOnAction(ev -> {
+                String val = cboFilterStaff.getValue();
+                filterStaffHolder[0] = (val == null || val.startsWith("TẤT CẢ")) ? "TẤT CẢ" : val;
+                renderReviewsList[0].run();
+            });
+
+            btnResetFilter.setOnAction(ev -> {
+                filterStarHolder[0] = 0;
+                filterStaffHolder[0] = "TẤT CẢ";
+                searchKeywordHolder[0] = "";
+                txtSearchComment.clear();
+                cboFilterStaff.getSelectionModel().selectFirst();
+                renderReviewsList[0].run();
+            });
+
+            txtSearchComment.setOnAction(ev -> {
+                searchKeywordHolder[0] = txtSearchComment.getText() != null ? txtSearchComment.getText().trim().toLowerCase() : "";
+                renderReviewsList[0].run();
+            });
+
+            // 4. Lọc danh sách Review theo các tiêu chí
+            List<CustomerFeedback> filteredReviews = new ArrayList<>();
+            for (CustomerFeedback fb : allFeedbacks) {
+                // Lọc theo sao
+                if (filterStarHolder[0] > 0 && fb.getRating() != filterStarHolder[0]) {
+                    continue;
+                }
+                // Lọc theo nhân viên
+                if (!filterStaffHolder[0].equals("TẤT CẢ")) {
+                    String matchUser = filterStaffHolder[0];
+                    if (!matchUser.contains(fb.getStaffFullName()) && !matchUser.contains(fb.getStaffUsername())) {
+                        continue;
+                    }
+                }
+                // Lọc theo từ khóa tìm kiếm
+                if (!searchKeywordHolder[0].isEmpty()) {
+                    String kw = searchKeywordHolder[0];
+                    boolean match = (fb.getComment() != null && fb.getComment().toLowerCase().contains(kw))
+                            || (fb.getCustomerName() != null && fb.getCustomerName().toLowerCase().contains(kw))
+                            || ("bàn " + fb.getTableNumber()).contains(kw);
+                    if (!match) continue;
+                }
+                filteredReviews.add(fb);
+            }
+
+            // 5. Render Thẻ Review chi tiết chân thật
+            if (filteredReviews.isEmpty()) {
+                VBox emptyReviewsBox = new VBox(8);
+                emptyReviewsBox.setAlignment(Pos.CENTER);
+                emptyReviewsBox.setPadding(new Insets(40));
+                Label lEmptyIcon = new Label("🔍");
+                lEmptyIcon.setStyle("-fx-font-size: 36px;");
+                Label lEmptyTitle = new Label("Không tìm thấy đánh giá nào phù hợp với bộ lọc");
+                lEmptyTitle.setStyle("-fx-font-size: 13.5px; -fx-font-weight: 700; -fx-text-fill: #6B7280;");
+                Button btnClearFilter = new Button("Xem toàn bộ đánh giá");
+                btnClearFilter.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-padding: 6 14; -fx-cursor: hand;");
+                btnClearFilter.setOnAction(ev -> btnResetFilter.fire());
+                emptyReviewsBox.getChildren().addAll(lEmptyIcon, lEmptyTitle, btnClearFilter);
+                reviewsCardsContainer.getChildren().add(emptyReviewsBox);
+            } else {
+                for (CustomerFeedback fb : filteredReviews) {
+                    reviewsCardsContainer.getChildren().add(buildSingleRealisticReviewCard(parentStage, fb, () -> renderReviewsList[0].run(), toastCallback));
+                }
+            }
+
+            // 6. Render Bảng nhân sự (Sub-View 1)
             for (StaffModel s : allStaff) {
                 HBox row = new HBox(8);
                 row.setAlignment(Pos.CENTER_LEFT);
@@ -1250,7 +1550,7 @@ public class AdminSubViews {
                 cboRole.setStyle(COMBO_STYLE);
                 cboRole.setOnAction(ev -> {
                     DatabaseManager.updateStaffRole(s.getStaffId(), cboRole.getValue());
-                    renderStaff[0].run();
+                    renderReviewsList[0].run();
                     if (toastCallback != null) toastCallback.accept("Đã cập nhật vai trò " + s.getFullName() + " -> " + cboRole.getValue());
                 });
 
@@ -1258,7 +1558,6 @@ public class AdminSubViews {
                 lOrders.setPrefWidth(100);
                 lOrders.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #374151;");
 
-                // Khách đánh giá (Stars)
                 HBox custBox = new HBox(4);
                 custBox.setAlignment(Pos.CENTER_LEFT);
                 custBox.setPrefWidth(155);
@@ -1268,26 +1567,23 @@ public class AdminSubViews {
                 lCustCount.setStyle("-fx-font-size: 11px; -fx-text-fill: #6B7280;");
                 custBox.getChildren().addAll(lCustStars, lCustCount);
 
-                // Quản lý chấm
                 Label lMgrRating = new Label(String.format("⭐ %.1f / 5.0", s.getManagerRating()));
                 lMgrRating.setPrefWidth(135);
                 lMgrRating.setStyle("-fx-font-size: 12px; -fx-font-weight: 800; -fx-text-fill: #059669;");
 
-                // Xếp loại KPI Rank
                 Label lRank = new Label(s.getKpiRank());
                 lRank.setPrefWidth(125);
                 String rankColor = s.getOverallKpiScore() >= 4.7 ? "#047857" : (s.getOverallKpiScore() >= 4.0 ? "#0284C7" : "#D97706");
                 String rankBg = s.getOverallKpiScore() >= 4.7 ? "#ECFDF5" : (s.getOverallKpiScore() >= 4.0 ? "#E0F2FE" : "#FEF3C7");
                 lRank.setStyle("-fx-font-size: 11px; -fx-font-weight: 800; -fx-text-fill: " + rankColor + "; -fx-background-color: " + rankBg + "; -fx-background-radius: 4px; -fx-padding: 3 7;");
 
-                // Thao tác (Chấm KPI & Khóa)
                 HBox actionsBox = new HBox(6);
                 actionsBox.setAlignment(Pos.CENTER_LEFT);
                 actionsBox.setPrefWidth(185);
 
                 Button btnGradeKpi = new Button("⭐ Chấm KPI");
                 btnGradeKpi.setStyle("-fx-background-color: #FEF3C7; -fx-text-fill: #92400E; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-cursor: hand; -fx-padding: 4 9;");
-                btnGradeKpi.setOnAction(ev -> showStaffKpiModal(parentStage, s, () -> renderStaff[0].run(), toastCallback));
+                btnGradeKpi.setOnAction(ev -> showStaffKpiModal(parentStage, s, () -> renderReviewsList[0].run(), toastCallback));
 
                 boolean active = "ACTIVE".equalsIgnoreCase(s.getStatus());
                 Button btnStatus = new Button(active ? "● Hoạt động" : "🔒 Khóa");
@@ -1304,65 +1600,239 @@ public class AdminSubViews {
                             updated.getStaffId(), updated.getUsername(), updated.getStatus(), updated.getRole()
                         );
                     }
-                    renderStaff[0].run();
+                    renderReviewsList[0].run();
                     String stDesc = (updated != null && "ACTIVE".equalsIgnoreCase(updated.getStatus())) ? "Đang hoạt động" : "Đã khóa";
                     if (toastCallback != null) toastCallback.accept("Đã cập nhật trạng thái " + s.getUsername() + " -> " + stDesc);
                 });
 
                 actionsBox.getChildren().addAll(btnGradeKpi, btnStatus);
                 row.getChildren().addAll(lId, nameBox, cboRole, lOrders, custBox, lMgrRating, lRank, actionsBox);
-                rowsBox.getChildren().add(row);
-            }
-
-            // Render Danh sách Feedbacks thực tế từ khách
-            if (allFeedbacks.isEmpty()) {
-                Label lblEmptyFb = new Label("Chưa có đánh giá nào từ khách hàng.");
-                lblEmptyFb.setStyle("-fx-font-size: 12px; -fx-text-fill: #9CA3AF;");
-                feedbacksFlow.getChildren().add(lblEmptyFb);
-            } else {
-                for (CustomerFeedback fb : allFeedbacks) {
-                    VBox fbCard = new VBox(4);
-                    fbCard.setPadding(new Insets(8, 12, 8, 12));
-                    fbCard.setPrefWidth(310);
-                    fbCard.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 8px; -fx-border-color: #E5E7EB; -fx-border-radius: 8px;");
-
-                    HBox fbTop = new HBox(6);
-                    fbTop.setAlignment(Pos.CENTER_LEFT);
-                    Label lTbl = new Label("Bàn " + (fb.getTableNumber() < 10 ? "0" + fb.getTableNumber() : fb.getTableNumber()));
-                    lTbl.setStyle("-fx-font-size: 11.5px; -fx-font-weight: 800; -fx-text-fill: #112823;");
-                    Label lStars = new Label("★".repeat(fb.getRating()));
-                    lStars.setStyle("-fx-font-size: 12px; -fx-font-weight: 800; -fx-text-fill: #F59E0B;");
-                    Region spFbCard = new Region();
-                    HBox.setHgrow(spFbCard, Priority.ALWAYS);
-                    String timeStr = new java.text.SimpleDateFormat("HH:mm dd/MM").format(new java.util.Date(fb.getTimestamp()));
-                    Label lTime = new Label(timeStr);
-                    lTime.setStyle("-fx-font-size: 10.5px; -fx-text-fill: #9CA3AF;");
-                    fbTop.getChildren().addAll(lTbl, lStars, spFbCard, lTime);
-
-                    Label lStaffTarget = new Label("Gửi tới: " + fb.getStaffFullName());
-                    lStaffTarget.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #92400E;");
-
-                    String tagsText = (fb.getTags() != null && !fb.getTags().isEmpty()) ? String.join(" • ", fb.getTags()) : "Trải nghiệm chung";
-                    Label lTags = new Label(tagsText);
-                    lTags.setStyle("-fx-font-size: 10.5px; -fx-text-fill: #047857; -fx-font-weight: 600;");
-
-                    String commentText = (fb.getComment() != null && !fb.getComment().trim().isEmpty()) ? "\"" + fb.getComment() + "\"" : "";
-                    Label lComment = new Label(commentText);
-                    lComment.setWrapText(true);
-                    lComment.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #374151; -fx-font-style: italic;");
-
-                    fbCard.getChildren().addAll(fbTop, lStaffTarget, lTags);
-                    if (!commentText.isEmpty()) {
-                        fbCard.getChildren().add(lComment);
-                    }
-                    feedbacksFlow.getChildren().add(fbCard);
-                }
+                staffRowsBox.getChildren().add(row);
             }
         };
 
-        renderStaff[0].run();
-        root.getChildren().addAll(header, kpiScorecards, card, feedbackCard);
+        renderReviewsList[0].run();
+        root.getChildren().addAll(header, tabSwitcher, subTabContentPane);
         return root;
+    }
+
+    private static Button createStarFilterPill(String labelText, int starValue, boolean isActive, Runnable onAction) {
+        Button btn = new Button(labelText);
+        if (isActive) {
+            btn.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-size: 12px; -fx-font-weight: 800; -fx-background-radius: 20px; -fx-padding: 6 14; -fx-cursor: hand;");
+        } else {
+            btn.setStyle("-fx-background-color: #F3F4F6; -fx-text-fill: #374151; -fx-font-size: 12px; -fx-font-weight: 600; -fx-background-radius: 20px; -fx-padding: 6 14; -fx-cursor: hand; -fx-border-color: #E5E7EB; -fx-border-radius: 20px;");
+        }
+        btn.setOnAction(e -> onAction.run());
+        return btn;
+    }
+
+    private static HBox createTopTagRow(String tagName, int count, int total) {
+        HBox row = new HBox(6);
+        row.setAlignment(Pos.CENTER_LEFT);
+        Label lblTag = new Label(tagName);
+        lblTag.setStyle("-fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: #374151;");
+        Region sp = new Region();
+        HBox.setHgrow(sp, Priority.ALWAYS);
+        int pct = total > 0 ? (int) Math.round((double) count / total * 100) : 0;
+        Label lblPct = new Label(pct + "%");
+        lblPct.setStyle("-fx-font-size: 11px; -fx-font-weight: 700; -fx-text-fill: #047857;");
+        row.getChildren().addAll(lblTag, sp, lblPct);
+        return row;
+    }
+
+    private static VBox buildSingleRealisticReviewCard(Stage parentStage, CustomerFeedback fb, Runnable onUpdated, Consumer<String> toastCallback) {
+        VBox card = new VBox(8);
+        card.setPadding(new Insets(14, 16, 14, 16));
+        card.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 10px; -fx-border-color: #E5E7EB; -fx-border-radius: 10px; -fx-border-width: 1px;");
+
+        // Row 1: Avatar tròn chữ cái + Tên khách & Bàn + Badge xác thực + Sao + Thời gian
+        HBox topRow = new HBox(10);
+        topRow.setAlignment(Pos.CENTER_LEFT);
+
+        // Avatar chữ cái pastel
+        String[] pastelBgs = {"#EEF2FF", "#FDF2F8", "#F0FDF4", "#FEF3C7", "#F3E8FF", "#E0F2FE"};
+        String[] pastelTexts = {"#4338CA", "#BE185D", "#15803D", "#B45309", "#7E22CE", "#0369A1"};
+        int colorIdx = Math.abs((fb.getCustomerName() + fb.getTableNumber()).hashCode()) % pastelBgs.length;
+
+        StackPane avatarCircle = new StackPane();
+        avatarCircle.setPrefSize(34, 34);
+        avatarCircle.setMinSize(34, 34);
+        avatarCircle.setMaxSize(34, 34);
+        avatarCircle.setStyle("-fx-background-color: " + pastelBgs[colorIdx] + "; -fx-background-radius: 17px;");
+
+        String initials = getCustomerInitials(fb.getCustomerName());
+        Label lblInitials = new Label(initials);
+        lblInitials.setStyle("-fx-font-size: 12px; -fx-font-weight: 800; -fx-text-fill: " + pastelTexts[colorIdx] + ";");
+        avatarCircle.getChildren().add(lblInitials);
+
+        VBox customerMetaBox = new VBox(2);
+        HBox nameAndBadge = new HBox(6);
+        nameAndBadge.setAlignment(Pos.CENTER_LEFT);
+
+        Label lblCustName = new Label(fb.getCustomerName());
+        lblCustName.setStyle("-fx-font-size: 13px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+
+        Label lblVerified = new Label("✔ Đã thanh toán");
+        lblVerified.setStyle("-fx-font-size: 10px; -fx-font-weight: 700; -fx-text-fill: #047857; -fx-background-color: #ECFDF5; -fx-background-radius: 4px; -fx-padding: 1 5;");
+
+        nameAndBadge.getChildren().addAll(lblCustName, lblVerified);
+
+        String staffTargetText = "Gửi tới: " + fb.getStaffFullName();
+        Label lblStaffTarget = new Label(staffTargetText);
+        lblStaffTarget.setStyle("-fx-font-size: 11px; -fx-font-weight: 600; -fx-text-fill: #854D0E;");
+
+        customerMetaBox.getChildren().addAll(nameAndBadge, lblStaffTarget);
+
+        Region spTop = new Region();
+        HBox.setHgrow(spTop, Priority.ALWAYS);
+
+        VBox rightStarsAndTime = new VBox(2);
+        rightStarsAndTime.setAlignment(Pos.CENTER_RIGHT);
+
+        String starStr = "★".repeat(fb.getRating()) + "☆".repeat(Math.max(0, 5 - fb.getRating()));
+        Label lblStars = new Label(starStr);
+        String starColor = fb.getRating() >= 4 ? "#F59E0B" : (fb.getRating() == 3 ? "#D97706" : "#EF4444");
+        lblStars.setStyle("-fx-font-size: 14px; -fx-font-weight: 800; -fx-text-fill: " + starColor + ";");
+
+        String relTime = formatRelativeTime(fb.getTimestamp());
+        Label lblTime = new Label(relTime);
+        lblTime.setStyle("-fx-font-size: 11px; -fx-text-fill: #9CA3AF;");
+
+        rightStarsAndTime.getChildren().addAll(lblStars, lblTime);
+        topRow.getChildren().addAll(avatarCircle, customerMetaBox, spTop, rightStarsAndTime);
+
+        card.getChildren().add(topRow);
+
+        // Tags khen ngợi
+        if (fb.getTags() != null && !fb.getTags().isEmpty()) {
+            HBox tagsRow = new HBox(6);
+            tagsRow.setAlignment(Pos.CENTER_LEFT);
+            for (String tag : fb.getTags()) {
+                Label lTag = new Label(tag);
+                lTag.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 600; -fx-text-fill: #065F46; -fx-background-color: #DEF7EC; -fx-background-radius: 12px; -fx-padding: 2 8;");
+                tagsRow.getChildren().add(lTag);
+            }
+            card.getChildren().add(tagsRow);
+        }
+
+        // Lời nhận xét của khách
+        String cmt = fb.getComment();
+        if (cmt != null && !cmt.trim().isEmpty()) {
+            Label lblComment = new Label("\"" + cmt.trim() + "\"");
+            lblComment.setWrapText(true);
+            lblComment.setStyle("-fx-font-size: 12.5px; -fx-text-fill: #1F2937; -fx-line-spacing: 2px; -fx-padding: 2 0 2 0;");
+            card.getChildren().add(lblComment);
+        } else {
+            Label lblNoComment = new Label("Khách hàng không để lại nhận xét thêm.");
+            lblNoComment.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #9CA3AF; -fx-font-style: italic;");
+            card.getChildren().add(lblNoComment);
+        }
+
+        // Khung phản hồi của Quản lý / Chủ quán (Admin Reply)
+        if (fb.getAdminReply() != null && !fb.getAdminReply().trim().isEmpty()) {
+            VBox replyBox = new VBox(3);
+            replyBox.setPadding(new Insets(8, 12, 8, 12));
+            replyBox.setStyle("-fx-background-color: #F9FAFB; -fx-background-radius: 6px; -fx-border-color: #112823 transparent transparent transparent; -fx-border-width: 0 0 0 3px; -fx-border-color: transparent transparent transparent #112823;");
+
+            HBox replyHeader = new HBox(6);
+            replyHeader.setAlignment(Pos.CENTER_LEFT);
+            Label lblReplyTitle = new Label("☕ Phản hồi của Quản lý Brew & Bean:");
+            lblReplyTitle.setStyle("-fx-font-size: 11px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+            replyHeader.getChildren().add(lblReplyTitle);
+
+            Label lblReplyBody = new Label(fb.getAdminReply());
+            lblReplyBody.setWrapText(true);
+            lblReplyBody.setStyle("-fx-font-size: 12px; -fx-text-fill: #374151;");
+
+            replyBox.getChildren().addAll(replyHeader, lblReplyBody);
+            card.getChildren().add(replyBox);
+        }
+
+        // Nút hành động phản hồi
+        HBox bottomActions = new HBox(8);
+        bottomActions.setAlignment(Pos.CENTER_RIGHT);
+
+        Button btnReply = new Button(fb.getAdminReply() != null ? "✏ Sửa phản hồi" : "💬 Phản hồi lại khách");
+        btnReply.setStyle("-fx-background-color: #F3F4F6; -fx-text-fill: #1F2937; -fx-font-size: 11px; -fx-font-weight: 700; -fx-background-radius: 6px; -fx-padding: 4 10; -fx-cursor: hand; -fx-border-color: #E5E7EB; -fx-border-radius: 6px;");
+        btnReply.setOnAction(e -> showReplyFeedbackModal(parentStage, fb, onUpdated, toastCallback));
+
+        bottomActions.getChildren().add(btnReply);
+        card.getChildren().add(bottomActions);
+
+        return card;
+    }
+
+    private static String getCustomerInitials(String name) {
+        if (name == null || name.trim().isEmpty()) return "KH";
+        String clean = name.replace("Khách Bàn", "B").replace("Khách", "").replace("(", "").replace(")", "").trim();
+        String[] parts = clean.split("\s+");
+        if (parts.length == 0 || parts[0].isEmpty()) return "KH";
+        if (parts.length == 1) return parts[0].substring(0, Math.min(2, parts[0].length())).toUpperCase();
+        return ("" + parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    }
+
+    private static String formatRelativeTime(long ts) {
+        long diff = System.currentTimeMillis() - ts;
+        if (diff < 60_000L) return "Vừa xong";
+        long mins = diff / 60_000L;
+        if (mins < 60) return mins + " phút trước";
+        long hours = mins / 60;
+        if (hours < 24) return hours + " giờ trước";
+        long days = hours / 24;
+        if (days < 7) return days + " ngày trước";
+        return new SimpleDateFormat("dd/MM/yyyy HH:mm").format(new Date(ts));
+    }
+
+    private static void showReplyFeedbackModal(Stage owner, CustomerFeedback fb, Runnable onUpdated, Consumer<String> toastCallback) {
+        Stage modal = createModal(owner, "Phản Hồi Đánh Giá Khách Hàng");
+        VBox root = new VBox(12);
+        root.setPadding(new Insets(20));
+        root.setPrefWidth(460);
+        root.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 16px; -fx-border-color: #DFD7CA; -fx-border-radius: 16px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.22), 24, 0.15, 0, 8);");
+
+        Label lblTitle = new Label("💬 Phản Hồi Đánh Giá Của Khách Hàng");
+        lblTitle.setStyle("-fx-font-family: 'Playfair Display', serif; -fx-font-size: 18px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+
+        // Tóm tắt review của khách
+        VBox reviewSummary = new VBox(4);
+        reviewSummary.setPadding(new Insets(8, 12, 8, 12));
+        reviewSummary.setStyle("-fx-background-color: #FAF8F5; -fx-background-radius: 8px; -fx-border-color: #EFEAE2; -fx-border-radius: 8px;");
+
+        Label lCust = new Label(fb.getCustomerName() + " • " + "★".repeat(fb.getRating()));
+        lCust.setStyle("-fx-font-size: 12px; -fx-font-weight: 800; -fx-text-fill: #D97706;");
+        Label lCmt = new Label(fb.getComment() != null && !fb.getComment().isEmpty() ? "\"" + fb.getComment() + "\"" : "(Khách không để lại nhận xét)");
+        lCmt.setWrapText(true);
+        lCmt.setStyle("-fx-font-size: 11.5px; -fx-text-fill: #4B5563; -fx-font-style: italic;");
+        reviewSummary.getChildren().addAll(lCust, lCmt);
+
+        Label lblReplyPrompt = new Label("Nhập nội dung phản hồi từ Quản lý / Chủ quán gửi tới khách:");
+        lblReplyPrompt.setStyle("-fx-font-size: 12px; -fx-font-weight: 600; -fx-text-fill: #374151;");
+
+        TextArea txtReply = new TextArea(fb.getAdminReply() != null ? fb.getAdminReply() : "");
+        txtReply.setPromptText("Dạ cảm ơn bạn đã ghé quán! Quán rất vui vì bạn hài lòng / Quán chân thành xin lỗi...");
+        txtReply.setPrefRowCount(4);
+        txtReply.setWrapText(true);
+
+        HBox actions = new HBox(10);
+        actions.setAlignment(Pos.CENTER_RIGHT);
+        Button btnCancel = new Button("Đóng");
+        btnCancel.setStyle("-fx-background-color: #EAE4DA; -fx-text-fill: #1C1917; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 7 14; -fx-cursor: hand;");
+        btnCancel.setOnAction(e -> modal.close());
+
+        Button btnSave = new Button("Gửi Phản Hồi");
+        btnSave.setStyle("-fx-background-color: #112823; -fx-text-fill: #FFFFFF; -fx-font-weight: 700; -fx-background-radius: 8px; -fx-padding: 7 18; -fx-cursor: hand;");
+        btnSave.setOnAction(e -> {
+            String rep = txtReply.getText() != null ? txtReply.getText().trim() : "";
+            DatabaseManager.updateCustomerFeedbackReply(fb.getFeedbackId(), rep);
+            modal.close();
+            if (onUpdated != null) onUpdated.run();
+            if (toastCallback != null) toastCallback.accept("Đã gửi phản hồi tới đánh giá của " + fb.getCustomerName());
+        });
+        actions.getChildren().addAll(btnCancel, btnSave);
+
+        root.getChildren().addAll(lblTitle, reviewSummary, lblReplyPrompt, txtReply, actions);
+        showModal(modal, root);
     }
 
     private static VBox createStaffKpiCard(String title, Label valLabel, String subText, String valColor) {

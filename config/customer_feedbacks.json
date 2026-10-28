@@ -1,91 +1,165 @@
 [
   {
-    "feedbackId": "FB-205ddbac",
-    "orderId": 1021,
-    "tableNumber": 5,
-    "staffUsername": "all",
-    "staffFullName": "Đội ngũ quán",
-    "rating": 1,
-    "tags": [],
-    "comment": "",
-    "timestamp": 1793179668453
-  },
-  {
-    "feedbackId": "FB-205ddbac",
-    "orderId": 1021,
-    "tableNumber": 5,
-    "staffUsername": "all",
-    "staffFullName": "Đội ngũ quán",
-    "rating": 1,
-    "tags": [],
-    "comment": "",
-    "timestamp": 1793179668453
-  },
-  {
-    "feedbackId": "FB-205ddbac",
-    "orderId": 1021,
-    "tableNumber": 5,
-    "staffUsername": "all",
-    "staffFullName": "Đội ngũ quán",
-    "rating": 1,
-    "tags": [],
-    "comment": "",
-    "timestamp": 1793179668453
-  },
-  {
-    "feedbackId": "FB-101",
-    "orderId": 101,
+    "feedbackId": "FB-20261028-01",
+    "orderId": 1045,
     "tableNumber": 2,
-    "staffUsername": "waiter",
-    "staffFullName": "Lê Quốc Bảo",
-    "rating": 5,
-    "tags": [
-      "Phục vụ nhanh",
-      "Thân thiện"
-    ],
-    "comment": "Bạn phục vụ Bảo rất nhiệt tình, chu đáo, nước ra nhanh!",
-    "timestamp": 1793175932403
-  },
-  {
-    "feedbackId": "FB-102",
-    "orderId": 102,
-    "tableNumber": 5,
+    "customerName": "Khách Bàn 02 (Anh Tuấn)",
     "staffUsername": "barista1",
     "staffFullName": "Phạm Thu Hà",
     "rating": 5,
     "tags": [
-      "Pha chế ngon",
-      "Đúng yêu cầu"
+      "🍹 Pha chế ngon chuẩn vị",
+      "✨ Quán sạch đẹp, thoáng mát"
     ],
-    "comment": "Cà phê muối béo ngậy đúng chuẩn vị, 10 điểm!",
-    "timestamp": 1793172332403
+    "comment": "Cà phê muối béo ngậy cực kỳ ngon, vị mặn ngọt hài hòa đúng gu mình. Quán decor ấm cúng, nhạc chill rất hợp làm việc!",
+    "adminReply": "Dạ cảm ơn anh Tuấn nhiều ạ! Cà phê muối là món 'signature' của quán, rất vui vì anh đã có trải nghiệm tuyệt vời ❤️",
+    "replyTimestamp": 1793184709714,
+    "timestamp": 1793182909714
   },
   {
-    "feedbackId": "FB-103",
-    "orderId": 103,
+    "feedbackId": "FB-20261028-02",
+    "orderId": 1042,
+    "tableNumber": 5,
+    "customerName": "Khách Bàn 05 (Chị Mai)",
+    "staffUsername": "waiter",
+    "staffFullName": "Lê Quốc Bảo",
+    "rating": 5,
+    "tags": [
+      "⚡ Phục vụ nhanh nhẹn",
+      "😊 Thái độ thân thiện, niềm nở"
+    ],
+    "comment": "Bạn nam phục vụ Bảo rất lễ phép và nhanh nhẹn, vừa ngồi xuống là mang nước lọc ra ngay, tư vấn món nhiệt tình 10/10.",
+    "adminReply": "Dạ cảm ơn chị Mai đã dành lời khen cho bạn Bảo! Quán sẽ thưởng điểm KPI cho bạn trong ca trực hôm nay ạ.",
+    "replyTimestamp": 1793183509714,
+    "timestamp": 1793181109714
+  },
+  {
+    "feedbackId": "FB-20261028-03",
+    "orderId": 1039,
     "tableNumber": 1,
+    "customerName": "Khách Bàn 01 (Minh Hoàng)",
     "staffUsername": "cashier1",
     "staffFullName": "Nguyễn Minh Luân",
     "rating": 5,
     "tags": [
-      "Thân thiện",
-      "Thanh toán nhanh"
+      "💯 Giá cả hợp lý",
+      "⚡ Phục vụ nhanh nhẹn"
     ],
-    "comment": "Thanh toán VietQR tiện lợi, anh thu ngân tươi cười lịch sự.",
-    "timestamp": 1793165132403
+    "comment": "Thanh toán VietQR quét mã tích tắc là xong, hoá đơn điện tử rõ ràng từng món. Giá nước hợp lý so với mặt bằng.",
+    "adminReply": null,
+    "replyTimestamp": 0,
+    "timestamp": 1793179309714
   },
   {
-    "feedbackId": "FB-104",
-    "orderId": 104,
-    "tableNumber": 3,
+    "feedbackId": "FB-20261028-04",
+    "orderId": 1035,
+    "tableNumber": 8,
+    "customerName": "Khách Bàn 08 (Hoàng Oanh)",
+    "staffUsername": "barista2",
+    "staffFullName": "Đặng Gia Huy",
+    "rating": 4,
+    "tags": [
+      "🍹 Pha chế ngon chuẩn vị",
+      "🎶 Nhạc hay, không gian êm"
+    ],
+    "comment": "Trà đào cam sả thơm lừng, miếng đào giòn ngọt. Chỉ có điều đá hơi nhiều một xíu làm loãng vị về sau, lần sau mình sẽ dặn ít đá.",
+    "adminReply": "Dạ chào bạn Oanh! Lần tới bạn có thể chọn tuỳ chọn '50% đá' ngay trên Kiosk để đồ uống luôn đậm vị suốt buổi nhé ạ!",
+    "replyTimestamp": 1793178509714,
+    "timestamp": 1793175709714
+  },
+  {
+    "feedbackId": "FB-20261028-05",
+    "orderId": 1030,
+    "tableNumber": 12,
+    "customerName": "Khách Bàn 12 (Văn Hùng)",
     "staffUsername": "all",
     "staffFullName": "Đội ngũ quán",
     "rating": 4,
     "tags": [
-      "Quán sạch đẹp",
-      "Nhạc hay"
+      "✨ Quán sạch đẹp, thoáng mát",
+      "💯 Giá cả hợp lý"
     ],
-    "comment": "Không gian thoáng mát, ngồi làm việc rất thích hợp.",
-    "timestamp": 1793150732403
+    "comment": "Bàn ghế gỗ ngồi êm, ổ cắm điện nhiều tiện cho người mang laptop. Wifi quán rất mạnh, xem video 4K không lag.",
+    "adminReply": null,
+    "replyTimestamp": 0,
+    "timestamp": 1793172109714
+  },
+  {
+    "feedbackId": "FB-20261028-06",
+    "orderId": 1025,
+    "tableNumber": 4,
+    "customerName": "Khách Bàn 04 (Quốc Đạt)",
+    "staffUsername": "barista1",
+    "staffFullName": "Phạm Thu Hà",
+    "rating": 3,
+    "tags": [
+      "🍹 Pha chế ngon chuẩn vị"
+    ],
+    "comment": "Đồ uống thì ngon nhưng giờ cao điểm trưa hôm nay quán đông khách quá nên mình phải đợi tầm 12 phút mới có nước.",
+    "adminReply": "Dạ chào bạn Đạt, quản lý rất xin lỗi vì để bạn phải chờ lâu vào giờ cao điểm trưa nay. Quán đã bổ sung thêm 1 Barista phụ ca để đẩy nhanh tiến độ làm nước rồi ạ!",
+    "replyTimestamp": 1793169509714,
+    "timestamp": 1793168509714
+  },
+  {
+    "feedbackId": "FB-20261028-07",
+    "orderId": 1018,
+    "tableNumber": 3,
+    "customerName": "Khách Bàn 03 (Thanh Trúc)",
+    "staffUsername": "all",
+    "staffFullName": "Đội ngũ quán",
+    "rating": 3,
+    "tags": [
+      "😊 Thái độ thân thiện, niềm nở"
+    ],
+    "comment": "Nhân viên nhiệt tình nhưng khu vực tầng 2 trưa nay điều hòa chỉnh hơi lạnh, gió thổi thẳng vào bàn 03.",
+    "adminReply": "Dạ cảm ơn chị Trúc đã góp ý! Quán đã điều chỉnh hướng gió máy lạnh và nhiệt độ ổn định 25 độ C để khách ngồi thoải mái hơn ạ.",
+    "replyTimestamp": 1793166509714,
+    "timestamp": 1793164909714
+  },
+  {
+    "feedbackId": "FB-20261028-08",
+    "orderId": 1012,
+    "tableNumber": 7,
+    "customerName": "Khách Bàn 07 (Bảo Nam)",
+    "staffUsername": "waiter",
+    "staffFullName": "Lê Quốc Bảo",
+    "rating": 2,
+    "tags": [],
+    "comment": "Hôm nay mình gọi thêm bánh tiramisu mà bạn phục vụ quên chuyển đơn cho quầy bánh, phải nhắc lại lần 2 mới có.",
+    "adminReply": "Dạ quản lý ca trực chân thành xin lỗi bạn Nam! Quán đã họp chấn chỉnh lại quy trình kiểm tra đơn bánh của nhân viên phục vụ để không tái diễn sự cố này nữa ạ.",
+    "replyTimestamp": 1793162509714,
+    "timestamp": 1793161309714
+  },
+  {
+    "feedbackId": "FB-20261028-09",
+    "orderId": 1005,
+    "tableNumber": 0,
+    "customerName": "Khách Mang Về (Khánh Linh)",
+    "staffUsername": "barista2",
+    "staffFullName": "Đặng Gia Huy",
+    "rating": 1,
+    "tags": [],
+    "comment": "Mình đã ghi chú rõ là không đường nhưng ly Matcha latte mang về của mình uống vào vẫn rất ngọt, mình bị tiểu đường nên không uống được.",
+    "adminReply": "Dạ chào bạn Linh, quản lý vô cùng xin lỗi bạn về sự nhầm lẫn nghiêm trọng này! Quán xin phép được liên hệ để hoàn tiền và gửi tặng bạn ly mới chuẩn không đường tận nơi ạ.",
+    "replyTimestamp": 1793159509714,
+    "timestamp": 1793157709714
+  },
+  {
+    "feedbackId": "FB-20261028-10",
+    "orderId": 1002,
+    "tableNumber": 6,
+    "customerName": "Khách Bàn 06 (Ngọc Hân)",
+    "staffUsername": "barista1",
+    "staffFullName": "Phạm Thu Hà",
+    "rating": 5,
+    "tags": [
+      "🍹 Pha chế ngon chuẩn vị",
+      "⚡ Phục vụ nhanh nhẹn",
+      "😊 Thái độ thân thiện, niềm nở"
+    ],
+    "comment": "Bạc xỉu 3 tầng đẹp mắt, lớp bọt sữa sánh mịn, bạn pha chế rất khéo tay! Sẽ ủng hộ quán dài dài.",
+    "adminReply": "Dạ cảm ơn bạn Hân thật nhiều! Chúc bạn có một ngày làm việc tràn đầy năng lượng cùng Brew & Bean ạ ❤️",
+    "replyTimestamp": 1793156509714,
+    "timestamp": 1793154109714
   }
 ]

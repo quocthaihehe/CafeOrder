@@ -962,4 +962,17 @@ public class DatabaseManager {
         }
     }
 
+    public static synchronized void updateCustomerFeedbackReply(String feedbackId, String adminReply) {
+        if (feedbackId == null) return;
+        loadCustomerFeedbacks();
+        for (CustomerFeedback fb : feedbackList) {
+            if (feedbackId.equalsIgnoreCase(fb.getFeedbackId())) {
+                fb.setAdminReply(adminReply);
+                fb.setReplyTimestamp(System.currentTimeMillis());
+                saveCustomerFeedbacks();
+                break;
+            }
+        }
+    }
+
 }

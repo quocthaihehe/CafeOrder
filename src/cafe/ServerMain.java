@@ -6,6 +6,7 @@ import cafe.utils.AnimationHelper;
 import cafe.utils.FontLoader;
 import cafe.utils.IconHelper;
 import cafe.utils.SvgIcons;
+import cafe.utils.WarningSuppressor;
 import cafe.utils.WindowChromeHelper;
 import cafe.views.ServerKDSView;
 import javafx.application.Application;
@@ -17,7 +18,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -28,7 +28,9 @@ import javafx.stage.StageStyle;
 public class ServerMain {
 
     public static void main(String[] args) {
-        cafe.utils.WarningSuppressor.suppress();
+        try {
+            WarningSuppressor.suppress();
+        } catch (Throwable ignored) {}
         Application.launch(ServerApp.class, args);
     }
 

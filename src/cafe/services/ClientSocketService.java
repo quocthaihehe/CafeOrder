@@ -227,6 +227,13 @@ public class ClientSocketService {
             running = true;
             startListening();
             startHeartbeat();
+            try {
+                MessageProtocol.HelloMessage initHello = new MessageProtocol.HelloMessage(
+                    this.activeTableNumber, localSessionId, this.deviceType != null ? this.deviceType : "LOGIN_SCREEN", this.authenticatedStaffUsername
+                );
+                out.print(MessageProtocol.toJson(initHello));
+                out.flush();
+            } catch (Exception ignored) {}
             dispatch(() -> {
                 if (onConnectionStateChanged != null) onConnectionStateChanged.accept(true);
             });

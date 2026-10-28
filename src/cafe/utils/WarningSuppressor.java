@@ -2,30 +2,23 @@ package cafe.utils;
 
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class WarningSuppressor {
-    private static boolean initialized = false;
+    private static volatile boolean initialized = false;
 
     /**
      * Tắt toàn bộ các cảnh báo đỏ vô hại của JavaFX (unnamed module)
      * và cảnh báo HotSpot JVM (sun.misc.Unsafe deprecation).
      */
     public static synchronized void suppress() {
-        if (initialized) return;
+        if (initialized) {
+            return;
+        }
         initialized = true;
 
-        // 1. Tắt cảnh báo Logging từ JavaFX
+        // Bộ lọc Stream loại bỏ các cảnh báo JVM Unsafe / JavaFX module ra console (System.err)
         try {
-            Logger.getLogger("javafx").setLevel(Level.OFF);
-            Logger.getLogger("com.sun.javafx").setLevel(Level.OFF);
-            Logger.getLogger("com.sun.javafx.application.PlatformImpl").setLevel(Level.OFF);
-        } catch (Exception ignored) {}
-
-        // 2. Bộ lọc Stream loại bỏ các cảnh báo JVM Unsafe / JavaFX module ra console
-        try {
-            PrintStream originalErr = System.err;
+            final PrintStream originalErr = System.err;
             System.setErr(new PrintStream(new OutputStream() {
                 private final StringBuilder buffer = new StringBuilder();
 
@@ -59,6 +52,6 @@ public class WarningSuppressor {
                            line.contains("terminally deprecated method");
                 }
             }, true));
-        } catch (Exception ignored) {}
+        } catch (Throwable ignored) {}
     }
 }

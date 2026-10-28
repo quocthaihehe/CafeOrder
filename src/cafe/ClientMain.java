@@ -3,6 +3,7 @@ package cafe;
 import cafe.controllers.LoginController;
 import cafe.services.ClientSocketService;
 import cafe.utils.FontLoader;
+import cafe.utils.WarningSuppressor;
 import cafe.utils.WindowChromeHelper;
 import cafe.views.LoginView;
 import javafx.application.Application;
@@ -12,7 +13,9 @@ import javafx.stage.Stage;
 public class ClientMain {
 
     public static void main(String[] args) {
-        cafe.utils.WarningSuppressor.suppress();
+        try {
+            WarningSuppressor.suppress();
+        } catch (Throwable ignored) {}
         Application.launch(ClientApp.class, args);
     }
 

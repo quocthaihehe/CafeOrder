@@ -137,23 +137,23 @@ public class CafeServerService {
             new cafe.models.OrderItem("Cà phê Muối Huế", 3, "Size M", 42000),
             new cafe.models.OrderItem("Trà Vải Hoa Hồng", 2, "Size L", 49000)
         );
-        addSeedOrder(1008, 209, "DINE_IN", "DONE", 0, null, "", now - 40 * 60_000L,
+        addSeedOrder(1008, 207, "DINE_IN", "DONE", 0, null, "", now - 40 * 60_000L,
             new cafe.models.OrderItem("Latte Hạnh Nhân", 2, "Size M • Nóng", 55000)
         );
-        addSeedOrder(1009, 214, "DINE_IN", "QUEUED", 0, null, "", now - 5 * 60_000L,
+        addSeedOrder(1009, 208, "DINE_IN", "QUEUED", 0, null, "", now - 5 * 60_000L,
             new cafe.models.OrderItem("Sinh Tố Bơ Sầu Riêng", 2, "Size L", 62000)
         );
         addSeedOrder(1010, 302, "DINE_IN", "PREPARING", 0, null, "Ban công", now - 16 * 60_000L,
             new cafe.models.OrderItem("Cold Brew Quất Mật Ong", 2, "Size L", 55000),
             new cafe.models.OrderItem("Bánh Phô Mai Nướng Basque", 2, "", 58000)
         );
-        addSeedOrder(1011, 305, "DINE_IN", "DONE", 0, null, "", now - 35 * 60_000L,
+        addSeedOrder(1011, 304, "DINE_IN", "DONE", 0, null, "", now - 35 * 60_000L,
             new cafe.models.OrderItem("Trà Hoa Đậu Biếc Macchiato", 2, "Size M", 49000)
         );
-        addSeedOrder(1012, 309, "DINE_IN", "PREPARING", 0, null, "", now - 11 * 60_000L,
+        addSeedOrder(1012, 305, "DINE_IN", "PREPARING", 0, null, "", now - 11 * 60_000L,
             new cafe.models.OrderItem("Cappuccino Đá", 2, "Size M • Nóng", 49000)
         );
-        addSeedOrder(1013, 311, "DINE_IN", "DONE", 0, null, "", now - 21 * 60_000L,
+        addSeedOrder(1013, 306, "DINE_IN", "DONE", 0, null, "", now - 21 * 60_000L,
             new cafe.models.OrderItem("Matcha Đá Xay", 3, "Size L • +Kem tươi", 59000)
         );
 
@@ -504,6 +504,7 @@ public class CafeServerService {
 
     public synchronized void applyRemoteOrdersSnapshot(java.util.List<Order> orders) {
         if (isRunning || orders == null) return;
+        activeOrders.clear();
         for (Order o : orders) {
             if (o != null) {
                 activeOrders.put(o.getOrderId(), o);
@@ -518,6 +519,7 @@ public class CafeServerService {
                 for (Consumer<Order> l : orderReceivedListeners) l.accept(orders.get(0));
             }
             for (BiConsumer<Integer, String> l : orderStatusChangedListeners) l.accept(-1, "SYNC");
+            for (BiConsumer<Integer, String> l : tableStatusBroadcastListeners) l.accept(-1, "SYNC");
         });
     }
 
@@ -1360,6 +1362,71 @@ public class CafeServerService {
     public boolean isReservationWithinLockWindow(int tableNumber) {
         ReservationInfo res = tableReservations.get(tableNumber);
         return isReservationLockActive(res);
+    }
+
+    public static final int[] FLOOR_TABLES = {
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+        201, 202, 203, 204, 205, 206, 207, 208,
+        301, 302, 303, 304, 305, 306
+    };
+
+    public static boolean isValidFloorTable(int tableNumber) {
+        for (int t : FLOOR_TABLES) {
+            if (t == tableNumber) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Trả về trạng thái hiển thị chi tiết của bàn:
+     * - "Chờ pha" (khi có đơn QUEUED / CREATED / CONFIRMED)
+     * - "Đang pha" (khi có đơn PREPARING)
+     * - "Đang dùng" (khi có đơn DONE / READY / SERVED hoặc trạng thái OCCUPIED / SERVING)
+     * - "Giữ bàn hẹn" (khi trạng thái RESERVED trong khung khoá 60 phút)
+     * - "Chờ dọn bàn" (khi trạng thái CLEANING)
+     * - "Sẵn sàng" (khi bàn trống hoàn toàn EMPTY / AVAILABLE)
+     */
+    public String getTableLiveDisplayStatus(int tableNumber) {
+        Order activeOrd = getCombinedOrderForTable(tableNumber);
+        if (activeOrd != null) {
+            String kdsSt = activeOrd.getStatus() != null ? activeOrd.getStatus().toUpperCase() : "QUEUED";
+            if ("QUEUED".equals(kdsSt) || "CREATED".equals(kdsSt) || "CONFIRMED".equals(kdsSt)) {
+                return "Chờ pha";
+            } else if ("PREPARING".equals(kdsSt)) {
+                return "Đang pha";
+            } else {
+                return "Đang dùng";
+            }
+        }
+        String st = getTableStatus(tableNumber);
+        if ("OCCUPIED".equalsIgnoreCase(st) || "SERVING".equalsIgnoreCase(st)) {
+            return "Đang dùng";
+        }
+        if ("RESERVED".equalsIgnoreCase(st)) {
+            return "Giữ bàn hẹn";
+        }
+        if ("CLEANING".equalsIgnoreCase(st)) {
+            return "Chờ dọn bàn";
+        }
+        return "Sẵn sàng";
+    }
+
+    /**
+     * Kiểm tra bàn có thực sự ở trạng thái "Sẵn sàng" (Trống) để cho phép khách đăng nhập mới hay không.
+     * Các trạng thái "Chờ pha", "Đang pha", "Đang dùng", "Giữ bàn hẹn", "Chờ dọn bàn" đều là bàn đang bận/đang có khách.
+     */
+    public boolean isTableReadyForCustomer(int tableNumber) {
+        return isValidFloorTable(tableNumber) && "Sẵn sàng".equals(getTableLiveDisplayStatus(tableNumber));
+    }
+
+    public java.util.List<Integer> getReadyTables() {
+        java.util.List<Integer> list = new java.util.ArrayList<>();
+        for (int t : FLOOR_TABLES) {
+            if (isTableReadyForCustomer(t)) {
+                list.add(t);
+            }
+        }
+        return list;
     }
 
     public String getTableStatus(int tableNumber) {

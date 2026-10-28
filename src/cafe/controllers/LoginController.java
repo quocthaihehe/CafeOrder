@@ -1,8 +1,11 @@
 package cafe.controllers;
 
+import cafe.models.Order;
 import cafe.models.StaffModel;
+import cafe.services.CafeServerService;
 import cafe.services.ClientSocketService;
 import cafe.services.DatabaseManager;
+import cafe.utils.CurrencyFormatter;
 import cafe.views.ClientView;
 import cafe.views.FloorPlanView;
 import cafe.views.LoginView;
@@ -19,7 +22,7 @@ public class LoginController {
     private final LoginView view;
     private final ClientSocketService socketService;
 
-    private int activeTableNumber = 5;
+    private int activeTableNumber = 2;
     private Timeline serverPollTimeline;
 
     public LoginController(Stage stage, LoginView view, ClientSocketService socketService) {
@@ -35,11 +38,45 @@ public class LoginController {
         view.getLoginButton().setOnAction(e -> handleLogin());
         view.getTableField().setOnAction(e -> handleLogin());
         view.getPasswordField().setOnAction(e -> handleLogin());
+
+        // Nút [ Sơ đồ bàn ] ở góc trên bên phải mở Popup Sơ đồ chọn bàn (740px)
+        view.getBtnOpenTableMap().setOnAction(e -> view.showTableMapPopup(stage, this::handleLogin));
+
+        // Xử lý khi người dùng bấm trực tiếp vào một bàn
+        view.setOnTableCardClicked(tableNum -> {
+            CafeServerService server = CafeServerService.getInstance();
+            String liveStatus = server.getTableLiveDisplayStatus(tableNum);
+            if ("Sẵn sàng".equals(liveStatus)) {
+                view.getAccountField().setText(String.valueOf(tableNum));
+                view.getPasswordField().setText("");
+                String tCode = tableNum < 10 ? "0" + tableNum : String.valueOf(tableNum);
+                view.showInfo("● Bàn " + tCode + " đang Sẵn sàng đón khách — Bấm [Đăng nhập] để mở thực đơn gọi món!");
+            } else {
+                Order activeOrd = server.getCombinedOrderForTable(tableNum);
+                CafeServerService.ReservationInfo resInfo = server.getReservation(tableNum);
+                view.showOccupiedTableNotice(tableNum, liveStatus, activeOrd, resInfo);
+                showTableOccupiedModal(tableNum, liveStatus, activeOrd, resInfo);
+            }
+        });
+
+        // Đồng bộ trực tiếp trạng thái bàn lên màn hình Login khi có thay đổi từ Server
+        CafeServerService.getInstance().setOnTableStatusBroadcasted((tbl, st) -> {
+            Platform.runLater(view::refreshTablePickerGrid);
+        });
+        CafeServerService.getInstance().setOnOrderStatusChanged((oid, st) -> {
+            Platform.runLater(view::refreshTablePickerGrid);
+        });
+        socketService.addTableStatusListener((tbl, st) -> {
+            Platform.runLater(view::refreshTablePickerGrid);
+        });
     }
 
     private void initServerStatus() {
         socketService.setOnConnectionStateChanged(connected -> {
-            Platform.runLater(() -> view.setServerStatus(connected, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort()));
+            Platform.runLater(() -> {
+                view.setServerStatus(connected, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
+                view.refreshTablePickerGrid();
+            });
         });
 
         socketService.setOnReconnectApproved(appMsg -> {
@@ -51,6 +88,7 @@ public class LoginController {
                 view.setServerStatus(true, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
                 view.setRetryButtonText("Thử lại");
                 view.getBtnRetryConnection().setDisable(false);
+                view.refreshTablePickerGrid();
             });
         });
 
@@ -95,6 +133,7 @@ public class LoginController {
                 Platform.runLater(() -> {
                     view.setServerStatus(ok, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
                     view.getBtnRetryConnection().setDisable(false);
+                    view.refreshTablePickerGrid();
                 });
             }, "Retry-Connect-Thread").start();
         });
@@ -103,6 +142,180 @@ public class LoginController {
 
         view.setServerStatus(socketService.isConnected(), cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
         startServerPoll();
+    }
+
+    /**
+     * Hiển thị Modal thông báo "Bàn đang có khách" kế thừa 100% ngôn ngữ thiết kế Brew & Bean (#FBF9F5 / #112823).
+     * Liệt kê rõ trạng thái hiện tại (Chờ pha / Đang pha / Đang dùng / Giữ bàn hẹn / Chờ dọn bàn)
+     * và gợi ý danh sách các bàn đang ở trạng thái "Sẵn sàng" để chọn nhanh 1 chạm.
+     */
+    private void showTableOccupiedModal(int tableNumber, String liveStatus, Order activeOrder, CafeServerService.ReservationInfo resInfo) {
+        Stage modal = new Stage();
+        if (stage != null) modal.initOwner(stage);
+        modal.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        modal.initStyle(javafx.stage.StageStyle.TRANSPARENT);
+        String tCode = tableNumber < 10 ? "0" + tableNumber : String.valueOf(tableNumber);
+        modal.setTitle("Thông Báo Bàn Đang Có Khách — Bàn " + tCode);
+
+        javafx.scene.layout.VBox card = new javafx.scene.layout.VBox(14);
+        card.setPrefWidth(480);
+        card.setPadding(new javafx.geometry.Insets(22));
+        card.setStyle(
+            "-fx-background-color: #FBF9F5; " +
+            "-fx-background-radius: 16px; " +
+            "-fx-border-color: #DED7CD; " +
+            "-fx-border-width: 1.5px; " +
+            "-fx-border-radius: 16px; " +
+            "-fx-effect: dropshadow(gaussian, rgba(17,40,35,0.24), 26, 0.18, 0, 8);"
+        );
+
+        // Header
+        javafx.scene.layout.HBox headerRow = new javafx.scene.layout.HBox(12);
+        headerRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+        javafx.scene.layout.StackPane iconWrap = new javafx.scene.layout.StackPane();
+        iconWrap.setPrefSize(44, 44);
+        iconWrap.setMinSize(44, 44);
+        iconWrap.setStyle("-fx-background-color: #172E27; -fx-background-radius: 12px;");
+        javafx.scene.Node tableIcon = cafe.utils.IconHelper.getIcon("staff", "so-do-ban.png", cafe.utils.SvgIcons.TABLE, "", 22, javafx.scene.paint.Color.web("#FCD34D"));
+        iconWrap.getChildren().add(tableIcon);
+
+        javafx.scene.layout.VBox titleCol = new javafx.scene.layout.VBox(3);
+        javafx.scene.control.Label lblTitle = new javafx.scene.control.Label("Bàn " + tCode + " hiện đang có khách!");
+        lblTitle.setStyle("-fx-font-family: 'Playfair Display', Georgia, serif; -fx-font-size: 20px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+        javafx.scene.control.Label lblSub = new javafx.scene.control.Label("Không thể đăng nhập mới vào bàn đang trong phiên phục vụ");
+        lblSub.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-text-fill: #6E675F;");
+        titleCol.getChildren().addAll(lblTitle, lblSub);
+        headerRow.getChildren().addAll(iconWrap, titleCol);
+
+        // Khối chi tiết trạng thái bàn đang bận (#172E27)
+        javafx.scene.layout.VBox statusBox = new javafx.scene.layout.VBox(8);
+        statusBox.setPadding(new javafx.geometry.Insets(14, 16, 14, 16));
+        statusBox.setStyle("-fx-background-color: #172E27; -fx-background-radius: 12px; -fx-border-color: #C8965A; -fx-border-radius: 12px; -fx-border-width: 1px;");
+
+        javafx.scene.layout.HBox badgeRow = new javafx.scene.layout.HBox(8);
+        badgeRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        javafx.scene.shape.Circle dot = new javafx.scene.shape.Circle(4.5);
+        String badgeTextColor;
+        if ("Chờ pha".equals(liveStatus)) {
+            dot.setFill(javafx.scene.paint.Color.web("#F59E0B"));
+            badgeTextColor = "#FCD34D";
+        } else if ("Đang pha".equals(liveStatus)) {
+            dot.setFill(javafx.scene.paint.Color.web("#38BDF8"));
+            badgeTextColor = "#93C5FD";
+        } else if ("Đang dùng".equals(liveStatus)) {
+            dot.setFill(javafx.scene.paint.Color.web("#22C55E"));
+            badgeTextColor = "#86EFAC";
+        } else {
+            dot.setFill(javafx.scene.paint.Color.web("#F59E0B"));
+            badgeTextColor = "#FDE68A";
+        }
+
+        javafx.scene.control.Label lblStTitle = new javafx.scene.control.Label("Trạng thái Bàn " + tCode + ": " + liveStatus.toUpperCase() + " (Đang có khách)");
+        lblStTitle.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 13px; -fx-font-weight: 800; -fx-text-fill: " + badgeTextColor + ";");
+        badgeRow.getChildren().addAll(dot, lblStTitle);
+
+        String infoDesc;
+        if (activeOrder != null) {
+            infoDesc = "Đơn hiện tại: #" + activeOrder.getOrderId() +
+                       " • Số lượng: " + activeOrder.getTotalQuantity() + " món" +
+                       " • Tạm tính: " + CurrencyFormatter.formatVND(activeOrder.getTotalAmount()) +
+                       "\n(Các trạng thái Chờ pha, Đang pha, Đang dùng đều thuộc bàn đang có khách sử dụng cho đến khi hoàn tất thanh toán trả bàn).";
+        } else if ("Giữ bàn hẹn".equals(liveStatus) && resInfo != null) {
+            infoDesc = "Khách đặt hẹn: " + resInfo.customerName + " (" + resInfo.phone + ") • Giờ hẹn: " + resInfo.reservationTime + " (" + resInfo.guestCount + " khách).";
+        } else {
+            infoDesc = "Bàn hiện đang phục vụ khách tại quán, vui lòng chọn các bàn có trạng thái ● Sẵn sàng.";
+        }
+
+        javafx.scene.control.Label lblOrderSummary = new javafx.scene.control.Label(infoDesc);
+        lblOrderSummary.setWrapText(true);
+        lblOrderSummary.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12px; -fx-text-fill: #E2D9CC;");
+        statusBox.getChildren().addAll(badgeRow, lblOrderSummary);
+
+        // Danh sách gợi ý các bàn Sẵn sàng để chọn nhanh
+        javafx.scene.control.Label lblSuggestPrompt = new javafx.scene.control.Label("Chọn nhanh bàn đang Sẵn sàng (Trống):");
+        lblSuggestPrompt.setStyle("-fx-font-family: 'Inter', sans-serif; -fx-font-size: 12.5px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+
+        javafx.scene.layout.FlowPane readyFlow = new javafx.scene.layout.FlowPane(8, 8);
+        java.util.List<Integer> readyTables = CafeServerService.getInstance().getReadyTables();
+        int shown = 0;
+        for (int rt : readyTables) {
+            if (shown >= 8) break;
+            String rtCode = rt < 10 ? "0" + rt : String.valueOf(rt);
+            javafx.scene.control.Button btnPick = new javafx.scene.control.Button("● Bàn " + rtCode + " (Sẵn sàng)");
+            btnPick.setStyle(
+                "-fx-background-color: #ECFDF5; " +
+                "-fx-border-color: #16A34A; " +
+                "-fx-border-radius: 8px; " +
+                "-fx-background-radius: 8px; " +
+                "-fx-text-fill: #15803D; " +
+                "-fx-font-family: 'Inter', sans-serif; " +
+                "-fx-font-size: 11.5px; " +
+                "-fx-font-weight: 800; " +
+                "-fx-padding: 6 11 6 11; " +
+                "-fx-cursor: hand;"
+            );
+            cafe.utils.AnimationHelper.applyButtonPress(btnPick);
+            final int chosenTable = rt;
+            btnPick.setOnAction(ev -> {
+                modal.close();
+                view.getAccountField().setText(String.valueOf(chosenTable));
+                view.getPasswordField().setText("");
+                view.showInfo("Đã chuyển sang Bàn " + rtCode + " (● Sẵn sàng) — Bấm [Đăng nhập] để gọi món!");
+            });
+            readyFlow.getChildren().add(btnPick);
+            shown++;
+        }
+
+        // Actions
+        javafx.scene.layout.HBox actions = new javafx.scene.layout.HBox(10);
+        actions.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+
+        javafx.scene.control.Button btnOpenMap = new javafx.scene.control.Button("Mở Sơ Đồ Bàn");
+        btnOpenMap.setGraphic(cafe.utils.IconHelper.getIcon("staff", "so-do-ban.png", cafe.utils.SvgIcons.TABLE, "", 15, javafx.scene.paint.Color.web("#112823")));
+        btnOpenMap.setStyle(
+            "-fx-background-color: #EDE6DB; " +
+            "-fx-text-fill: #112823; " +
+            "-fx-font-family: 'Inter', sans-serif; " +
+            "-fx-font-size: 13px; " +
+            "-fx-font-weight: 800; " +
+            "-fx-background-radius: 8px; " +
+            "-fx-padding: 9 16 9 16; " +
+            "-fx-cursor: hand;"
+        );
+        cafe.utils.AnimationHelper.applyButtonPress(btnOpenMap);
+        btnOpenMap.setOnAction(ev -> {
+            modal.close();
+            view.showTableMapPopup(stage, this::handleLogin);
+        });
+
+        javafx.scene.control.Button btnClose = new javafx.scene.control.Button("Đã hiểu, chọn bàn khác");
+        btnClose.setStyle(
+            "-fx-background-color: #112823; " +
+            "-fx-text-fill: #FFFFFF; " +
+            "-fx-font-family: 'Inter', sans-serif; " +
+            "-fx-font-size: 13px; " +
+            "-fx-font-weight: 800; " +
+            "-fx-background-radius: 8px; " +
+            "-fx-padding: 9 20 9 20; " +
+            "-fx-cursor: hand;"
+        );
+        cafe.utils.AnimationHelper.applyButtonPress(btnClose);
+        btnClose.setOnAction(ev -> modal.close());
+        actions.getChildren().addAll(btnOpenMap, btnClose);
+
+        card.getChildren().addAll(headerRow, statusBox, lblSuggestPrompt, readyFlow, actions);
+
+        cafe.utils.WindowChromeHelper.makeDraggable(modal, card);
+        javafx.scene.layout.StackPane wrap = new javafx.scene.layout.StackPane(card);
+        wrap.setPadding(new javafx.geometry.Insets(16));
+        wrap.setStyle("-fx-background-color: transparent;");
+        Scene scene = new Scene(wrap);
+        scene.setFill(javafx.scene.paint.Color.TRANSPARENT);
+        cafe.utils.WindowChromeHelper.applyTheme(scene);
+        modal.setScene(scene);
+        modal.show();
+        cafe.utils.AnimationHelper.playDialogEntrance(card);
     }
 
     private void showServerConfigModal() {
@@ -200,6 +413,7 @@ public class LoginController {
                     btnSaveConnect.setDisable(false);
                     btnSaveConnect.setText("Lưu & Kết nối ngay");
                     view.setServerStatus(ok, targetHost, targetPort, ok ? rtt : -1);
+                    view.refreshTablePickerGrid();
                     if (ok) {
                         view.clearError();
                         view.showInfo("Đã kết nối thành công tới Máy chủ " + targetHost + ":" + targetPort + " (RTT: " + rtt + "ms)");
@@ -236,10 +450,12 @@ public class LoginController {
                         boolean ok = socketService.tryConnectToServer();
                         Platform.runLater(() -> {
                             view.setServerStatus(ok, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
+                            view.refreshTablePickerGrid();
                         });
                     }, "Poll-Connect-Thread").start();
                 } else {
                     view.setServerStatus(true, cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
+                    view.refreshTablePickerGrid();
                 }
             })
         );
@@ -257,7 +473,7 @@ public class LoginController {
     private void handleLogin() {
         view.clearError();
 
-        // 1. Kiểm tra kết nối Máy chủ trung tâm (Port " + cafe.utils.NetworkConfig.getServerPort() + ")
+        // 1. Kiểm tra kết nối Máy chủ trung tâm
         if (!socketService.isConnected()) {
             boolean ok = socketService.tryConnectToServer();
             if (!ok) {
@@ -272,7 +488,7 @@ public class LoginController {
         String password = view.getPasswordField().getText().trim();
 
         if (account.isEmpty()) {
-            view.showError("Vui lòng nhập số bàn (1..12) hoặc tài khoản nhân viên!");
+            view.showError("Vui lòng chọn bàn Sẵn sàng (1..12, 201..208, 301..306) hoặc nhập tài khoản nhân viên!");
             return;
         }
 
@@ -288,17 +504,10 @@ public class LoginController {
 
         // =====================================================================
         // NHÁNH 1: KHÁCH HÀNG (CUSTOMER KIOSK TẠI BÀN)
-        // Điều kiện: Nhập số bàn (VD: "5", "Bàn 5", "1") và mật khẩu để trống hoặc trùng tên -> Vào thẳng Kiosk
+        // Điều kiện: Nhập số bàn và mật khẩu để trống hoặc trùng tên -> Kiểm tra bàn Sẵn sàng trước khi cho vào
         // =====================================================================
         if (potentialTable > 0 && (password.isEmpty() || password.equalsIgnoreCase(account))) {
-            boolean connected = socketService.connect(potentialTable);
-            if (connected) {
-                stopServerPoll();
-                this.activeTableNumber = potentialTable;
-                openCustomerMenu(potentialTable);
-            } else {
-                view.showError("Không thể kết nối đến quầy pha chế! Vui lòng kiểm tra lại Server.");
-            }
+            attemptCustomerTableLogin(potentialTable);
             return;
         }
 
@@ -328,18 +537,46 @@ public class LoginController {
             }
         }
 
-        // Nếu người dùng nhập số bàn nhưng có mật khẩu không khớp
+        // Nếu người dùng nhập số bàn nhưng có gõ mật khẩu bất kỳ
         if (potentialTable > 0) {
-            boolean connected = socketService.connect(potentialTable);
-            if (connected) {
-                stopServerPoll();
-                this.activeTableNumber = potentialTable;
-                openCustomerMenu(potentialTable);
-                return;
-            }
+            attemptCustomerTableLogin(potentialTable);
+            return;
         }
 
         view.showError("Tài khoản '" + account + "' không tồn tại trong hệ thống!");
+    }
+
+    /**
+     * Kiểm tra nghiêm ngặt trạng thái bàn trước khi cho phép Khách hàng đăng nhập Kiosk:
+     * - Chỉ cho phép đăng nhập khi bàn có trạng thái "Sẵn sàng".
+     * - Nếu bàn có trạng thái "Chờ pha", "Đang pha", "Đang dùng", "Giữ bàn hẹn" hoặc "Chờ dọn bàn",
+     *   hiển thị thông báo bàn đang có khách ngay trên UI đăng nhập (Card + Modal kế thừa thiết kế hệ thống).
+     */
+    private void attemptCustomerTableLogin(int tableNumber) {
+        if (!CafeServerService.isValidFloorTable(tableNumber)) {
+            view.showError("Bàn số " + tableNumber + " không tồn tại trong sơ đồ quán! (Tầng 1: 1..12, Tầng 2: 201..208, Tầng 3: 301..306)");
+            return;
+        }
+
+        CafeServerService server = CafeServerService.getInstance();
+        String liveStatus = server.getTableLiveDisplayStatus(tableNumber);
+
+        if (!"Sẵn sàng".equals(liveStatus)) {
+            Order activeOrd = server.getCombinedOrderForTable(tableNumber);
+            CafeServerService.ReservationInfo resInfo = server.getReservation(tableNumber);
+            view.showOccupiedTableNotice(tableNumber, liveStatus, activeOrd, resInfo);
+            showTableOccupiedModal(tableNumber, liveStatus, activeOrd, resInfo);
+            return;
+        }
+
+        boolean connected = socketService.connect(tableNumber);
+        if (connected) {
+            stopServerPoll();
+            this.activeTableNumber = tableNumber;
+            openCustomerMenu(tableNumber);
+        } else {
+            view.showError("Không thể kết nối đến quầy pha chế! Vui lòng kiểm tra lại Server.");
+        }
     }
 
     private int parseTableNumber(String input) {
@@ -353,7 +590,7 @@ public class LoginController {
     }
 
     /**
-     * MỞ MÀN HÌNH QUẢN TRỊ TRUNG TÂM (ADMIN / MANAGER POS - 10 PHÂN HỆ):
+     * MỞ MÀN HÌNH QUẢN TRỊ TRUNG TÂM (ADMIN / MANAGER POS):
      */
     private void openAdminDashboard(StaffModel staff) {
         cafe.services.CafeServerService serverService = cafe.services.CafeServerService.getInstance();
@@ -389,9 +626,6 @@ public class LoginController {
 
     /**
      * MỞ MÀN HÌNH KHÁCH HÀNG (CUSTOMER KIOSK TẠI BÀN):
-     * - Khóa cứng số bàn của khách.
-     * - ẨN NÚT "SƠ ĐỒ BÀN" (Khách không được xem sơ đồ quán và không thể đổi sang bàn khác).
-     * - Mở Live Order Tracker tại góc màn hình để theo dõi tiến độ Barista pha chế.
      */
     private void openCustomerMenu(int tableNumber) {
         this.activeTableNumber = tableNumber;
@@ -415,7 +649,6 @@ public class LoginController {
             clientView.getFloorPlanButton().setManaged(false);
         }
 
-        // Đăng xuất từ màn hình Kiosk Khách (Role 1)
         clientView.setOnLogout(() -> {
             socketService.disconnect();
             socketService.warmupConnectAsync();
@@ -439,8 +672,6 @@ public class LoginController {
 
     /**
      * MỞ MÀN HÌNH NHÂN VIÊN (UNIFIED STAFF POS SHELL / SƠ ĐỒ BÀN 3 TẦNG):
-     * - Giữ cố định thanh điều hướng 235px bên trái xuyên suốt cả 5 phân hệ (Bàn, Thực đơn, Đơn hàng, Thanh toán, Cài đặt).
-     * - Lắng nghe thay đổi trạng thái bàn từ Server để đổi màu bàn thời gian thực.
      */
     private void openFloorPlan(int initialTable, StaffModel staff) {
         this.activeTableNumber = initialTable;
@@ -545,6 +776,8 @@ public class LoginController {
     }
 
     private void returnToLoginView() {
+        view.clearError();
+        view.refreshTablePickerGrid();
         startServerPoll();
         view.setServerStatus(socketService.isConnected(), cafe.utils.NetworkConfig.getServerHost(), cafe.utils.NetworkConfig.getServerPort());
 
@@ -566,4 +799,3 @@ public class LoginController {
         view.setMaximizedMode(true);
     }
 }
-

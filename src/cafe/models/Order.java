@@ -21,6 +21,8 @@ public class Order {
     private String requestId;
     private List<String> timeline = new ArrayList<>();
     private boolean stockDeducted = false;
+    private String paymentMode = "PREPAID"; // "PREPAID" (Trả trước) or "POSTPAID" (Trả sau)
+    private String paymentMethod = "TIỀN MẶT";
 
     public Order() {}
 
@@ -199,4 +201,25 @@ public class Order {
         }
         return sb.toString();
     }
+
+    public String getPaymentMode() {
+        return paymentMode != null ? paymentMode : "PREPAID";
+    }
+
+    public void setPaymentMode(String paymentMode) {
+        this.paymentMode = paymentMode != null ? paymentMode.toUpperCase() : "PREPAID";
+    }
+
+    public boolean isPostpaid() {
+        return "POSTPAID".equalsIgnoreCase(paymentMode);
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod != null ? paymentMethod : "TIỀN MẶT";
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod != null ? paymentMethod : "TIỀN MẶT";
+    }
+
 }

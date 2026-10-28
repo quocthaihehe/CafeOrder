@@ -1,5 +1,6 @@
 package cafe.services;
 
+import cafe.models.CustomerFeedback;
 import cafe.models.MessageProtocol;
 import cafe.models.MessageType;
 import cafe.models.OrderItem;
@@ -324,14 +325,21 @@ public class ClientSocketService {
     }
 
     public boolean sendOrderWithKey(int tableNumber, String orderType, double discount, String voucherCode, String note, String idempotencyKey, String customerPhone, String customerName, List<OrderItem> items) {
+        return sendOrderWithPayment(tableNumber, orderType, discount, voucherCode, note, "PREPAID", "TIỀN MẶT", items);
+    }
+
+    public boolean sendOrderWithPayment(int tableNumber, String orderType, double discount, String voucherCode, String note,
+                                       String paymentMode, String paymentMethod, List<OrderItem> items) {
         if (!isConnected() || out == null || items == null || items.isEmpty()) {
             return false;
         }
         try {
-            String key = idempotencyKey != null ? idempotencyKey : UUID.randomUUID().toString();
+            String key = UUID.randomUUID().toString();
             MessageProtocol.NewOrderMessage msg = new MessageProtocol.NewOrderMessage(
-                tableNumber, orderType, discount, voucherCode, note, key, customerPhone, customerName, items
+                tableNumber, orderType, discount, voucherCode, note, key, null, null, items
             );
+            msg.paymentMode = paymentMode != null ? paymentMode : "PREPAID";
+            msg.paymentMethod = paymentMethod != null ? paymentMethod : "TIỀN MẶT";
             out.print(MessageProtocol.toJson(msg));
             out.flush();
             return true;
@@ -339,6 +347,22 @@ public class ClientSocketService {
             dispatch(() -> {
                 if (onErrorOccurred != null) onErrorOccurred.accept("Lỗi khi gửi đơn hàng: " + e.getMessage());
             });
+            return false;
+        }
+    }
+
+    public boolean sendCustomerFeedback(CustomerFeedback feedback) {
+        if (feedback == null) return false;
+        DatabaseManager.recordCustomerFeedback(feedback);
+        if (!isConnected() || out == null) {
+            return true;
+        }
+        try {
+            MessageProtocol.CustomerFeedbackMessage msg = new MessageProtocol.CustomerFeedbackMessage(feedback);
+            out.print(MessageProtocol.toJson(msg));
+            out.flush();
+            return true;
+        } catch (Exception e) {
             return false;
         }
     }
@@ -354,6 +378,12 @@ public class ClientSocketService {
 
                     final String rawJson = line;
                     switch (type) {
+                        case FEEDBACK_BROADCAST:
+                            MessageProtocol.FeedbackBroadcastMessage fbMsg = MessageProtocol.fromJson(rawJson, MessageProtocol.FeedbackBroadcastMessage.class);
+                            if (fbMsg != null && fbMsg.feedback != null) {
+                                DatabaseManager.recordCustomerFeedback(fbMsg.feedback);
+                            }
+                            break;
                         case ORDER_ACK:
                             MessageProtocol.OrderAckMessage ack = MessageProtocol.fromJson(rawJson, MessageProtocol.OrderAckMessage.class);
                             dispatch(() -> {

@@ -42,6 +42,8 @@ public class MessageProtocol {
         public String idempotencyKey;
         public String customerPhone;
         public String customerName;
+        public String paymentMode = "PREPAID"; // "PREPAID" (Trả trước) or "POSTPAID" (Trả sau)
+        public String paymentMethod = "TIỀN MẶT";
         public List<OrderItem> items;
 
         public NewOrderMessage(int table, List<OrderItem> items) {
@@ -73,6 +75,8 @@ public class MessageProtocol {
         public int position;
         public boolean persisted = false;
         public String storageMode = "IN_MEMORY"; // "DATABASE" hoac "IN_MEMORY"
+        public String paymentMode = "PREPAID";
+        public String paymentMethod = "TIỀN MẶT";
 
         public OrderAckMessage(int orderId, String status, int position) {
             this(orderId, status, position, false, "IN_MEMORY");
@@ -511,4 +515,25 @@ public class MessageProtocol {
             default: return rawStatus;
         }
     }
+
+    public static class CustomerFeedbackMessage {
+        public String type = MessageType.CUSTOMER_FEEDBACK.name();
+        public CustomerFeedback feedback;
+
+        public CustomerFeedbackMessage() {}
+        public CustomerFeedbackMessage(CustomerFeedback feedback) {
+            this.feedback = feedback;
+        }
+    }
+
+    public static class FeedbackBroadcastMessage {
+        public String type = MessageType.FEEDBACK_BROADCAST.name();
+        public CustomerFeedback feedback;
+
+        public FeedbackBroadcastMessage() {}
+        public FeedbackBroadcastMessage(CustomerFeedback feedback) {
+            this.feedback = feedback;
+        }
+    }
+
 }

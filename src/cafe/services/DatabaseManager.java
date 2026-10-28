@@ -127,6 +127,10 @@ public class DatabaseManager {
     private static final String STAFF_CONFIG_FILE = "config/staff_accounts.json";
     private static volatile long staffConfigFileLastModified = 0;
 
+    private static final String FEEDBACK_CONFIG_FILE = "config/customer_feedbacks.json";
+    private static final List<CustomerFeedback> feedbackList = new ArrayList<>();
+    private static volatile long feedbackConfigFileLastModified = 0;
+
     public static class StaffAccountRecord {
         public int staffId;
         public String username;
@@ -134,15 +138,27 @@ public class DatabaseManager {
         public String role;
         public String status;
         public String password;
+        public int ordersServed = 0;
+        public double customerRatingSum = 0.0;
+        public int customerRatingCount = 0;
+        public double managerRating = 5.0;
+        public String managerNote = "";
 
         public StaffAccountRecord() {}
-        public StaffAccountRecord(int staffId, String username, String fullName, String role, String status, String password) {
+        public StaffAccountRecord(int staffId, String username, String fullName, String role, String status, String password,
+                                  int ordersServed, double customerRatingSum, int customerRatingCount,
+                                  double managerRating, String managerNote) {
             this.staffId = staffId;
             this.username = username;
             this.fullName = fullName;
             this.role = role;
             this.status = status;
             this.password = password;
+            this.ordersServed = ordersServed;
+            this.customerRatingSum = customerRatingSum;
+            this.customerRatingCount = customerRatingCount;
+            this.managerRating = managerRating > 0 ? managerRating : 5.0;
+            this.managerNote = managerNote != null ? managerNote : "";
         }
     }
 
@@ -154,7 +170,8 @@ public class DatabaseManager {
             List<StaffAccountRecord> records = new ArrayList<>();
             for (StaffModel s : staffList) {
                 String pwd = staffPasswords.getOrDefault(s.getUsername().toLowerCase(), "123456");
-                records.add(new StaffAccountRecord(s.getStaffId(), s.getUsername(), s.getFullName(), s.getRole(), s.getStatus(), pwd));
+                records.add(new StaffAccountRecord(s.getStaffId(), s.getUsername(), s.getFullName(), s.getRole(), s.getStatus(), pwd,
+                        s.getOrdersServed(), s.getCustomerRatingSum(), s.getCustomerRatingCount(), s.getManagerRating(), s.getManagerNote()));
             }
             com.google.gson.Gson gson = new com.google.gson.GsonBuilder().setPrettyPrinting().create();
             try (FileOutputStream fos = new FileOutputStream(file);
@@ -184,7 +201,9 @@ public class DatabaseManager {
                     staffList.clear();
                     staffPasswords.clear();
                     for (StaffAccountRecord r : records) {
-                        staffList.add(new StaffModel(r.staffId, r.username, r.fullName, r.role, r.status));
+                        staffList.add(new StaffModel(r.staffId, r.username, r.fullName, r.role, r.status,
+                                r.ordersServed, r.customerRatingSum, r.customerRatingCount,
+                                r.managerRating > 0 ? r.managerRating : 5.0, r.managerNote));
                         if (r.password != null) {
                             staffPasswords.put(r.username.toLowerCase(), r.password);
                         }
@@ -256,12 +275,12 @@ public class DatabaseManager {
         staffList.clear();
         staffPasswords.clear();
 
-        addSeedStaff(1, "admin", "Nguyễn Minh Luân", "OWNER", "ACTIVE", "123456");
-        addSeedStaff(2, "manager", "Nguyễn Hoàng Khang", "MANAGER", "ACTIVE", "123456");
-        addSeedStaff(3, "cashier1", "Nguyễn Minh Luân", "CASHIER", "ACTIVE", "123456");
-        addSeedStaff(4, "waiter", "Lê Quốc Bảo", "WAITER", "ACTIVE", "123456");
-        addSeedStaff(5, "barista1", "Phạm Thu Hà", "BARISTA", "ACTIVE", "123456");
-        addSeedStaff(6, "barista2", "Đặng Gia Huy", "BARISTA", "ACTIVE", "123456");
+        addSeedStaff(1, "admin", "Nguyễn Minh Luân", "OWNER", "ACTIVE", "123456", 18, 88.0, 18, 5.0, "Điều hành quán chuyên nghiệp");
+        addSeedStaff(2, "manager", "Nguyễn Hoàng Khang", "MANAGER", "ACTIVE", "123456", 26, 125.0, 26, 4.9, "Quản lý ca trực tốt, thái độ chuẩn mực");
+        addSeedStaff(3, "cashier1", "Nguyễn Minh Luân", "CASHIER", "ACTIVE", "123456", 52, 255.0, 52, 4.8, "Thu ngân chính xác, đối soát doanh thu chuẩn");
+        addSeedStaff(4, "waiter", "Lê Quốc Bảo", "WAITER", "ACTIVE", "123456", 45, 216.0, 45, 4.8, "Nhanh nhẹn, chăm sóc bàn chu đáo, khách mến");
+        addSeedStaff(5, "barista1", "Phạm Thu Hà", "BARISTA", "ACTIVE", "123456", 64, 314.0, 64, 5.0, "Pha chế chuẩn vị, ra món đúng thời hạn");
+        addSeedStaff(6, "barista2", "Đặng Gia Huy", "BARISTA", "ACTIVE", "123456", 48, 225.0, 48, 4.6, "Nhiệt tình, cần tăng tốc độ lúc đông khách");
 
         ingredientsList.clear();
         // Đúng 25 nguyên vật liệu thực tế từ bảng Ingredients trong setup_database.sql
@@ -300,8 +319,9 @@ public class DatabaseManager {
         }
     }
 
-    private static void addSeedStaff(int id, String username, String fullName, String role, String status, String pwd) {
-        staffList.add(new StaffModel(id, username, fullName, role, status));
+    private static void addSeedStaff(int id, String username, String fullName, String role, String status, String pwd,
+                                     int orders, double cSum, int cCount, double mRate, String mNote) {
+        staffList.add(new StaffModel(id, username, fullName, role, status, orders, cSum, cCount, mRate, mNote));
         staffPasswords.put(username.toLowerCase(), pwd);
     }
 
@@ -829,4 +849,117 @@ public class DatabaseManager {
         stats.put("memberRate", 42.5);
         return stats;
     }
+
+    // =========================================================================
+    // 2.1. QUẢN LÝ KPI & Ý KIẾN ĐÁNH GIÁ TỪ KHÁCH HÀNG
+    // =========================================================================
+    public static synchronized void updateStaffManagerRating(int staffId, double managerRating, String managerNote) {
+        loadStaffAccounts();
+        for (StaffModel s : staffList) {
+            if (s.getStaffId() == staffId) {
+                s.setManagerRating(managerRating);
+                s.setManagerNote(managerNote);
+                saveStaffAccounts();
+                break;
+            }
+        }
+    }
+
+    public static synchronized void incrementStaffOrdersServed(String username) {
+        if (username == null || username.trim().isEmpty()) return;
+        loadStaffAccounts();
+        StaffModel s = findStaffByUsername(username);
+        if (s != null) {
+            s.incrementOrdersServed();
+            saveStaffAccounts();
+        }
+    }
+
+    public static synchronized void saveCustomerFeedbacks() {
+        try {
+            File dir = new File("config");
+            if (!dir.exists()) dir.mkdirs();
+            File file = new File(FEEDBACK_CONFIG_FILE);
+            com.google.gson.Gson gson = new com.google.gson.GsonBuilder().setPrettyPrinting().create();
+            try (FileOutputStream fos = new FileOutputStream(file);
+                 OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8)) {
+                gson.toJson(feedbackList, osw);
+            }
+            feedbackConfigFileLastModified = file.lastModified();
+        } catch (Exception ex) {
+            System.err.println("[DatabaseManager] Lỗi lưu customer_feedbacks.json: " + ex.getMessage());
+        }
+    }
+
+    public static synchronized void loadCustomerFeedbacks() {
+        File file = new File(FEEDBACK_CONFIG_FILE);
+        if (!file.exists() || !file.isFile()) {
+            if (feedbackList.isEmpty()) {
+                seedInitialFeedbacks();
+                saveCustomerFeedbacks();
+            }
+            return;
+        }
+        try {
+            long currentMod = file.lastModified();
+            if (currentMod <= feedbackConfigFileLastModified && !feedbackList.isEmpty()) {
+                return;
+            }
+            com.google.gson.Gson gson = new com.google.gson.Gson();
+            try (FileInputStream fis = new FileInputStream(file);
+                 InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.UTF_8)) {
+                java.lang.reflect.Type listType = new com.google.gson.reflect.TypeToken<List<CustomerFeedback>>(){}.getType();
+                List<CustomerFeedback> list = gson.fromJson(isr, listType);
+                if (list != null) {
+                    feedbackList.clear();
+                    feedbackList.addAll(list);
+                    feedbackConfigFileLastModified = currentMod;
+                }
+            }
+        } catch (Exception ex) {
+            System.err.println("[DatabaseManager] Lỗi nạp customer_feedbacks.json: " + ex.getMessage());
+        }
+    }
+
+    private static void seedInitialFeedbacks() {
+        long now = System.currentTimeMillis();
+        feedbackList.add(new CustomerFeedback("FB-101", 101, 2, "waiter", "Lê Quốc Bảo", 5,
+                Arrays.asList("Phục vụ nhanh", "Thân thiện"), "Bạn phục vụ Bảo rất nhiệt tình, chu đáo, nước ra nhanh!", now - 3600000));
+        feedbackList.add(new CustomerFeedback("FB-102", 102, 5, "barista1", "Phạm Thu Hà", 5,
+                Arrays.asList("Pha chế ngon", "Đúng yêu cầu"), "Cà phê muối béo ngậy đúng chuẩn vị, 10 điểm!", now - 7200000));
+        feedbackList.add(new CustomerFeedback("FB-103", 103, 1, "cashier1", "Nguyễn Minh Luân", 5,
+                Arrays.asList("Thân thiện", "Thanh toán nhanh"), "Thanh toán VietQR tiện lợi, anh thu ngân tươi cười lịch sự.", now - 14400000));
+        feedbackList.add(new CustomerFeedback("FB-104", 104, 3, "all", "Đội ngũ quán", 4,
+                Arrays.asList("Quán sạch đẹp", "Nhạc hay"), "Không gian thoáng mát, ngồi làm việc rất thích hợp.", now - 28800000));
+    }
+
+    public static synchronized List<CustomerFeedback> getAllCustomerFeedbacks() {
+        loadCustomerFeedbacks();
+        return new ArrayList<>(feedbackList);
+    }
+
+    public static synchronized void recordCustomerFeedback(CustomerFeedback fb) {
+        if (fb == null) return;
+        loadCustomerFeedbacks();
+        feedbackList.add(0, fb);
+        saveCustomerFeedbacks();
+
+        loadStaffAccounts();
+        String targetUser = fb.getStaffUsername();
+        if (targetUser != null && !targetUser.equalsIgnoreCase("all")) {
+            StaffModel s = findStaffByUsername(targetUser);
+            if (s != null) {
+                s.addCustomerRating(fb.getRating());
+                saveStaffAccounts();
+            }
+        } else {
+            for (StaffModel s : staffList) {
+                if ("WAITER".equalsIgnoreCase(s.getRole()) || "BARISTA".equalsIgnoreCase(s.getRole()) || "CASHIER".equalsIgnoreCase(s.getRole())) {
+                    s.addCustomerRating(fb.getRating());
+                }
+            }
+            saveStaffAccounts();
+        }
+    }
+
 }

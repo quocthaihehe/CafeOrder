@@ -5,7 +5,12 @@
     "fullName": "Nguyễn Minh Luân",
     "role": "OWNER",
     "status": "ACTIVE",
-    "password": "123456"
+    "password": "123456",
+    "ordersServed": 0,
+    "customerRatingSum": 0.0,
+    "customerRatingCount": 0,
+    "managerRating": 5.0,
+    "managerNote": ""
   },
   {
     "staffId": 2,
@@ -13,7 +18,12 @@
     "fullName": "Nguyễn Hoàng Khang",
     "role": "MANAGER",
     "status": "ACTIVE",
-    "password": "123456"
+    "password": "123456",
+    "ordersServed": 0,
+    "customerRatingSum": 0.0,
+    "customerRatingCount": 0,
+    "managerRating": 5.0,
+    "managerNote": ""
   },
   {
     "staffId": 3,
@@ -21,7 +31,12 @@
     "fullName": "Nguyễn Minh Luân",
     "role": "CASHIER",
     "status": "ACTIVE",
-    "password": "123456"
+    "password": "123456",
+    "ordersServed": 0,
+    "customerRatingSum": 3.0,
+    "customerRatingCount": 3,
+    "managerRating": 5.0,
+    "managerNote": ""
   },
   {
     "staffId": 4,
@@ -29,7 +44,12 @@
     "fullName": "Lê Quốc Bảo",
     "role": "WAITER",
     "status": "ACTIVE",
-    "password": "123456"
+    "password": "123456",
+    "ordersServed": 0,
+    "customerRatingSum": 3.0,
+    "customerRatingCount": 3,
+    "managerRating": 5.0,
+    "managerNote": ""
   },
   {
     "staffId": 5,
@@ -37,7 +57,12 @@
     "fullName": "Phạm Thu Hà",
     "role": "BARISTA",
     "status": "ACTIVE",
-    "password": "123456"
+    "password": "123456",
+    "ordersServed": 0,
+    "customerRatingSum": 3.0,
+    "customerRatingCount": 3,
+    "managerRating": 5.0,
+    "managerNote": ""
   },
   {
     "staffId": 6,
@@ -45,6 +70,11 @@
     "fullName": "Đặng Gia Huy",
     "role": "BARISTA",
     "status": "ACTIVE",
-    "password": "123456"
+    "password": "123456",
+    "ordersServed": 0,
+    "customerRatingSum": 3.0,
+    "customerRatingCount": 3,
+    "managerRating": 5.0,
+    "managerNote": ""
   }
 ]

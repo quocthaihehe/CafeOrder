@@ -1,0 +1,91 @@
+[
+  {
+    "feedbackId": "FB-205ddbac",
+    "orderId": 1021,
+    "tableNumber": 5,
+    "staffUsername": "all",
+    "staffFullName": "Đội ngũ quán",
+    "rating": 1,
+    "tags": [],
+    "comment": "",
+    "timestamp": 1793179668453
+  },
+  {
+    "feedbackId": "FB-205ddbac",
+    "orderId": 1021,
+    "tableNumber": 5,
+    "staffUsername": "all",
+    "staffFullName": "Đội ngũ quán",
+    "rating": 1,
+    "tags": [],
+    "comment": "",
+    "timestamp": 1793179668453
+  },
+  {
+    "feedbackId": "FB-205ddbac",
+    "orderId": 1021,
+    "tableNumber": 5,
+    "staffUsername": "all",
+    "staffFullName": "Đội ngũ quán",
+    "rating": 1,
+    "tags": [],
+    "comment": "",
+    "timestamp": 1793179668453
+  },
+  {
+    "feedbackId": "FB-101",
+    "orderId": 101,
+    "tableNumber": 2,
+    "staffUsername": "waiter",
+    "staffFullName": "Lê Quốc Bảo",
+    "rating": 5,
+    "tags": [
+      "Phục vụ nhanh",
+      "Thân thiện"
+    ],
+    "comment": "Bạn phục vụ Bảo rất nhiệt tình, chu đáo, nước ra nhanh!",
+    "timestamp": 1793175932403
+  },
+  {
+    "feedbackId": "FB-102",
+    "orderId": 102,
+    "tableNumber": 5,
+    "staffUsername": "barista1",
+    "staffFullName": "Phạm Thu Hà",
+    "rating": 5,
+    "tags": [
+      "Pha chế ngon",
+      "Đúng yêu cầu"
+    ],
+    "comment": "Cà phê muối béo ngậy đúng chuẩn vị, 10 điểm!",
+    "timestamp": 1793172332403
+  },
+  {
+    "feedbackId": "FB-103",
+    "orderId": 103,
+    "tableNumber": 1,
+    "staffUsername": "cashier1",
+    "staffFullName": "Nguyễn Minh Luân",
+    "rating": 5,
+    "tags": [
+      "Thân thiện",
+      "Thanh toán nhanh"
+    ],
+    "comment": "Thanh toán VietQR tiện lợi, anh thu ngân tươi cười lịch sự.",
+    "timestamp": 1793165132403
+  },
+  {
+    "feedbackId": "FB-104",
+    "orderId": 104,
+    "tableNumber": 3,
+    "staffUsername": "all",
+    "staffFullName": "Đội ngũ quán",
+    "rating": 4,
+    "tags": [
+      "Quán sạch đẹp",
+      "Nhạc hay"
+    ],
+    "comment": "Không gian thoáng mát, ngồi làm việc rất thích hợp.",
+    "timestamp": 1793150732403
+  }
+]

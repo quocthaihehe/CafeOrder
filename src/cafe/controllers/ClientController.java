@@ -1,5 +1,7 @@
 package cafe.controllers;
 
+import cafe.views.CustomerFeedbackDialog;
+
 import cafe.models.*;
 import cafe.models.MenuItem;
 import cafe.services.ClientSocketService;
@@ -122,6 +124,7 @@ public class ClientController {
                 activeCartDialog.close();
             }
 
+            String payStatus = "TRẢ SAU TẠI BÀN".equalsIgnoreCase(finalMethod) ? "CHỜ THANH TOÁN (TRẢ SAU)" : "ĐÃ THANH TOÁN";
             OrderSuccessDialog.ReceiptData receiptData = new OrderSuccessDialog.ReceiptData(
                 confirmedOrderId,
                 tableNumber,
@@ -133,7 +136,7 @@ public class ClientController {
                 snapshotVoucher,
                 finalTotal,
                 finalMethod,
-                "ĐÃ THANH TOÁN",
+                payStatus,
                 "Kiosk Tự Phục Vụ #01"
             );
 
@@ -145,7 +148,8 @@ public class ClientController {
                 () -> {
                     view.highlightActiveOrderBox();
                     view.showToast("⏱ Đang theo dõi Đơn #" + confirmedOrderId + " • Trạng thái: " + translatedStatus);
-                }
+                },
+                () -> openFeedbackDialog(confirmedOrderId)
             );
             successDialog.show();
         });
@@ -381,22 +385,35 @@ public class ClientController {
 
     private void submitOrder(String paymentMethod) {
         String customNote = cartModel.getOrderNote() != null ? cartModel.getOrderNote().trim() : "";
+        boolean isPostpaid = "TRẢ SAU TẠI BÀN".equalsIgnoreCase(paymentMethod);
+        String paymentMode = isPostpaid ? "POSTPAID" : "PREPAID";
         String fullNote = customNote.isEmpty()
             ? "Thanh toán: " + paymentMethod
             : customNote + " • TT: " + paymentMethod;
 
-        boolean sent = socketService.sendOrder(
+        boolean sent = socketService.sendOrderWithPayment(
             tableNumber,
             cartModel.getOrderType(),
             cartModel.getDiscountAmount(),
             cartModel.getAppliedVoucher() != null ? cartModel.getAppliedVoucher().getCode() : null,
             fullNote,
+            paymentMode,
+            paymentMethod,
             new ArrayList<>(cartModel.getItems())
         );
 
         if (sent) {
-            view.showToast("Đang gửi đơn tới quầy pha chế...");
+            if (isPostpaid) {
+                view.showToast("Đã gửi đơn gọi món (Trả sau) tới quầy pha chế!");
+            } else {
+                view.showToast("Đã thanh toán và gửi đơn tới quầy pha chế!");
+            }
         }
+    }
+
+    public void openFeedbackDialog(int orderId) {
+        CustomerFeedbackDialog fbDialog = new CustomerFeedbackDialog(primaryStage, tableNumber, orderId, socketService, view::showToast);
+        fbDialog.show();
     }
 
     public void setTableNumber(int newTable) {

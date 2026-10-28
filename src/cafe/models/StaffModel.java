@@ -7,12 +7,30 @@ public class StaffModel {
     private String role; // "OWNER", "MANAGER", "CASHIER", "BARISTA", "WAITER"
     private String status;
 
+    // --- KPI & ĐÁNH GIÁ 2 CHIỀU ---
+    private int ordersServed = 0;
+    private double customerRatingSum = 0.0;
+    private int customerRatingCount = 0;
+    private double managerRating = 5.0; // Điểm Quản lý chấm (thang 5.0)
+    private String managerNote = "Thực hiện tốt nhiệm vụ ca trực";
+
     public StaffModel(int staffId, String username, String fullName, String role, String status) {
+        this(staffId, username, fullName, role, status, 0, 0.0, 0, 5.0, "Thực hiện tốt nhiệm vụ ca trực");
+    }
+
+    public StaffModel(int staffId, String username, String fullName, String role, String status,
+                      int ordersServed, double customerRatingSum, int customerRatingCount,
+                      double managerRating, String managerNote) {
         this.staffId = staffId;
         this.username = username;
         this.fullName = fullName;
         this.role = role != null ? role.toUpperCase() : "CASHIER";
         this.status = status != null ? status : "ACTIVE";
+        this.ordersServed = Math.max(0, ordersServed);
+        this.customerRatingSum = Math.max(0.0, customerRatingSum);
+        this.customerRatingCount = Math.max(0, customerRatingCount);
+        this.managerRating = managerRating > 0 ? managerRating : 5.0;
+        this.managerNote = managerNote != null ? managerNote : "";
     }
 
     public int getStaffId() {
@@ -64,5 +82,71 @@ public class StaffModel {
 
     public void setStatus(String status) {
         if (status != null) this.status = status;
+    }
+
+    // --- KPI GETTERS & SETTERS ---
+    public int getOrdersServed() {
+        return ordersServed;
+    }
+
+    public void setOrdersServed(int ordersServed) {
+        this.ordersServed = Math.max(0, ordersServed);
+    }
+
+    public void incrementOrdersServed() {
+        this.ordersServed++;
+    }
+
+    public double getCustomerRatingSum() {
+        return customerRatingSum;
+    }
+
+    public int getCustomerRatingCount() {
+        return customerRatingCount;
+    }
+
+    public void addCustomerRating(int stars) {
+        if (stars >= 1 && stars <= 5) {
+            this.customerRatingSum += stars;
+            this.customerRatingCount++;
+        }
+    }
+
+    public double getAverageCustomerRating() {
+        if (customerRatingCount == 0) return 5.0;
+        return Math.round((customerRatingSum / customerRatingCount) * 10.0) / 10.0;
+    }
+
+    public double getManagerRating() {
+        return managerRating;
+    }
+
+    public void setManagerRating(double managerRating) {
+        this.managerRating = Math.max(1.0, Math.min(5.0, managerRating));
+    }
+
+    public String getManagerNote() {
+        return managerNote;
+    }
+
+    public void setManagerNote(String managerNote) {
+        this.managerNote = managerNote != null ? managerNote : "";
+    }
+
+    /**
+     * Điểm KPI Tổng hợp trọng số: 50% Khách hàng đánh giá + 50% Quản lý chấm
+     */
+    public double getOverallKpiScore() {
+        double cust = getAverageCustomerRating();
+        double score = (cust * 0.5) + (managerRating * 0.5);
+        return Math.round(score * 10.0) / 10.0;
+    }
+
+    public String getKpiRank() {
+        double score = getOverallKpiScore();
+        if (score >= 4.7) return "Xuất sắc (A+)";
+        if (score >= 4.0) return "Tốt (A)";
+        if (score >= 3.0) return "Đạt (B)";
+        return "Cần cải thiện (C)";
     }
 }

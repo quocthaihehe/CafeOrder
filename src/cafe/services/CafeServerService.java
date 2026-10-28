@@ -1011,13 +1011,20 @@ public class CafeServerService {
                             "Bàn " + orderMsg.table,
                             idempKey != null ? idempKey : UUID.randomUUID().toString()
                         );
+                        newOrder.setPaymentMode(orderMsg.paymentMode != null ? orderMsg.paymentMode : "PREPAID");
+                        newOrder.setPaymentMethod(orderMsg.paymentMethod != null ? orderMsg.paymentMethod : "TIỀN MẶT");
+                        if (newOrder.isPostpaid()) {
+                            newOrder.setStatus("WAITING_PAYMENT");
+                        }
                         activeOrders.put(newOrderId, newOrder);
-                        log("Nhận Đơn hàng #" + newOrderId + " (" + newOrder.getOrderTypeLabel() + ") - Bàn " + orderMsg.table + " (" + newOrder.getTotalQuantity() + " món).");
+                        log("Nhận Đơn hàng #" + newOrderId + " (" + newOrder.getOrderTypeLabel() + ") - Bàn " + orderMsg.table + " [" + newOrder.getPaymentMode() + " • " + newOrder.getPaymentMethod() + "].");
 
                         // 1. Phản hồi ORDER_ACK siêu tốc (<1ms) ngay lập tức về Kiosk
                         boolean isDbReady = DatabaseManager.isAvailable();
                         String storageMode = isDbReady ? "DATABASE" : "IN_MEMORY";
                         MessageProtocol.OrderAckMessage ack = new MessageProtocol.OrderAckMessage(newOrderId, "QUEUED", activeOrders.size(), isDbReady, storageMode);
+                        ack.paymentMode = newOrder.getPaymentMode();
+                        ack.paymentMethod = newOrder.getPaymentMethod();
                         session.send(MessageProtocol.toJson(ack));
 
                         // 2. Bắn sự kiện tức thì lên giao diện KDS Bar và Dashboard Admin
@@ -1045,6 +1052,19 @@ public class CafeServerService {
                                 dbRetryQueue.offer(orderToSave);
                             }
                         });
+                        break;
+
+                    case CUSTOMER_FEEDBACK:
+                        MessageProtocol.CustomerFeedbackMessage fbMsg = MessageProtocol.fromJson(line, MessageProtocol.CustomerFeedbackMessage.class);
+                        if (fbMsg != null && fbMsg.feedback != null) {
+                            DatabaseManager.recordCustomerFeedback(fbMsg.feedback);
+                            log("⭐ [FEEDBACK] Nhận đánh giá từ Bàn " + fbMsg.feedback.getTableNumber() + ": " + fbMsg.feedback.getRating() + " sao.");
+                            MessageProtocol.FeedbackBroadcastMessage fbBroad = new MessageProtocol.FeedbackBroadcastMessage(fbMsg.feedback);
+                            String fbJson = MessageProtocol.toJson(fbBroad);
+                            for (ClientSession sess : activeSessions.values()) {
+                                sess.send(fbJson);
+                            }
+                        }
                         break;
 
                     default:

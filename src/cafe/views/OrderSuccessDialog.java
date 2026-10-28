@@ -76,6 +76,7 @@ public class OrderSuccessDialog extends Stage {
     private final ReceiptData receipt;
     private final Runnable onDismiss;
     private final Runnable onTrackOrder;
+    private final Runnable onFeedback;
 
     public OrderSuccessDialog(Stage parentStage, int orderId, int tableNumber, double totalAmount, String paymentMethod, Runnable onDismiss) {
         this(
@@ -125,9 +126,14 @@ public class OrderSuccessDialog extends Stage {
     }
 
     public OrderSuccessDialog(Stage parentStage, ReceiptData receipt, Runnable onDismiss, Runnable onTrackOrder) {
+        this(parentStage, receipt, onDismiss, onTrackOrder, null);
+    }
+
+    public OrderSuccessDialog(Stage parentStage, ReceiptData receipt, Runnable onDismiss, Runnable onTrackOrder, Runnable onFeedback) {
         this.receipt = receipt;
         this.onDismiss = onDismiss;
         this.onTrackOrder = onTrackOrder != null ? onTrackOrder : onDismiss;
+        this.onFeedback = onFeedback;
 
         if (parentStage != null) {
             initOwner(parentStage);
@@ -185,7 +191,8 @@ public class OrderSuccessDialog extends Stage {
         iconCircle.getChildren().add(checkIcon);
         VBox.setMargin(iconCircle, new Insets(-12, 0, 0, 0));
 
-        Label lblSuccessTitle = new Label("THANH TOÁN THÀNH CÔNG");
+        boolean isPostpaid = receipt.paymentStatus != null && receipt.paymentStatus.toUpperCase().contains("TRẢ SAU");
+        Label lblSuccessTitle = new Label(isPostpaid ? "GỌI MÓN THÀNH CÔNG (TRẢ SAU)" : "THANH TOÁN THÀNH CÔNG");
         lblSuccessTitle.setStyle(STYLE_BOLD);
 
         topHeaderBox.getChildren().addAll(closeBar, iconCircle, lblSuccessTitle);
@@ -386,7 +393,30 @@ public class OrderSuccessDialog extends Stage {
             }
         });
 
-        actionButtonsRow.getChildren().addAll(btnTrack, btnBackMenu);
+        Button btnFeedback = new Button("⭐ Đánh giá");
+        btnFeedback.setPrefHeight(40);
+        btnFeedback.setStyle(
+            "-fx-background-color: #FEF3C7; " +
+            "-fx-text-fill: #92400E; " +
+            "-fx-font-family: 'Inter', sans-serif; " +
+            "-fx-font-size: 13px; " +
+            "-fx-font-weight: 700; " +
+            "-fx-background-radius: 8px; " +
+            "-fx-cursor: hand; " +
+            "-fx-border-color: #FCD34D; " +
+            "-fx-border-radius: 8px;"
+        );
+        AnimationHelper.applyButtonPress(btnFeedback);
+        btnFeedback.setOnAction(e -> {
+            close();
+            if (onFeedback != null) onFeedback.run();
+        });
+
+        if (onFeedback != null) {
+            actionButtonsRow.getChildren().addAll(btnTrack, btnFeedback, btnBackMenu);
+        } else {
+            actionButtonsRow.getChildren().addAll(btnTrack, btnBackMenu);
+        }
 
         root.getChildren().addAll(topHeaderBox, receiptCanvas, actionButtonsRow);
 

@@ -1,5 +1,6 @@
 package cafe.views;
 
+import cafe.services.DatabaseManager;
 import cafe.controllers.ClientController;
 import cafe.models.Order;
 import cafe.models.OrderItem;
@@ -832,6 +833,13 @@ public class FloorPlanView extends BorderPane {
                 totalsBox.getChildren().add(createSummaryRow("Giảm giá:", "-" + CurrencyFormatter.formatVND(combinedOrder.getDiscountAmount()), false));
             }
             totalsBox.getChildren().add(createSummaryRow("TỔNG THANH TOÁN:", CurrencyFormatter.formatVND(combinedOrder.getTotalAmount()), true));
+
+            boolean anyPostpaid = combinedOrder != null && combinedOrder.isPostpaid();
+            Label lblPayStatusBadge = new Label(anyPostpaid ? "⚠ CHẾ ĐỘ TRẢ SAU • CHỜ THANH TOÁN KHI VỀ" : "✔ ĐÃ THANH TOÁN TRƯỚC TẠI KIOSK/QUẦY");
+            lblPayStatusBadge.setStyle(anyPostpaid
+                ? "-fx-font-size: 11px; -fx-font-weight: 800; -fx-text-fill: #B45309; -fx-background-color: #FEF3C7; -fx-padding: 3 8; -fx-background-radius: 4px;"
+                : "-fx-font-size: 11px; -fx-font-weight: 800; -fx-text-fill: #15803D; -fx-background-color: #DCFCE7; -fx-padding: 3 8; -fx-background-radius: 4px;");
+            totalsBox.getChildren().add(lblPayStatusBadge);
             itemsBox.getChildren().add(totalsBox);
 
             inspectorContentBox.getChildren().add(itemsBox);
@@ -858,7 +866,9 @@ public class FloorPlanView extends BorderPane {
             final Order orderToPrint = combinedOrder;
             btnPrintTemp.setOnAction(e -> OrderSuccessDialog.showReceiptForOrder(parentStage, orderToPrint, lblStaffName.getText()));
 
-            Button btnCheckout = createInspectorButton("💳 Thanh toán & Trả bàn trống", "#15803D", "#FFFFFF");
+            Button btnCheckout = anyPostpaid
+                ? createInspectorButton("💳 Thu tiền & Trả bàn trống", "#15803D", "#FFFFFF")
+                : createInspectorButton("✔ Trả bàn trống (Đã thanh toán trước)", "#112823", "#FFFFFF");
             btnCheckout.setOnAction(e -> switchStaffTab("BILLING"));
 
             actionsBox.getChildren().addAll(btnAddMore, rowTransferMerge, btnPrintTemp, btnCheckout);
@@ -1221,6 +1231,9 @@ VBox summaryBox = new VBox(6);
                 OrderSuccessDialog.showReceiptForOrder(parentStage, currentOrder, lblStaffName.getText());
                 server.checkoutTable(selectedTable);
                 tableStatusMap.put(selectedTable, "EMPTY");
+                if (currentStaff != null) {
+                    DatabaseManager.incrementStaffOrdersServed(currentStaff.getUsername());
+                }
                 showStaffToast("Đã thanh toán thành công " + tblLabel + " và giải phóng bàn trống!");
                 switchStaffTab("FLOOR");
             });

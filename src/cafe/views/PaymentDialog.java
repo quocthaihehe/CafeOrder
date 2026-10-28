@@ -49,6 +49,7 @@ public class PaymentDialog extends Stage {
     private String selectedMethod = "VIETQR"; // Mặc định chọn VietQR
     private final List<HBox> methodCards = new ArrayList<>();
     private final StackPane rightDetailPane = new StackPane();
+    private Label lblConfirmAction;
 
     public PaymentDialog(Stage parentStage, int tableNumber, CartModel cartModel, Consumer<String> onConfirmed) {
         this.tableNumber = tableNumber;
@@ -126,11 +127,13 @@ public class PaymentDialog extends Stage {
         HBox cardQR = createMethodCard("Quét mã VietQR (MB Bank)", "thanh-toan-qr.png", SvgIcons.CREDIT_CARD, "📱", true, "VIETQR");
         HBox cardCash = createMethodCard("Tiền mặt tại quầy", "tien-mat.png", SvgIcons.CASH, "💵", false, "TIỀN MẶT");
         HBox cardWallet = createMethodCard("Ví điện tử / Thẻ POS", "thanh-toan.png", SvgIcons.WALLET, "💳", false, "VÍ ĐIỆN TỬ");
+        HBox cardPostpaid = createMethodCard("Thanh toán sau (Trả sau tại bàn)", "thanh-toan.png", SvgIcons.WALLET, "🧾", false, "TRẢ SAU TẠI BÀN");
 
         methodCards.add(cardQR);
         methodCards.add(cardCash);
         methodCards.add(cardWallet);
-        methodsBox.getChildren().addAll(cardQR, cardCash, cardWallet);
+        methodCards.add(cardPostpaid);
+        methodsBox.getChildren().addAll(cardQR, cardCash, cardWallet, cardPostpaid);
 
         // Bảng tính tiền chuẩn hóa font số
         VBox summaryBox = new VBox(6);
@@ -182,7 +185,8 @@ public class PaymentDialog extends Stage {
         HBox confirmGraphic = new HBox(8);
         confirmGraphic.setAlignment(Pos.CENTER);
         Node confirmIcon = cafe.utils.IconHelper.getIcon("client", "dong-y-dat.png", null, "✔", 16, Color.WHITE);
-        Label lblConfirm = new Label("Xác nhận thanh toán");
+        this.lblConfirmAction = new Label("Xác nhận thanh toán ngay");
+        Label lblConfirm = this.lblConfirmAction;
         lblConfirm.setStyle(FONT_FAMILY + " -fx-text-fill: #FFFFFF; -fx-font-size: 13.5px; -fx-font-weight: 700;");
         confirmGraphic.getChildren().addAll(confirmIcon, lblConfirm);
         btnConfirm.setGraphic(confirmGraphic);
@@ -262,10 +266,16 @@ public class PaymentDialog extends Stage {
             rightDetailPane.getChildren().clear();
             if ("VIETQR".equalsIgnoreCase(methodKey)) {
                 rightDetailPane.getChildren().add(buildVietQrDetailPanel());
+                if (lblConfirmAction != null) lblConfirmAction.setText("Xác nhận thanh toán ngay");
             } else if ("VÍ ĐIỆN TỬ".equalsIgnoreCase(methodKey)) {
                 rightDetailPane.getChildren().add(buildWalletDetailPanel());
+                if (lblConfirmAction != null) lblConfirmAction.setText("Xác nhận thanh toán ngay");
+            } else if ("TRẢ SAU TẠI BÀN".equalsIgnoreCase(methodKey)) {
+                rightDetailPane.getChildren().add(buildPostpaidDetailPanel());
+                if (lblConfirmAction != null) lblConfirmAction.setText("Xác nhận gọi món (Thanh toán sau)");
             } else {
                 rightDetailPane.getChildren().add(buildCashDetailPanel());
+                if (lblConfirmAction != null) lblConfirmAction.setText("Xác nhận thanh toán ngay");
             }
         });
 
@@ -468,4 +478,36 @@ public class PaymentDialog extends Stage {
             pause.play();
         } catch (Exception ignored) {}
     }
+
+    private VBox buildPostpaidDetailPanel() {
+        VBox box = new VBox(12);
+        box.setAlignment(Pos.CENTER);
+        box.setPadding(new Insets(20));
+        box.setStyle("-fx-background-color: #F8FAF9; -fx-background-radius: 12px; -fx-border-color: #D1E5DE; -fx-border-radius: 12px; -fx-border-width: 1px;");
+        VBox.setVgrow(box, Priority.ALWAYS);
+
+        Label lblBadge = new Label("CHẾ ĐỘ TRẢ SAU • GHI NỢ THEO BÀN");
+        lblBadge.setStyle(FONT_FAMILY + " -fx-background-color: #DEF7EC; -fx-text-fill: #03543F; -fx-font-size: 11px; -fx-font-weight: 800; -fx-padding: 4 10; -fx-background-radius: 20px;");
+
+        Label lblIcon = new Label("🧾");
+        lblIcon.setStyle("-fx-font-size: 40px;");
+
+        Label lblTipTitle = new Label("Thanh toán khi rời quán");
+        lblTipTitle.setStyle(FONT_FAMILY + " -fx-font-size: 15px; -fx-font-weight: 800; -fx-text-fill: #112823;");
+
+        Label lblTipDesc = new Label("• Đơn hàng được gửi thẳng đến Quầy pha chế để làm ngay.\n• Bạn có thể gọi thêm món bất cứ lúc nào trong buổi dùng.\n• Khi chuẩn bị về, vui lòng báo nhân viên hoặc tới quầy thu ngân để thanh toán tổng bill 1 lần duy nhất.");
+        lblTipDesc.setWrapText(true);
+        lblTipDesc.setStyle(STYLE_LABEL + " -fx-font-size: 11.5px; -fx-line-spacing: 4px; -fx-text-fill: #374151;");
+
+        HBox tblBox = new HBox(6);
+        tblBox.setAlignment(Pos.CENTER);
+        tblBox.setStyle("-fx-background-color: #FFFFFF; -fx-padding: 8 16; -fx-background-radius: 8px; -fx-border-color: #E5E7EB; -fx-border-radius: 8px;");
+        Label lblTblNote = new Label("Bàn phục vụ: " + (tableNumber <= 0 ? "Mang về" : "Bàn " + (tableNumber < 10 ? "0" + tableNumber : tableNumber)));
+        lblTblNote.setStyle(FONT_FAMILY + " -fx-font-size: 12.5px; -fx-font-weight: 700; -fx-text-fill: #112823;");
+        tblBox.getChildren().add(lblTblNote);
+
+        box.getChildren().addAll(lblBadge, lblIcon, lblTipTitle, lblTipDesc, tblBox);
+        return box;
+    }
+
 }
